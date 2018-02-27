@@ -15,8 +15,11 @@ In this repository is included:
 nftlb uses a quite new technology that requires:
 
 [nf-next](git://git.kernel.org/pub/scm/linux/kernel/git/pablo/nf-next.git): Latest kernel with the new netfilter developments
+
 [nftables](git://git.netfilter.org/nftables): Latest nftables developments, and its dependencies (libgmp, libmnl and libnftnl). Currently, libnftables is built in static mode so it's required to be installed in the same path than the nftlb folder.
+
 libev: Events library for the web service
+
 libjansson: JSON parser for the API
 
 ## Installation
@@ -34,12 +37,19 @@ Check out the command help:
 Here is the list of options:
 
 *[ -h | --help ]*: Show the command help.
+
 *[ -l <LEVEL> | --log <LEVEL> ]*: The logs will be shown in the syslog file and with this option you can change the loglevel from 0 to 7 (5 by default).
+
 *[ -c <FILE> | --config <FILE> ]*: Initial configuration file, this argument is optional.
+
 *[ -k <KEY> | --key <KEY> ]*: The authentication key for the web service can be set by command line, or automatically generated. If it's automatically generated, it'll be shown by command line.
+
 *[ -e | --exit ]*: This option executes the configuration file into nftables rules and then exit, so the web server won't be available.
+
 *[ -6 | --ipv6 ]*: Enable IPv6 support for the web service listening port.
+
 *[ -H <HOST> | --host <HOST> ]*: Set the host for the web service (all interfaces by default).
+
 *[ -P <PORT> | --port <PORT> ]*: Set the TCP port for the web service (5555 by default). 
 
 
