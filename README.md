@@ -1,2 +1,122 @@
-# nftlb
-nftables load balancer
+# [nftlb](https://www.zevenet.com/knowledge-base/nftlb)
+**nftlb** stands for **nftables load balancer**, the next generation linux firewall that will replace iptables is adapted to behave as a complete load balancer and traffic distributor.
+
+nftlb is provided with a JSON API, so you can use your preferred health checker to enable/disable backends or virtual services and automate processed with it.
+
+More info: [What is nftlb?](https://www.zevenet.com/knowledge-base/nftlb/what-is-nftlb/)
+
+## Repository Contents
+In this repository is included:
+- **src/**: main source code files
+- **include/**: include files
+- **tests/**: automated testbed suite with example configuration files and the script *exec_tests.sh* to run all of them.
+
+## Requirements
+nftlb uses a quite new technology that requires:
+
+[nf-next](git://git.kernel.org/pub/scm/linux/kernel/git/pablo/nf-next.git): Latest kernel with the new netfilter developments
+[nftables](git://git.netfilter.org/nftables): Latest nftables developments, and its dependencies (libgmp, libmnl and libnftnl). Currently, libnftables is built in static mode so it's required to be installed in the same path than the nftlb folder.
+libev: Events library for the web service
+libjansson: JSON parser for the API
+
+## Installation
+To build nftlb, just execute:
+```
+root# make
+```
+The binary nftlb will be generated in the root path of the nftlb folder.
+
+## Usage
+Check out the command help:
+```
+# ./nftlb -h
+```
+Here is the list of options:
+
+*[ -h | --help ]*: Show the command help.
+*[ -l <LEVEL> | --log <LEVEL> ]*: The logs will be shown in the syslog file and with this option you can change the loglevel from 0 to 7 (5 by default).
+*[ -c <FILE> | --config <FILE> ]*: Initial configuration file, this argument is optional.
+*[ -k <KEY> | --key <KEY> ]*: The authentication key for the web service can be set by command line, or automatically generated. If it's automatically generated, it'll be shown by command line.
+*[ -e | --exit ]*: This option executes the configuration file into nftables rules and then exit, so the web server won't be available.
+*[ -6 | --ipv6 ]*: Enable IPv6 support for the web service listening port.
+*[ -H <HOST> | --host <HOST> ]*: Set the host for the web service (all interfaces by default).
+*[ -P <PORT> | --port <PORT> ]*: Set the TCP port for the web service (5555 by default). 
+
+
+### JSON configuration file
+The configuration files have the following format:
+```
+{
+	"farms" : [
+		{ <object farm 1> },
+		{ <object farm 2> },
+		{ ... }
+	]
+}
+```
+Where every farm object has the following attributes:
+```
+{
+	"name" : "<string>",				*Name of the service (required)*
+	"iface"	: "<interface name>",			*Input interface (only required for DSR)*
+	"oface"	: "<interface name>",			*Output interface (only required for DSR)*
+	"family": "<ipv4 | ipv6 | dual>",		*Family of the virtual service (ipv4 by default)*
+	"ether-addr": "<mac address>",			*Physical address of the virtual service (only required for DSR)*
+	"virtual-addr": "<ip address>",			*IP address for the virtual service (required)*
+	"virtual-ports": "<port list>",			*Port list separated by commas or ranges separated by a hyphen*
+	"mode": "<snat | dnat | dsr>",			*Topology to be implemented (required)*
+	"protocol": "<tcp | udp | sctp | all>",		*Protocol to be used by the virtual service (tcp by default)*
+	"scheduler": "<weight | rr | hash | symhash>",	*Scheduler to be used (round robin by default)*
+	"priority": "<number>",				*Priority availability for backends > 0 (1 by default)*
+	"state": "<up | down | off>",			*Set the status of the virtual service (up by default)*
+	"backends" : [					*List of backends*
+		{<object backend 1>},
+		{<object backend 2>},
+		{...}
+	]
+}
+```
+Where every backend object has the following attributes:
+```
+{
+	"name" : "<string>",				*Name of the backend (required)*
+	"ether-addr": "<mac address>",			*Physical address of the backend (only required for DSR)*
+	"ip-addr": "<ip address>",			*IP address for the backend (required, except for DSR)*
+	"weight": "<number>",				*Weight of the backend (1 by default)*
+	"priority": "<number>",				*Priority availability for the backend > 0 (1 by default)*
+	"state": "<up | down | off>",			*Set the status of the backend (up by default)*
+}
+```
+You can find some examples in the *tests/* folder.
+
+### API examples
+Once launched nftlb you can manage it through the API.
+
+Virtual service listing.
+```
+curl -H "Key: <MYKEY>" http://<NFTLB IP>:5555/farms
+```
+Setup a new virtual service.
+```
+curl -H "Key: <MYKEY>" -X POST http://<NFTLB IP>:5555/farms -d "@tests/008_snat_ipv4_all_rr.json"
+```
+Delete a virtual service.
+```
+curl -H "Key: <MYKEY>" -X DELETE http://<NFTLB IP>:5555/farms/lb01
+```
+Delete a backend of a virtual service.
+```
+curl -H "Key: <MYKEY>" -X DELETE http://<NFTLB IP>:5555/farms/lb01/backends/bck1
+```
+
+## Support
+The official distribution list could be accessed through the [zevenet-ce-users google group](https://groups.google.com/a/zevenet.com/group/zevenet-ce-users/).
+
+To post in this group, send an email to [zevenet-ce-users@zevenet.com](mailto:zevenet-ce-users@zevenet.com).
+
+But **you need to request a join** first into the group by sending an email to [zevenet-ce-users+subscribe@zevenet.com](mailto:zevenet-ce-users+subscribe@zevenet.com).
+
+To unsubscribe from this group, send email to zevenet-ce-users+unsubscribe@zevenet.com
+
+For more options, visit https://groups.google.com/a/zevenet.com/d/optout
+

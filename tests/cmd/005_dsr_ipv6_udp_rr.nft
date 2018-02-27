@@ -1,0 +1,15 @@
+table netdev nftlb {
+	map udp-services6 {
+		type ipv6_addr . inet_service : verdict
+		elements = { 2001:db8:0:1:1:1:1:1 . http : goto lb01 }
+	}
+
+	chain ingress {
+		type filter hook ingress device enp0s3 priority 0; policy accept;
+		ip6 daddr . udp dport vmap @udp-services6
+	}
+
+	chain lb01 {
+		ether saddr 01:01:01:01:01:01 ether daddr set numgen inc mod 2 map { 0 : 02:02:02:02:02:02, 1 : 03:03:03:03:03:03 } fwd to "enp0s8"
+	}
+}
