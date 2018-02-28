@@ -120,13 +120,4 @@ curl -H "Key: <MYKEY>" -X DELETE http://<NFTLB IP>:5555/farms/lb01/backends/bck1
 ```
 
 ## Support
-The official distribution list could be accessed through the [zevenet-ce-users google group](https://groups.google.com/a/zevenet.com/group/zevenet-ce-users/).
-
-To post in this group, send an email to [zevenet-ce-users@zevenet.com](mailto:zevenet-ce-users@zevenet.com).
-
-But **you need to request a join** first into the group by sending an email to [zevenet-ce-users+subscribe@zevenet.com](mailto:zevenet-ce-users+subscribe@zevenet.com).
-
-To unsubscribe from this group, send email to zevenet-ce-users+unsubscribe@zevenet.com
-
-For more options, visit https://groups.google.com/a/zevenet.com/d/optout
-
+Please refer to the [netfilter users mailing list](http://netfilter.org/mailinglists.html#ml-user)
