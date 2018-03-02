@@ -9,7 +9,7 @@ fi
 for file in `ls ${ARG}`; do
 	echo -n "Executing test: ${file}... "
 	nft flush ruleset
-	../nftlb -e -l 6 -c ${file}
+	../nftlb -e -l 7 -c ${file}
 	statusexec=$?
 
 	if [ $statusexec -ne 0 ]; then
