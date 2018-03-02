@@ -10,7 +10,7 @@
 			"virtual-ports" : "80",
 			"mode" : "dsr",
 			"protocol" : "tcp",
-			"scheduler" : "jhash",
+			"scheduler" : "hash",
 			"state" : "up",
 			"backends" : [
 				{
