@@ -269,6 +269,7 @@ void model_print_farms(void)
 		syslog(LOG_DEBUG,"Model dump    *[total_weight] %d", f->total_weight);
 		syslog(LOG_DEBUG,"Model dump    *[total_bcks] %d", f->total_bcks);
 		syslog(LOG_DEBUG,"Model dump    *[bcks_available] %d", f->bcks_available);
+		syslog(LOG_DEBUG,"Model dump    *[action] %d", f->action);
 
 		if (f->total_bcks != 0)
 			model_print_backends(f);

@@ -408,7 +408,9 @@ int config_set_farm_action(const char *name, const char *value)
 	if (!f)
 		return EXIT_FAILURE;
 
-	return farm_action_update(f, config_value_action(value));
+	farm_action_update(f, config_value_action(value));
+
+	return 0;
 }
 
 int config_set_backend_action(const char *fname, const char *bname, const char *value)
@@ -432,7 +434,9 @@ int config_set_backend_action(const char *fname, const char *bname, const char *
 	if (!b)
 		return EXIT_FAILURE;
 
-	return bck_action_update(b, config_value_action(value));
+	bck_action_update(b, config_value_action(value));
+
+	return 0;
 }
 
 void config_print_response(char **buf, const char *message)

@@ -387,7 +387,7 @@ int send_delete_response(char **buf, char *uri, char *content)
 			config_print_response(buf, "error deleting backend");
 			goto delete_end;
 		}
-		ret = config_set_backend_action(farm, bck, CONFIG_VALUE_ACTION_RELOAD);
+		ret = config_set_farm_action(farm, CONFIG_VALUE_ACTION_RELOAD);
 		if (ret != EXIT_SUCCESS) {
 			config_print_response(buf, "error reloading farm");
 			goto delete_end;
