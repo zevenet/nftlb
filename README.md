@@ -14,8 +14,8 @@ In this repository is included:
 ## Requirements
 nftlb uses a quite new technology that requires:
 
-[nf-next](git://git.kernel.org/pub/scm/linux/kernel/git/pablo/nf-next.git): Latest kernel with the new netfilter developments<br />
-[nftables](git://git.netfilter.org/nftables): Latest nftables developments, and its dependencies (libgmp, [libmnl](git://git.netfilter.org/libmnl) and [libnftnl](it://git.netfilter.org/libnftnl))<br />
+[nf-next](https://git.kernel.org/pub/scm/linux/kernel/git/pablo/nf-next.git/): Latest kernel with the new netfilter developments<br />
+[nftables](http://git.netfilter.org/nftables): Latest nftables developments, and its dependencies (libgmp, [libmnl](http://git.netfilter.org/libmnl) and [libnftnl](http://git.netfilter.org/libnftnl))<br />
 libev: Events library for the web service<br />
 libjansson: JSON parser for the API
 
