@@ -415,7 +415,7 @@ int run_farm_rules(struct nft_ctx *ctx, struct farm *f, int family, int action)
 
 	switch (f->scheduler) {
 	case MODEL_VALUE_SCHED_RR:
-		sprintf(buf, "%s numgen inc mod %d map {", buf, f->bcks_available);
+		sprintf(buf, "%s numgen inc mod %d map {", buf, f->total_weight);
 		break;
 	case MODEL_VALUE_SCHED_WEIGHT:
 		sprintf(buf, "%s numgen random mod %d map {", buf, f->total_weight);
@@ -441,13 +441,12 @@ int run_farm_rules(struct nft_ctx *ctx, struct farm *f, int family, int action)
 			sprintf(buf, "%s,", buf);
 
 		new = last + b->weight - 1;
-		if (f->scheduler == MODEL_VALUE_SCHED_RR || new == last)
-			sprintf(buf, "%s %d: %s", buf, i, (f->mode == MODEL_VALUE_MODE_DSR) ? b->ethaddr : b->ipaddr);
-		else {
+		if (new == last)
+			sprintf(buf, "%s %d: %s", buf, new, (f->mode == MODEL_VALUE_MODE_DSR) ? b->ethaddr : b->ipaddr);
+		else
 			sprintf(buf, "%s %d-%d: %s", buf, last, new, (f->mode == MODEL_VALUE_MODE_DSR) ? b->ethaddr : b->ipaddr);
-			last = new + 1;
-		}
 
+		last = new + 1;
 		i++;
 	}
 
