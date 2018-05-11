@@ -168,7 +168,7 @@ void get_ports(const char *ptr, int *first, int *last)
 
 struct if_base_rule * get_ndv_base(char *ifname)
 {
-	int i;
+	unsigned int i;
 
 	for (i = 0; i < n_ndv_base_rules; i++) {
 		if (strcmp(ndv_base_rules[i]->ifname, ifname) == 0)

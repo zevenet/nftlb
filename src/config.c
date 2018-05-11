@@ -57,7 +57,8 @@ int config_file(const char *file)
 	json_t		*root;
 	int		ret = EXIT_SUCCESS;
 
-	if ((fd = fopen(file, "r")) <= 0) {
+	fd = fopen(file, "r");
+	if (fd == NULL) {
 		fprintf(stderr, "Error open configuration file %s\n", file);
 		syslog(LOG_ERR, "Error open configuration file %s", file);
 		return EXIT_FAILURE;
