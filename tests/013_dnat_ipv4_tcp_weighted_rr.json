@@ -5,7 +5,7 @@
 			"family" : "ipv4",
 			"virtual-addr" : "192.168.56.101",
 			"virtual-ports" : "80",
-			"mode" : "snat",
+			"mode" : "dnat",
 			"protocol" : "tcp",
 			"scheduler" : "weight",
 			"state" : "up",
