@@ -28,9 +28,9 @@
 #include <time.h>
 #include <unistd.h>
 
-#include "../include/server.h"
-#include "../include/config.h"
-#include "../include/nft.h"
+#include "server.h"
+#include "config.h"
+#include "nft.h"
 
 #define SRV_MAX_BUF			4096
 #define SRV_MAX_HEADER			300

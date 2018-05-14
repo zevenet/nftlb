@@ -27,8 +27,8 @@
 #include <jansson.h>
 #include <syslog.h>
 
-#include "../include/config.h"
-#include "../include/model.h"
+#include "config.h"
+#include "model.h"
 
 #define CONFIG_MAXBUF			4096
 

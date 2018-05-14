@@ -27,10 +27,10 @@
 #include <errno.h>
 #include <unistd.h>
 
-#include "../include/config.h"
-#include "../include/model.h"
-#include "../include/nft.h"
-#include "../include/server.h"
+#include "config.h"
+#include "model.h"
+#include "nft.h"
+#include "server.h"
 
 #define NFTLB_VERSION			"0.1"
 

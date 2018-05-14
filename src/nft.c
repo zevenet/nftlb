@@ -24,9 +24,9 @@
 #include <syslog.h>
 #include <string.h>
 
-#include "../include/nft.h"
-#include "../include/model.h"
-#include "../include/list.h"
+#include "nft.h"
+#include "model.h"
+#include "list.h"
 
 #define NFTLB_MAX_CMD			2048
 #define NFTLB_MAX_IFACES		100

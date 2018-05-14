@@ -24,9 +24,9 @@
 #include <string.h>
 #include <syslog.h>
 
-#include "../include/model.h"
-#include "../include/config.h"
-#include "../include/nft.h"
+#include "model.h"
+#include "config.h"
+#include "nft.h"
 
 #define MODEL_NAME_DEF		""
 #define MODEL_FQDN_DEF		""
