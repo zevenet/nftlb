@@ -10,16 +10,16 @@ table netdev nftlb {
 	}
 
 	chain ingress {
-		type filter hook ingress device enp0s3 priority 0; policy accept;
+		type filter hook ingress device lo priority 0; policy accept;
 		meta protocol ip ip daddr . tcp dport vmap @tcp-services
 		meta protocol ip6 ip6 daddr . udp dport vmap @udp-services6
 	}
 
 	chain lb01 {
-		ether saddr 01:01:01:01:01:01 ether daddr set jhash ip saddr mod 10 map { 0-4 : 02:02:02:02:02:02, 5-9 : 03:03:03:03:03:03 } fwd to "enp0s8"
+		ether saddr 01:01:01:01:01:01 ether daddr set jhash ip saddr mod 10 map { 0-4 : 02:02:02:02:02:02, 5-9 : 03:03:03:03:03:03 } fwd to "lo"
 	}
 
 	chain lb02 {
-		ether saddr 01:01:01:01:01:04 ether daddr set numgen random mod 10 map { 0-4 : 02:02:02:02:02:02, 5-9 : 03:03:03:03:03:03 } fwd to "enp0s8"
+		ether saddr 01:01:01:01:01:04 ether daddr set numgen random mod 10 map { 0-4 : 02:02:02:02:02:02, 5-9 : 03:03:03:03:03:03 } fwd to "lo"
 	}
 }

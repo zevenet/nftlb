@@ -3,8 +3,8 @@
 		{
 			"name" : "lb01",
 			"family" : "ipv4",
-			"iface" : "enp0s3",
-			"oface" : "enp0s8",
+			"iface" : "lo",
+			"oface" : "lo",
 			"virtual-addr" : "192.168.1.22",
 			"ether-addr" : "01:01:01:01:01:01",
 			"virtual-ports" : "80",
@@ -34,8 +34,8 @@
 		{
 			"name" : "lb02",
 			"family" : "ipv6",
-			"iface" : "enp0s3",
-			"oface" : "enp0s8",
+			"iface" : "lo",
+			"oface" : "lo",
 			"virtual-addr" : "2001:db8:0:1:1:1:1:1",
 			"ether-addr" : "01:01:01:01:01:04",
 			"virtual-ports" : "80",
