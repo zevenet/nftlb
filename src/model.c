@@ -441,25 +441,6 @@ static int set_backend_attribute(struct configpair *cfgp)
 	return EXIT_SUCCESS;
 }
 
-static int is_srv_change(struct configpair *cfgp)
-{
-	int key = cfgp->key;
-
-	switch (key) {
-	case MODEL_KEY_IFACE:
-	case MODEL_KEY_OFACE:
-	case MODEL_KEY_FAMILY:
-	case MODEL_KEY_ETHADDR:
-	case MODEL_KEY_VIRTADDR:
-	case MODEL_KEY_VIRTPORTS:
-	case MODEL_KEY_PROTO:
-	case MODEL_KEY_STATE:
-		return 1;
-	default:
-		return 0;
-	}
-}
-
 static int farm_state_update(struct configpair *cfgp, struct farm *f)
 {
 	int oldst = f->state;
@@ -528,7 +509,6 @@ static int set_f_attribute(struct configpair *cfgp, struct farm *pf)
 static int set_farm_attribute(struct configpair *cfgp)
 {
 	struct farm *pf;
-	int restart;
 
 	switch (cfgp->key) {
 	case MODEL_KEY_NAME:
@@ -540,20 +520,37 @@ static int set_farm_attribute(struct configpair *cfgp)
 		}
 		current_obj.fptr = pf;
 		break;
-	default:
+	case MODEL_KEY_STATE:
 		if (!current_obj.fptr)
 			return EXIT_FAILURE;
 
-		restart = is_srv_change(cfgp);
-		if (restart && farm_action_update(current_obj.fptr, MODEL_ACTION_STOP))
+		set_f_attribute(cfgp, current_obj.fptr);
+		farm_action_update(current_obj.fptr, cfgp->int_value);
+		break;
+	case MODEL_KEY_IFACE:
+	case MODEL_KEY_OFACE:
+	case MODEL_KEY_FAMILY:
+	case MODEL_KEY_ETHADDR:
+	case MODEL_KEY_VIRTADDR:
+	case MODEL_KEY_VIRTPORTS:
+	case MODEL_KEY_PROTO:
+		if (!current_obj.fptr)
+			return EXIT_FAILURE;
+
+		if (farm_action_update(current_obj.fptr, MODEL_ACTION_STOP))
 			nft_rulerize();
 
 		set_f_attribute(cfgp, current_obj.fptr);
 
-		if (restart)
-			farm_action_update(current_obj.fptr, MODEL_ACTION_START);
-		else
-			farm_action_update(current_obj.fptr, MODEL_ACTION_RELOAD);
+		farm_action_update(current_obj.fptr, MODEL_ACTION_START);
+		break;
+	default:
+		if (!current_obj.fptr)
+			return EXIT_FAILURE;
+
+		set_f_attribute(cfgp, current_obj.fptr);
+
+		farm_action_update(current_obj.fptr, MODEL_ACTION_RELOAD);
 	}
 
 	return EXIT_SUCCESS;
