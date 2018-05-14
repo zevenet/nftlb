@@ -8,8 +8,6 @@ AM_INIT_AUTOMAKE([-Wall foreign subdir-objects
 dnl kernel style compile messages
 m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 
-AC_CONFIG_HEADERS([config.h])
-
 AC_PROG_CC
 AC_PROG_MKDIR_P
 AM_PROG_AR
