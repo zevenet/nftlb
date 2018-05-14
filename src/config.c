@@ -275,7 +275,8 @@ int config_file(const char *file)
 		config_json(root, MODEL_LEVEL_INIT);
 		json_decref(root);
 	} else {
-		syslog(LOG_ERR, "Configuration file error on line %d: %s", error.line, error.text);
+		fprintf(stderr, "Configuration file error '%s' on line %d: %s", file, error.line, error.text);
+		syslog(LOG_ERR, "Configuration file error '%s' on line %d: %s", file, error.line, error.text);
 		ret = EXIT_FAILURE;
 	}
 

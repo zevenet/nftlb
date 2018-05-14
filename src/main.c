@@ -112,7 +112,7 @@ int main(int argc, char *argv[])
 
 	model_init();
 
-	if (config && config_file(config) < 0)
+	if (config && config_file(config) != EXIT_SUCCESS)
 		return EXIT_FAILURE;
 
 	if (loglevel > NFTLB_LOGLEVEL_DEFAULT)
