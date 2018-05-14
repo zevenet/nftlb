@@ -32,7 +32,7 @@
 #include "nft.h"
 #include "server.h"
 
-#define NFTLB_VERSION			"0.1"
+#define NFTLB_VERSION			"0.2"
 
 #define NFTLB_SERVER_MODE		0
 #define NFTLB_EXIT_MODE			1
