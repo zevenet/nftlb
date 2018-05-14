@@ -22,9 +22,14 @@ libjansson: JSON parser for the API
 ## Installation
 To build nftlb, just execute:
 ```
+root# autoreconf -fi
+root# ./configure
 root# make
 ```
-The binary nftlb will be generated in the root path of the nftlb folder.
+Finally, install it:
+```
+root# make install
+```
 
 ## Usage
 Check out the command help:
