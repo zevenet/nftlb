@@ -62,25 +62,6 @@ struct model_obj current_obj;
 struct list_head		farms;
 int				total_farms = 0;
 
-struct farm * model_create_farm(char *fname);
-struct backend * model_create_backend(struct farm *f, char *name);
-int delete_farm(struct farm *f);
-int delete_backends(struct farm *f);
-int delete_backend(struct farm *f, struct backend *b);
-int del_bck(struct backend *b);
-void model_print_backends(struct farm *f);
-int set_farm_attribute(struct configpair *cfgp);
-int set_backend_attribute(struct configpair *cfgp);
-int set_f_attribute(struct configpair *cfgp, struct farm *pf);
-int set_b_attribute(struct configpair *cfgp, struct backend *pb);
-int set_attr_string(char *src, char **dst);
-int bck_weight_update(struct configpair *cfgp, struct backend *b);
-int bck_priority_update(struct configpair *cfgp, struct backend *b);
-int bck_state_update(struct configpair *cfgp, struct backend *b);
-int farm_state_update(struct configpair *cfgp, struct farm *f);
-int is_srv_change(struct configpair *cfgp);
-
-
 void model_init(void)
 {
 	init_list_head(&farms);
@@ -96,7 +77,21 @@ int model_get_totalfarms(void)
 	return total_farms;
 }
 
-struct farm * model_create_farm(char *name)
+static int set_attr_string(char *src, char **dst)
+{
+	*dst = (char *)malloc(strlen(src));
+
+	if (!*dst) {
+		syslog(LOG_ERR, "Attribute memory allocation error");
+		return EXIT_FAILURE;
+	}
+
+	sprintf(*dst, "%s", src);
+
+	return EXIT_SUCCESS;
+}
+
+static struct farm * model_create_farm(char *name)
 {
 	struct farm *pfarm = (struct farm *)malloc(sizeof(struct farm));
 	if (!pfarm) {
@@ -132,7 +127,7 @@ struct farm * model_create_farm(char *name)
 	return pfarm;
 }
 
-struct backend * model_create_backend(struct farm *f, char *name)
+static struct backend * model_create_backend(struct farm *f, char *name)
 {
 	struct backend *pbck = (struct backend *)malloc(sizeof(struct backend));
 	if (!pbck) {
@@ -160,7 +155,40 @@ struct backend * model_create_backend(struct farm *f, char *name)
 	return pbck;
 }
 
-int delete_farm(struct farm *pfarm)
+static int del_bck(struct backend *b)
+{
+	list_del(&b->list);
+	if (b->name)
+		free(b->name);
+	if (b->fqdn && strcmp(b->fqdn, "") != 0)
+		free(b->fqdn);
+	if (b->ipaddr && strcmp(b->ipaddr, "") != 0)
+		free(b->ipaddr);
+	if (b->ethaddr && strcmp(b->ethaddr, "") != 0)
+		free(b->ethaddr);
+	if (b->ports && strcmp(b->ports, "") != 0)
+		free(b->ports);
+
+	free(b);
+
+	return EXIT_SUCCESS;
+}
+
+static int delete_backends(struct farm *f)
+{
+	struct backend *pbck, *next;
+
+	list_for_each_entry_safe(pbck, next, &f->backends, list)
+		del_bck(pbck);
+
+	f->total_bcks = 0;
+	f->bcks_available = 0;
+	f->total_weight = 0;
+
+	return EXIT_SUCCESS;
+}
+
+static int delete_farm(struct farm *pfarm)
 {
 	delete_backends(pfarm);
 	list_del(&pfarm->list);
@@ -186,21 +214,7 @@ int delete_farm(struct farm *pfarm)
 	return EXIT_SUCCESS;
 }
 
-int delete_backends(struct farm *f)
-{
-	struct backend *pbck, *next;
-
-	list_for_each_entry_safe(pbck, next, &f->backends, list)
-		del_bck(pbck);
-
-	f->total_bcks = 0;
-	f->bcks_available = 0;
-	f->total_weight = 0;
-
-	return EXIT_SUCCESS;
-}
-
-int delete_backend(struct farm *f, struct backend *pbck)
+static int delete_backend(struct farm *f, struct backend *pbck)
 {
 	if (model_bck_is_available(f, pbck)) {
 		f->bcks_available--;
@@ -214,23 +228,30 @@ int delete_backend(struct farm *f, struct backend *pbck)
 	return EXIT_SUCCESS;
 }
 
-int del_bck(struct backend *b)
+static void model_print_backends(struct farm *f)
 {
-	list_del(&b->list);
-	if (b->name)
-		free(b->name);
-	if (b->fqdn && strcmp(b->fqdn, "") != 0)
-		free(b->fqdn);
-	if (b->ipaddr && strcmp(b->ipaddr, "") != 0)
-		free(b->ipaddr);
-	if (b->ethaddr && strcmp(b->ethaddr, "") != 0)
-		free(b->ethaddr);
-	if (b->ports && strcmp(b->ports, "") != 0)
-		free(b->ports);
+	struct backend *b;
 
-	free(b);
+	list_for_each_entry(b, &f->backends, list) {
+		syslog(LOG_DEBUG,"Model dump    [backend] ");
+		syslog(LOG_DEBUG,"Model dump       [name] %s", b->name);
 
-	return EXIT_SUCCESS;
+		if (b->fqdn)
+			syslog(LOG_DEBUG,"Model dump       [fqdn] %s", b->fqdn);
+
+		if (b->ipaddr)
+			syslog(LOG_DEBUG,"Model dump       [iface] %s", b->ipaddr);
+
+		if (b->ethaddr)
+			syslog(LOG_DEBUG,"Model dump       [ethaddr] %s", b->ethaddr);
+
+		if (b->ports)
+			syslog(LOG_DEBUG,"Model dump       [ports] %s", b->ports);
+
+		syslog(LOG_DEBUG,"Model dump       [weight] %d", b->weight);
+		syslog(LOG_DEBUG,"Model dump       [priority] %d", b->priority);
+		syslog(LOG_DEBUG,"Model dump       [state] %s", model_print_state(b->state));
+	}
 }
 
 void model_print_farms(void)
@@ -276,32 +297,6 @@ void model_print_farms(void)
 	}
 }
 
-void model_print_backends(struct farm *f)
-{
-	struct backend *b;
-
-	list_for_each_entry(b, &f->backends, list) {
-		syslog(LOG_DEBUG,"Model dump    [backend] ");
-		syslog(LOG_DEBUG,"Model dump       [name] %s", b->name);
-
-		if (b->fqdn)
-			syslog(LOG_DEBUG,"Model dump       [fqdn] %s", b->fqdn);
-
-		if (b->ipaddr)
-			syslog(LOG_DEBUG,"Model dump       [iface] %s", b->ipaddr);
-
-		if (b->ethaddr)
-			syslog(LOG_DEBUG,"Model dump       [ethaddr] %s", b->ethaddr);
-
-		if (b->ports)
-			syslog(LOG_DEBUG,"Model dump       [ports] %s", b->ports);
-
-		syslog(LOG_DEBUG,"Model dump       [weight] %d", b->weight);
-		syslog(LOG_DEBUG,"Model dump       [priority] %d", b->priority);
-		syslog(LOG_DEBUG,"Model dump       [state] %s", model_print_state(b->state));
-	}
-}
-
 struct farm * model_lookup_farm(const char *name)
 {
 	struct farm *f;
@@ -331,17 +326,86 @@ void print_pair(struct configpair *cfgp)
 	syslog(LOG_DEBUG,"pair: %d(level) %d(key) %s(value) %d(value)", cfgp->level, cfgp->key, cfgp->str_value, cfgp->int_value);
 }
 
-int model_set_obj_attribute(struct configpair *cfgp)
+static int bck_weight_update(struct configpair *cfgp, struct backend *b)
 {
-	print_pair(cfgp);
+	int oldw = b->weight;
 
-	switch (cfgp->level) {
-	case MODEL_LEVEL_FARMS:
-		set_farm_attribute(cfgp);
+	b->weight = cfgp->int_value;
+
+	if (model_bck_is_available(current_obj.fptr, b))
+		current_obj.fptr->total_weight += (b->weight-oldw);
+
+	return EXIT_SUCCESS;
+}
+
+static int bck_priority_update(struct configpair *cfgp, struct backend *b)
+{
+	int oldp = b->priority;
+
+	if (model_bck_is_available(current_obj.fptr, b) &&
+	    cfgp->int_value > current_obj.fptr->priority) {
+		current_obj.fptr->bcks_available--;
+		current_obj.fptr->total_weight -= b->weight;
+	}
+
+	else if (oldp > current_obj.fptr->priority &&
+		 model_bck_is_available(current_obj.fptr, b)) {
+		current_obj.fptr->bcks_available++;
+		current_obj.fptr->total_weight += b->weight;
+	}
+
+	b->priority = cfgp->int_value;
+
+	return EXIT_SUCCESS;
+}
+
+static int bck_state_update(struct configpair *cfgp, struct backend *b)
+{
+	int oldst = b->state;
+
+	if (model_bck_is_available(current_obj.fptr, b) &&
+	    cfgp->int_value != MODEL_VALUE_STATE_UP) {
+		current_obj.fptr->total_weight -= b->weight;
+		current_obj.fptr->bcks_available--;
+	}
+
+	else if (oldst != MODEL_VALUE_STATE_UP &&
+		 model_bck_is_available(current_obj.fptr, b)) {
+		current_obj.fptr->total_weight += b->weight;
+		current_obj.fptr->bcks_available++;
+	}
+
+	b->state = cfgp->int_value;
+
+	return EXIT_SUCCESS;
+}
+
+static int set_b_attribute(struct configpair *cfgp, struct backend *pb)
+{
+	switch (cfgp->key) {
+	case MODEL_KEY_FQDN:
+		set_attr_string(cfgp->str_value, &pb->fqdn);
 		break;
-	case MODEL_LEVEL_BCKS:
-		set_backend_attribute(cfgp);
-		farm_action_update(current_obj.fptr, MODEL_ACTION_RELOAD);
+	case MODEL_KEY_IPADDR:
+		set_attr_string(cfgp->str_value, &pb->ipaddr);
+		break;
+	case MODEL_KEY_ETHADDR:
+		set_attr_string(cfgp->str_value, &pb->ethaddr);
+		break;
+	case MODEL_KEY_PORTS:
+		set_attr_string(cfgp->str_value, &pb->ports);
+		break;
+	case MODEL_KEY_WEIGHT:
+		bck_weight_update(cfgp, pb);
+		break;
+	case MODEL_KEY_PRIORITY:
+		bck_priority_update(cfgp, pb);
+		break;
+	case MODEL_KEY_STATE:
+		bck_state_update(cfgp, pb);
+		break;
+	case MODEL_KEY_ACTION:
+		bck_action_update(pb, cfgp->int_value);
 		break;
 	default:
 		return EXIT_FAILURE;
@@ -350,41 +414,7 @@ int model_set_obj_attribute(struct configpair *cfgp)
 	return EXIT_SUCCESS;
 }
 
-int set_farm_attribute(struct configpair *cfgp)
-{
-	struct farm *pf;
-	int restart;
-
-	switch (cfgp->key) {
-	case MODEL_KEY_NAME:
-		pf = model_lookup_farm(cfgp->str_value);
-		if (!pf) {
-			pf = model_create_farm(cfgp->str_value);
-			if (!pf)
-				return EXIT_FAILURE;
-		}
-		current_obj.fptr = pf;
-		break;
-	default:
-		if (!current_obj.fptr)
-			return EXIT_FAILURE;
-
-		restart = is_srv_change(cfgp);
-		if (restart && farm_action_update(current_obj.fptr, MODEL_ACTION_STOP))
-			nft_rulerize();
-
-		set_f_attribute(cfgp, current_obj.fptr);
-
-		if (restart)
-			farm_action_update(current_obj.fptr, MODEL_ACTION_START);
-		else
-			farm_action_update(current_obj.fptr, MODEL_ACTION_RELOAD);
-	}
-
-	return EXIT_SUCCESS;
-}
-
-int set_backend_attribute(struct configpair *cfgp)
+static int set_backend_attribute(struct configpair *cfgp)
 {
 	struct backend *pb;
 
@@ -411,7 +441,45 @@ int set_backend_attribute(struct configpair *cfgp)
 	return EXIT_SUCCESS;
 }
 
-int set_f_attribute(struct configpair *cfgp, struct farm *pf)
+static int is_srv_change(struct configpair *cfgp)
+{
+	int key = cfgp->key;
+
+	switch (key) {
+	case MODEL_KEY_IFACE:
+	case MODEL_KEY_OFACE:
+	case MODEL_KEY_FAMILY:
+	case MODEL_KEY_ETHADDR:
+	case MODEL_KEY_VIRTADDR:
+	case MODEL_KEY_VIRTPORTS:
+	case MODEL_KEY_PROTO:
+	case MODEL_KEY_STATE:
+		return 1;
+	default:
+		return 0;
+	}
+}
+
+static int farm_state_update(struct configpair *cfgp, struct farm *f)
+{
+	int oldst = f->state;
+
+	if (oldst != MODEL_VALUE_STATE_UP &&
+	    cfgp->int_value == MODEL_VALUE_STATE_UP) {
+		farm_action_update(current_obj.fptr, MODEL_ACTION_START);
+	}
+
+	if (oldst == MODEL_VALUE_STATE_UP &&
+	    cfgp->int_value != MODEL_VALUE_STATE_UP) {
+		farm_action_update(current_obj.fptr, MODEL_ACTION_STOP);
+	}
+
+	f->state = cfgp->int_value;
+
+	return EXIT_SUCCESS;
+}
+
+static int set_f_attribute(struct configpair *cfgp, struct farm *pf)
 {
 	switch (cfgp->key) {
 	case MODEL_KEY_FQDN:
@@ -457,50 +525,56 @@ int set_f_attribute(struct configpair *cfgp, struct farm *pf)
 	return EXIT_SUCCESS;
 }
 
-int set_b_attribute(struct configpair *cfgp, struct backend *pb)
+static int set_farm_attribute(struct configpair *cfgp)
 {
+	struct farm *pf;
+	int restart;
+
 	switch (cfgp->key) {
-	case MODEL_KEY_FQDN:
-		set_attr_string(cfgp->str_value, &pb->fqdn);
-		break;
-	case MODEL_KEY_IPADDR:
-		set_attr_string(cfgp->str_value, &pb->ipaddr);
-		break;
-	case MODEL_KEY_ETHADDR:
-		set_attr_string(cfgp->str_value, &pb->ethaddr);
-		break;
-	case MODEL_KEY_PORTS:
-		set_attr_string(cfgp->str_value, &pb->ports);
-		break;
-	case MODEL_KEY_WEIGHT:
-		bck_weight_update(cfgp, pb);
-		break;
-	case MODEL_KEY_PRIORITY:
-		bck_priority_update(cfgp, pb);
-		break;
-	case MODEL_KEY_STATE:
-		bck_state_update(cfgp, pb);
-		break;
-	case MODEL_KEY_ACTION:
-		bck_action_update(pb, cfgp->int_value);
+	case MODEL_KEY_NAME:
+		pf = model_lookup_farm(cfgp->str_value);
+		if (!pf) {
+			pf = model_create_farm(cfgp->str_value);
+			if (!pf)
+				return EXIT_FAILURE;
+		}
+		current_obj.fptr = pf;
 		break;
 	default:
-		return EXIT_FAILURE;
+		if (!current_obj.fptr)
+			return EXIT_FAILURE;
+
+		restart = is_srv_change(cfgp);
+		if (restart && farm_action_update(current_obj.fptr, MODEL_ACTION_STOP))
+			nft_rulerize();
+
+		set_f_attribute(cfgp, current_obj.fptr);
+
+		if (restart)
+			farm_action_update(current_obj.fptr, MODEL_ACTION_START);
+		else
+			farm_action_update(current_obj.fptr, MODEL_ACTION_RELOAD);
 	}
 
 	return EXIT_SUCCESS;
 }
 
-int set_attr_string(char *src, char **dst)
+int model_set_obj_attribute(struct configpair *cfgp)
 {
-	*dst = (char *)malloc(strlen(src));
+	print_pair(cfgp);
 
-	if (!*dst) {
-		syslog(LOG_ERR, "Attribute memory allocation error");
+	switch (cfgp->level) {
+	case MODEL_LEVEL_FARMS:
+		set_farm_attribute(cfgp);
+		break;
+	case MODEL_LEVEL_BCKS:
+		set_backend_attribute(cfgp);
+		farm_action_update(current_obj.fptr, MODEL_ACTION_RELOAD);
+		break;
+	default:
 		return EXIT_FAILURE;
 	}
 
-	sprintf(*dst, "%s", src);
 	return EXIT_SUCCESS;
 }
 
@@ -583,79 +657,6 @@ char * model_print_state(int state)
 	}
 }
 
-int bck_weight_update(struct configpair *cfgp, struct backend *b)
-{
-	int oldw = b->weight;
-
-	b->weight = cfgp->int_value;
-
-	if (model_bck_is_available(current_obj.fptr, b))
-		current_obj.fptr->total_weight += (b->weight-oldw);
-
-	return EXIT_SUCCESS;
-}
-
-int bck_priority_update(struct configpair *cfgp, struct backend *b)
-{
-	int oldp = b->priority;
-
-	if (model_bck_is_available(current_obj.fptr, b) &&
-	    cfgp->int_value > current_obj.fptr->priority) {
-		current_obj.fptr->bcks_available--;
-		current_obj.fptr->total_weight -= b->weight;
-	}
-
-	else if (oldp > current_obj.fptr->priority &&
-		 model_bck_is_available(current_obj.fptr, b)) {
-		current_obj.fptr->bcks_available++;
-		current_obj.fptr->total_weight += b->weight;
-	}
-
-	b->priority = cfgp->int_value;
-
-	return EXIT_SUCCESS;
-}
-
-int bck_state_update(struct configpair *cfgp, struct backend *b)
-{
-	int oldst = b->state;
-
-	if (model_bck_is_available(current_obj.fptr, b) &&
-	    cfgp->int_value != MODEL_VALUE_STATE_UP) {
-		current_obj.fptr->total_weight -= b->weight;
-		current_obj.fptr->bcks_available--;
-	}
-
-	else if (oldst != MODEL_VALUE_STATE_UP &&
-		 model_bck_is_available(current_obj.fptr, b)) {
-		current_obj.fptr->total_weight += b->weight;
-		current_obj.fptr->bcks_available++;
-	}
-
-	b->state = cfgp->int_value;
-
-	return EXIT_SUCCESS;
-}
-
-int farm_state_update(struct configpair *cfgp, struct farm *f)
-{
-	int oldst = f->state;
-
-	if (oldst != MODEL_VALUE_STATE_UP &&
-	    cfgp->int_value == MODEL_VALUE_STATE_UP) {
-		farm_action_update(current_obj.fptr, MODEL_ACTION_START);
-	}
-
-	if (oldst == MODEL_VALUE_STATE_UP &&
-	    cfgp->int_value != MODEL_VALUE_STATE_UP) {
-		farm_action_update(current_obj.fptr, MODEL_ACTION_STOP);
-	}
-
-	f->state = cfgp->int_value;
-
-	return EXIT_SUCCESS;
-}
-
 int model_bck_is_available(struct farm *f, struct backend *b)
 {
 	return (b->state == MODEL_VALUE_STATE_UP) && (b->priority <= f->priority);
@@ -709,24 +710,3 @@ int backends_action_update(struct farm *f, int action)
 
 	return EXIT_SUCCESS;
 }
-
-int is_srv_change(struct configpair *cfgp)
-{
-	int key = cfgp->key;
-
-	switch (key) {
-	case MODEL_KEY_IFACE:
-	case MODEL_KEY_OFACE:
-	case MODEL_KEY_FAMILY:
-	case MODEL_KEY_ETHADDR:
-	case MODEL_KEY_VIRTADDR:
-	case MODEL_KEY_VIRTPORTS:
-	case MODEL_KEY_PROTO:
-	case MODEL_KEY_STATE:
-		return 1;
-	default:
-		return 0;
-	}
-}
-
-

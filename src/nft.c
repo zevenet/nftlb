@@ -88,21 +88,18 @@ struct if_base_rule * ndv_base_rules[NFTLB_MAX_IFACES];
 unsigned int n_ndv_base_rules = 0;
 unsigned int nat_base_rules = 0;
 
-int exec_cmd(struct nft_ctx *ctx, char *cmd);
-int run_base(struct nft_ctx *ctx);
-void get_ports(const char *ptr, int *first, int *last);
-
-int isempty_buf(char *buf){
+static int isempty_buf(char *buf)
+{
 	return (buf[0] == 0);
 }
 
-int exec_cmd(struct nft_ctx *ctx, char *cmd)
+static int exec_cmd(struct nft_ctx *ctx, char *cmd)
 {
 	syslog(LOG_INFO, "Executing: nft << %s", cmd);
 	return nft_run_cmd_from_buffer(ctx, cmd, strlen(cmd));
 }
 
-char * print_nft_service(int family, int proto)
+static char * print_nft_service(int family, int proto)
 {
 	if (family == MODEL_VALUE_FAMILY_IPV6) {
 		switch (proto) {
@@ -129,7 +126,7 @@ char * print_nft_service(int family, int proto)
 	}
 }
 
-char * print_nft_family(int family)
+static char * print_nft_family(int family)
 {
 	switch (family) {
 	case MODEL_VALUE_FAMILY_IPV6:
@@ -139,7 +136,7 @@ char * print_nft_family(int family)
 	}
 }
 
-char * print_nft_table_family(int family, int mode)
+static char * print_nft_table_family(int family, int mode)
 {
 	if (mode == MODEL_VALUE_MODE_DSR)
 		return NFTLB_NETDEV_FAMILY;
@@ -149,7 +146,7 @@ char * print_nft_table_family(int family, int mode)
 		return NFTLB_IPV4_FAMILY;
 }
 
-char * print_nft_protocol(int protocol)
+static char * print_nft_protocol(int protocol)
 {
 	switch (protocol) {
 	case MODEL_VALUE_PROTO_UDP:
@@ -161,12 +158,12 @@ char * print_nft_protocol(int protocol)
 	}
 }
 
-void get_ports(const char *ptr, int *first, int *last)
+static void get_ports(const char *ptr, int *first, int *last)
 {
 	sscanf(ptr, "%d-%d[^,]", first, last);
 }
 
-struct if_base_rule * get_ndv_base(char *ifname)
+static struct if_base_rule * get_ndv_base(char *ifname)
 {
 	unsigned int i;
 
@@ -178,7 +175,7 @@ struct if_base_rule * get_ndv_base(char *ifname)
 	return NULL;
 }
 
-struct if_base_rule * add_ndv_base(char *ifname)
+static struct if_base_rule * add_ndv_base(char *ifname)
 {
 	struct if_base_rule *ifentry;
 
@@ -202,7 +199,7 @@ struct if_base_rule * add_ndv_base(char *ifname)
 	return ifentry;
 }
 
-unsigned int get_rules_needed(int family, int protocol)
+static unsigned int get_rules_needed(int family, int protocol)
 {
 	unsigned int ret = 0;
 
@@ -243,7 +240,7 @@ unsigned int get_rules_needed(int family, int protocol)
 	return ret;
 }
 
-int run_base_ndv(struct nft_ctx *ctx, struct farm *f)
+static int run_base_ndv(struct nft_ctx *ctx, struct farm *f)
 {
 	char buf[NFTLB_MAX_CMD] = { 0 };
 	struct if_base_rule *if_base;
@@ -317,7 +314,7 @@ int run_base_ndv(struct nft_ctx *ctx, struct farm *f)
 	return EXIT_SUCCESS;
 }
 
-int run_base_nat(struct nft_ctx *ctx, struct farm *f)
+static int run_base_nat(struct nft_ctx *ctx, struct farm *f)
 {
 	char buf[NFTLB_MAX_CMD] = { 0 };
 	unsigned int rules_needed = get_rules_needed(f->family, f->protocol);
@@ -392,7 +389,8 @@ int run_base_nat(struct nft_ctx *ctx, struct farm *f)
 	return EXIT_SUCCESS;
 }
 
-int run_farm_rules(struct nft_ctx *ctx, struct farm *f, int family, int action)
+static int run_farm_rules(struct nft_ctx *ctx, struct farm *f, int family,
+			  int action)
 {
 	char buf[NFTLB_MAX_CMD] = { 0 };
 	struct backend *b;
@@ -485,7 +483,7 @@ next:
 	return EXIT_SUCCESS;
 }
 
-int run_farm_snat(struct nft_ctx *ctx, struct farm *f, int family)
+static int run_farm_snat(struct nft_ctx *ctx, struct farm *f, int family)
 {
 	char buf[NFTLB_MAX_CMD];
 
@@ -496,7 +494,7 @@ int run_farm_snat(struct nft_ctx *ctx, struct farm *f, int family)
 }
 
 
-int run_farm(struct nft_ctx *ctx, struct farm *f, int action)
+static int run_farm(struct nft_ctx *ctx, struct farm *f, int action)
 {
 	int ret = EXIT_SUCCESS;
 
@@ -522,7 +520,7 @@ int run_farm(struct nft_ctx *ctx, struct farm *f, int action)
 	return ret;
 }
 
-int del_farm_rules(struct nft_ctx *ctx, struct farm *f, int family)
+static int del_farm_rules(struct nft_ctx *ctx, struct farm *f, int family)
 {
 	char buf[NFTLB_MAX_CMD] = { 0 };
 	int ret = EXIT_SUCCESS;
@@ -557,7 +555,7 @@ next:
 	return ret;
 }
 
-int del_farm(struct nft_ctx *ctx, struct farm *f)
+static int del_farm(struct nft_ctx *ctx, struct farm *f)
 {
 	int ret = EXIT_SUCCESS;
 
