@@ -32,8 +32,6 @@
 #include "nft.h"
 #include "server.h"
 
-#define NFTLB_VERSION			"0.2"
-
 #define NFTLB_SERVER_MODE		0
 #define NFTLB_EXIT_MODE			1
 
@@ -53,7 +51,7 @@ static void print_usage(const char *prog_name)
 		"  [ -6 | --ipv6 ]			Enable IPv6 listening port\n"
 		"  [ -H <HOST> | --host <HOST> ]		Set the host for the listening port\n"
 		"  [ -P <PORT> | --port <PORT> ]		Set the port for the listening port\n"
-		, prog_name, NFTLB_VERSION, prog_name);
+		, prog_name, VERSION, prog_name);
 }
 
 static const struct option options[] = {
