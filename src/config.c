@@ -376,7 +376,7 @@ int config_print_farms(char **buf, char *name)
 
 	add_dump_list(jdata, CONFIG_KEY_FARMS, MODEL_LEVEL_FARMS, farms, name);
 
-	*buf = json_dumps(jdata, 0);
+	*buf = json_dumps(jdata, JSON_INDENT(8));
 	json_decref(jdata);
 
 	if (*buf == NULL)
