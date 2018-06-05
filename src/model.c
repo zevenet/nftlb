@@ -359,23 +359,29 @@ static int bck_priority_update(struct configpair *cfgp, struct backend *b)
 	return EXIT_SUCCESS;
 }
 
-static int bck_state_update(struct configpair *cfgp, struct backend *b)
+static int bck_state_update(struct farm *fptr, struct backend *b, int new_state)
 {
-	int oldst = b->state;
+	int old_state = b->state;
 
-	if (model_bck_is_available(current_obj.fptr, b) &&
-	    cfgp->int_value != MODEL_VALUE_STATE_UP) {
-		current_obj.fptr->total_weight -= b->weight;
-		current_obj.fptr->bcks_available--;
+	syslog(LOG_DEBUG, "%s():%d: backend old state is %d, but new state will be %d",
+	       __FUNCTION__, __LINE__, old_state, new_state);
+
+	if (model_bck_is_available(fptr, b) &&
+	    new_state != MODEL_VALUE_STATE_UP) {
+		b->state = new_state;
+		fptr->total_weight -= b->weight;
+		fptr->bcks_available--;
 	}
 
-	else if (oldst != MODEL_VALUE_STATE_UP &&
-		 model_bck_is_available(current_obj.fptr, b)) {
-		current_obj.fptr->total_weight += b->weight;
-		current_obj.fptr->bcks_available++;
-	}
+	else if (old_state != MODEL_VALUE_STATE_UP &&
+		 new_state == MODEL_VALUE_STATE_UP) {
+		b->state = new_state;
 
-	b->state = cfgp->int_value;
+		if (model_bck_is_available(fptr, b)) {
+			fptr->total_weight += b->weight;
+			fptr->bcks_available++;
+		}
+	}
 
 	return EXIT_SUCCESS;
 }
@@ -402,7 +408,7 @@ static int set_b_attribute(struct configpair *cfgp, struct backend *pb)
 		bck_priority_update(cfgp, pb);
 		break;
 	case MODEL_KEY_STATE:
-		bck_state_update(cfgp, pb);
+		bck_state_update(current_obj.fptr, pb, cfgp->int_value);
 		break;
 	case MODEL_KEY_ACTION:
 		bck_action_update(pb, cfgp->int_value);
