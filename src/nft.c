@@ -404,6 +404,9 @@ static int run_farm_rules(struct nft_ctx *ctx, struct farm *f, int family,
 	else
 		sprintf(buf, "%s ; add chain %s %s %s", buf, print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, f->name);
 
+	if (f->bcks_available == 0)
+		goto avoidrules;
+
 	sprintf(buf, "%s ; add rule %s %s %s", buf, print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, f->name);
 
 	if (f->mode == MODEL_VALUE_MODE_DSR)
@@ -453,6 +456,7 @@ static int run_farm_rules(struct nft_ctx *ctx, struct farm *f, int family,
 	if (f->mode == MODEL_VALUE_MODE_DSR)
 		sprintf(buf, "%s fwd to %s", buf, f->oface);
 
+avoidrules:
 	if (action == MODEL_ACTION_RELOAD) {
 		exec_cmd(ctx, buf);
 		return EXIT_SUCCESS;
