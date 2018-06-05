@@ -410,7 +410,7 @@ static int run_farm_rules(struct nft_ctx *ctx, struct farm *f, int family,
 	sprintf(buf, "%s ; add rule %s %s %s", buf, print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, f->name);
 
 	if (f->mode == MODEL_VALUE_MODE_DSR)
-		sprintf(buf, "%s ether saddr set %s ether daddr set", buf, f->ethaddr);
+		sprintf(buf, "%s ether saddr set %s ether daddr set", buf, f->iethaddr);
 	else
 		sprintf(buf, "%s dnat to", buf);
 

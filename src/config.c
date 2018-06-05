@@ -332,7 +332,7 @@ static void add_dump_list(json_t *obj, const char *objname, int model,
 			add_dump_obj(item, "iface", f->iface);
 			add_dump_obj(item, "oface", f->oface);
 			add_dump_obj(item, "family", model_print_family(f->family));
-			add_dump_obj(item, "ether-addr", f->ethaddr);
+			add_dump_obj(item, "ether-addr", f->iethaddr);
 			add_dump_obj(item, "virtual-addr", f->virtaddr);
 			add_dump_obj(item, "virtual-ports", f->virtports);
 			add_dump_obj(item, "mode", model_print_mode(f->mode));

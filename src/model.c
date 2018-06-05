@@ -31,6 +31,7 @@
 #define MODEL_NAME_DEF		""
 #define MODEL_FQDN_DEF		""
 #define MODEL_IFACE_DEF		""
+#define MODEL_IFIDX_DEF		0
 #define MODEL_OFACE_DEF		""
 #define MODEL_ETHADDR_DEF	""
 #define MODEL_VIRTADDR_DEF	""
@@ -107,7 +108,10 @@ static struct farm * model_create_farm(char *name)
 	pfarm->fqdn = MODEL_FQDN_DEF;
 	pfarm->iface = MODEL_IFACE_DEF;
 	pfarm->oface = MODEL_OFACE_DEF;
-	pfarm->ethaddr = MODEL_ETHADDR_DEF;
+	pfarm->iethaddr = MODEL_ETHADDR_DEF;
+	pfarm->oethaddr = MODEL_ETHADDR_DEF;
+	pfarm->ifidx = MODEL_IFIDX_DEF;
+	pfarm->ofidx = MODEL_IFIDX_DEF;
 	pfarm->virtaddr = MODEL_VIRTADDR_DEF;
 	pfarm->virtports = MODEL_VIRTPORTS_DEF;
 	pfarm->family = MODEL_FAMILY_DEF;
@@ -201,8 +205,10 @@ static int delete_farm(struct farm *pfarm)
 		free(pfarm->iface);
 	if (pfarm->oface && strcmp(pfarm->oface, "") != 0)
 		free(pfarm->oface);
-	if (pfarm->ethaddr && strcmp(pfarm->ethaddr, "") != 0)
-		free(pfarm->ethaddr);
+	if (pfarm->iethaddr && strcmp(pfarm->iethaddr, "") != 0)
+		free(pfarm->iethaddr);
+	if (pfarm->oethaddr && strcmp(pfarm->oethaddr, "") != 0)
+		free(pfarm->oethaddr);
 	if (pfarm->virtaddr && strcmp(pfarm->virtaddr, "") != 0)
 		free(pfarm->virtaddr);
 	if (pfarm->virtports && strcmp(pfarm->virtports, "") != 0)
@@ -269,11 +275,18 @@ void model_print_farms(void)
 		if (f->iface)
 			syslog(LOG_DEBUG,"Model dump    [iface] %s", f->iface);
 
+		if (f->iethaddr)
+			syslog(LOG_DEBUG,"Model dump    [iethaddr] %s", f->iethaddr);
+
+		syslog(LOG_DEBUG,"Model dump    *[ifidx] %d", f->ifidx);
+
 		if (f->oface)
 			syslog(LOG_DEBUG,"Model dump    [oface] %s", f->oface);
 
-		if (f->ethaddr)
-			syslog(LOG_DEBUG,"Model dump    [ethaddr] %s", f->ethaddr);
+		if (f->oethaddr)
+			syslog(LOG_DEBUG,"Model dump    [oethaddr] %s", f->oethaddr);
+
+		syslog(LOG_DEBUG,"Model dump    *[ofidx] %d", f->ofidx);
 
 		if (f->virtaddr)
 			syslog(LOG_DEBUG,"Model dump    [virtaddr] %s", f->virtaddr);
@@ -482,7 +495,7 @@ static int set_f_attribute(struct configpair *cfgp, struct farm *pf)
 		pf->family = cfgp->int_value;
 		break;
 	case MODEL_KEY_ETHADDR:
-		set_attr_string(cfgp->str_value, &pf->ethaddr);
+		set_attr_string(cfgp->str_value, &pf->iethaddr);
 		break;
 	case MODEL_KEY_VIRTADDR:
 		set_attr_string(cfgp->str_value, &pf->virtaddr);

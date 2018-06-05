@@ -118,8 +118,11 @@ struct farm {
 	char			*name;
 	char			*fqdn;
 	char			*iface;
+	char			*iethaddr;
+	int			ifidx;
 	char			*oface;
-	char			*ethaddr;
+	char			*oethaddr;
+	int			ofidx;
 	char			*virtaddr;
 	char			*virtports;
 	int			family;
