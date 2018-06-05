@@ -31,6 +31,7 @@
 #include "server.h"
 #include "config.h"
 #include "nft.h"
+#include "events.h"
 
 #define SRV_MAX_BUF			4096
 #define SRV_MAX_HEADER			300
@@ -55,6 +56,8 @@
 #define HTTP_HEADER_CONTENTLEN		"Content-Length: "
 #define HTTP_HEADER_KEY			"Key: "
 #define HTTP_MIN_CONTINUE		2
+
+extern struct ev_io *srv_accept;
 
 enum ws_actions {
 	WS_GET_ACTION,
@@ -333,13 +336,12 @@ static void accept_cb(struct ev_loop *loop, struct ev_io *watcher, int revents)
 	ev_io_start(loop, w_client);
 }
 
-int server_init(void)
+int server_init(struct events_stct *st_ev)
 {
-	struct ev_loop *loop = ev_default_loop(0);
 	int sd;
 	struct sockaddr_storage addr;
 	socklen_t addrlen = sizeof(addr);
-	struct ev_io w_accept;
+	st_ev->srv_accept = (struct ev_io *)malloc(sizeof(struct ev_io));
 
 	if (!nftserver.key)
 		server_set_key(NULL);
@@ -372,11 +374,8 @@ int server_init(void)
 		return EXIT_FAILURE;
 	}
 
-	ev_io_init(&w_accept, accept_cb, sd, EV_READ);
-	ev_io_start(loop, &w_accept);
-
-	while (1)
-		ev_loop(loop, 0);
+	ev_io_init(st_ev->srv_accept, accept_cb, sd, EV_READ);
+	ev_io_start(st_ev->loop, st_ev->srv_accept);
 
 	return EXIT_SUCCESS;
 }

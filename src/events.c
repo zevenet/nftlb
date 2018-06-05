@@ -19,15 +19,24 @@
  *
  */
 
-#ifndef _SERVER_H_
-#define _SERVER_H_
-
 #include "events.h"
+#include "server.h"
 
-int server_init(struct events_stct *st_ev);
-void server_set_host(char *host);
-void server_set_port(int port);
-void server_set_key(char *key);
-void server_set_ipv6(void);
+#include <stdlib.h>
+#include <ev.h>
 
-#endif /* _SERVER_H_ */
+int loop_init(struct events_stct *st_ev)
+{
+	st_ev->loop = ev_default_loop(0);
+
+	return EXIT_SUCCESS;
+}
+
+int loop_run(struct events_stct *st_ev)
+{
+	while (1)
+		ev_loop(st_ev->loop, 0);
+
+	return EXIT_SUCCESS;
+}
+

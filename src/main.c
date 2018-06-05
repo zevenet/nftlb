@@ -31,6 +31,7 @@
 #include "model.h"
 #include "nft.h"
 #include "server.h"
+#include "events.h"
 
 #define NFTLB_SERVER_MODE		0
 #define NFTLB_EXIT_MODE			1
@@ -72,6 +73,7 @@ int main(int argc, char *argv[])
 	int		c;
 	int		loglevel = NFTLB_LOGLEVEL_DEFAULT;
 	const char	*config = NULL;
+	struct events_stct st_ev;
 
 	while ((c = getopt_long(argc, argv, "hl:c:k:e6H:P:", options, NULL)) != -1) {
 		switch (c) {
@@ -121,10 +123,14 @@ int main(int argc, char *argv[])
 	if (mode == NFTLB_EXIT_MODE)
 		return EXIT_SUCCESS;
 
-	if (server_init() != EXIT_SUCCESS) {
-		fprintf(stderr, "Cannot start libev: %s\n", strerror(errno));
+	loop_init(&st_ev);
+
+	if (server_init(&st_ev) != EXIT_SUCCESS) {
+		fprintf(stderr, "Cannot start server-ev: %s\n", strerror(errno));
 		return EXIT_FAILURE;
 	}
+
+	loop_run(&st_ev);
 
 	return EXIT_SUCCESS;
 }
