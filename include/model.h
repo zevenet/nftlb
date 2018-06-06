@@ -156,5 +156,6 @@ int farm_action_update(struct farm *f, int action);
 int bck_action_update(struct backend *b, int action);
 int farms_action_update(int action);
 int backends_action_update(struct farm *f, int action);
+void farms_update_by_oifidx(const int interface_idx, const char * ip_bck, char * ether_bck);
 
 #endif /* _MODEL_H_ */

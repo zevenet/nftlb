@@ -32,6 +32,7 @@
 #include "nft.h"
 #include "server.h"
 #include "events.h"
+#include "network.h"
 
 #define NFTLB_SERVER_MODE		0
 #define NFTLB_EXIT_MODE			1
@@ -124,6 +125,11 @@ int main(int argc, char *argv[])
 		return EXIT_SUCCESS;
 
 	loop_init(&st_ev);
+
+	if (net_eventd_init(&st_ev) != EXIT_SUCCESS) {
+		fprintf(stderr, "Cannot start netlink-ev: %s\n", strerror(errno));
+		return EXIT_FAILURE;
+	}
 
 	if (server_init(&st_ev) != EXIT_SUCCESS) {
 		fprintf(stderr, "Cannot start server-ev: %s\n", strerror(errno));

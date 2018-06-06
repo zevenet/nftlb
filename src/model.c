@@ -27,6 +27,7 @@
 #include "model.h"
 #include "config.h"
 #include "nft.h"
+#include "network.h"
 
 #define MODEL_NAME_DEF		""
 #define MODEL_FQDN_DEF		""
@@ -339,6 +340,60 @@ void print_pair(struct configpair *cfgp)
 	syslog(LOG_DEBUG,"pair: %d(level) %d(key) %s(value) %d(value)", cfgp->level, cfgp->key, cfgp->str_value, cfgp->int_value);
 }
 
+static int bck_state_update(struct farm *fptr, struct backend *b, int new_state)
+{
+	int old_state = b->state;
+
+	syslog(LOG_DEBUG, "%s():%d: backend old state is %d, but new state will be %d",
+	       __FUNCTION__, __LINE__, old_state, new_state);
+
+	if (model_bck_is_available(fptr, b) &&
+	    new_state != MODEL_VALUE_STATE_UP) {
+		b->state = new_state;
+		fptr->total_weight -= b->weight;
+		fptr->bcks_available--;
+	}
+
+	else if (old_state != MODEL_VALUE_STATE_UP &&
+		 new_state == MODEL_VALUE_STATE_UP) {
+		b->state = new_state;
+
+		if (model_bck_is_available(fptr, b)) {
+			fptr->total_weight += b->weight;
+			fptr->bcks_available++;
+		}
+	}
+
+	return EXIT_SUCCESS;
+}
+
+static int bck_ipaddr_update(struct farm *fptr, struct backend *b)
+{
+	int ret = EXIT_SUCCESS;
+	unsigned char dst_ethaddr[ETH_HW_ADDR_LEN];
+	unsigned char src_ethaddr[ETH_HW_ADDR_LEN];
+	char streth[ETH_HW_STR_LEN] = {};
+
+	if (fptr->mode == MODEL_VALUE_MODE_DSR) {
+		sscanf(fptr->iethaddr, "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx", &src_ethaddr[0], &src_ethaddr[1], &src_ethaddr[2], &src_ethaddr[3], &src_ethaddr[4], &src_ethaddr[5]);
+
+		ret = net_get_neigh_ether((unsigned char **) &dst_ethaddr, src_ethaddr, fptr->family, fptr->virtaddr, b->ipaddr, fptr->ofidx);
+		if (ret == EXIT_SUCCESS) {
+			sprintf(streth, "%02x:%02x:%02x:%02x:%02x:%02x", dst_ethaddr[0],
+				dst_ethaddr[1], dst_ethaddr[2], dst_ethaddr[3], dst_ethaddr[4], dst_ethaddr[5]);
+
+			syslog(LOG_DEBUG, "%s():%d: discovered ether address for %s is %s", __FUNCTION__, __LINE__, b->name, streth);
+
+			set_attr_string(streth, &b->ethaddr);
+		} else {
+			syslog(LOG_DEBUG, "%s():%d: backend %s comes to OFF", __FUNCTION__, __LINE__, b->name);
+			bck_state_update(fptr, b, MODEL_VALUE_STATE_OFF);
+		}
+	}
+
+	return ret;
+}
+
 static int bck_weight_update(struct configpair *cfgp, struct backend *b)
 {
 	int oldw = b->weight;
@@ -372,33 +427,6 @@ static int bck_priority_update(struct configpair *cfgp, struct backend *b)
 	return EXIT_SUCCESS;
 }
 
-static int bck_state_update(struct farm *fptr, struct backend *b, int new_state)
-{
-	int old_state = b->state;
-
-	syslog(LOG_DEBUG, "%s():%d: backend old state is %d, but new state will be %d",
-	       __FUNCTION__, __LINE__, old_state, new_state);
-
-	if (model_bck_is_available(fptr, b) &&
-	    new_state != MODEL_VALUE_STATE_UP) {
-		b->state = new_state;
-		fptr->total_weight -= b->weight;
-		fptr->bcks_available--;
-	}
-
-	else if (old_state != MODEL_VALUE_STATE_UP &&
-		 new_state == MODEL_VALUE_STATE_UP) {
-		b->state = new_state;
-
-		if (model_bck_is_available(fptr, b)) {
-			fptr->total_weight += b->weight;
-			fptr->bcks_available++;
-		}
-	}
-
-	return EXIT_SUCCESS;
-}
-
 static int set_b_attribute(struct configpair *cfgp, struct backend *pb)
 {
 	switch (cfgp->key) {
@@ -407,6 +435,7 @@ static int set_b_attribute(struct configpair *cfgp, struct backend *pb)
 		break;
 	case MODEL_KEY_IPADDR:
 		set_attr_string(cfgp->str_value, &pb->ipaddr);
+		bck_ipaddr_update(current_obj.fptr, pb);
 		break;
 	case MODEL_KEY_ETHADDR:
 		set_attr_string(cfgp->str_value, &pb->ethaddr);
@@ -460,6 +489,31 @@ static int set_backend_attribute(struct configpair *cfgp)
 	return EXIT_SUCCESS;
 }
 
+static int farm_if_update(struct farm *f, int key)
+{
+	unsigned char ether[ETH_HW_ADDR_LEN];
+	char streth[ETH_HW_STR_LEN] = {};
+	int idx, ret;
+
+	ret = net_get_local_ifinfo((unsigned char **)&ether, &idx, f->iface);
+
+	if (ret != EXIT_SUCCESS)
+		return EXIT_FAILURE;
+
+	if (key == MODEL_KEY_IFACE) {
+		f->ifidx = idx;
+
+		sprintf(streth, "%02x:%02x:%02x:%02x:%02x:%02x", ether[0],
+			ether[1], ether[2], ether[3], ether[4], ether[5]);
+
+		set_attr_string(streth, &f->iethaddr);
+	} else {
+		f->ofidx = idx;
+	}
+
+	return ret;
+}
+
 static int farm_state_update(struct configpair *cfgp, struct farm *f)
 {
 	int oldst = f->state;
@@ -487,9 +541,11 @@ static int set_f_attribute(struct configpair *cfgp, struct farm *pf)
 		break;
 	case MODEL_KEY_IFACE:
 		set_attr_string(cfgp->str_value, &pf->iface);
+		farm_if_update(pf, cfgp->key);
 		break;
 	case MODEL_KEY_OFACE:
 		set_attr_string(cfgp->str_value, &pf->oface);
+		farm_if_update(pf, cfgp->key);
 		break;
 	case MODEL_KEY_FAMILY:
 		pf->family = cfgp->int_value;
@@ -675,6 +731,7 @@ char * model_print_state(int state)
 
 int model_bck_is_available(struct farm *f, struct backend *b)
 {
+	syslog(LOG_DEBUG, "%s():%d: current state of backend %s is %d", __FUNCTION__, __LINE__, b->name, b->state);
 	return (b->state == MODEL_VALUE_STATE_UP) && (b->priority <= f->priority);
 }
 
@@ -725,4 +782,51 @@ int backends_action_update(struct farm *f, int action)
 		bck_action_update(b, action);
 
 	return EXIT_SUCCESS;
+}
+
+static int backend_update_by_ipaddr(struct farm *f, const char * ip_bck, char * ether_bck)
+{
+	struct backend *b;
+	int changed = 0;
+
+	list_for_each_entry(b, &f->backends, list) {
+
+		if (strcmp(b->ipaddr, ip_bck) != 0)
+			continue;
+
+		syslog(LOG_DEBUG, "%s():%d: backend with ip address %s found", __FUNCTION__, __LINE__, ip_bck);
+
+		if (strcmp(b->ethaddr, ether_bck) != 0) {
+			set_attr_string(ether_bck, &b->ethaddr);
+			bck_state_update(f, b, MODEL_VALUE_STATE_UP);
+			changed = 1;
+			syslog(LOG_INFO, "%s():%d: ether address changed for backend %s with %s", __FUNCTION__, __LINE__, b->name, ether_bck);
+		}
+	}
+
+	return changed;
+}
+
+void farms_update_by_oifidx(int interface_idx, const char * ip_bck, char * ether_bck)
+{
+	struct farm *f;
+	int changed = 0;
+
+	syslog(LOG_DEBUG, "%s():%d: updating farms with oifidx %d and backends with ip address %s and ether address %s", __FUNCTION__, __LINE__, interface_idx, ip_bck, ether_bck);
+
+	list_for_each_entry(f, &farms, list) {
+
+		if (f->ofidx != interface_idx)
+			continue;
+
+		syslog(LOG_DEBUG, "%s():%d: farm with oifidx %d found", __FUNCTION__, __LINE__, interface_idx);
+
+		if (backend_update_by_ipaddr(f, ip_bck, ether_bck)) {
+			farm_action_update(f, MODEL_ACTION_RELOAD);
+			changed = 1;
+		}
+	}
+
+	if (changed)
+		nft_rulerize();
 }

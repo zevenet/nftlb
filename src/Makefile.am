@@ -7,5 +7,6 @@ nftlb_SOURCES = config.c	\
 		model.c		\
 		nft.c		\
 		events.c	\
+		network.c	\
 		server.c
-nftlb_LDADD = ${LIBNFTABLES_LIBS} ${LIBJSON_LIBS}
+nftlb_LDADD = ${LIBNFTABLES_LIBS} ${LIBJSON_LIBS} ${LIBMNL_LIBS}

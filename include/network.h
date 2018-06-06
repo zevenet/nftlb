@@ -19,18 +19,16 @@
  *
  */
 
-#ifndef _EVENTS_H_
-#define _EVENTS_H_
+#ifndef _NETWORK_H_
+#define _NETWORK_H_
 
-#include <ev.h>
+#include "events.h"
 
-struct events_stct {
-	struct ev_loop *loop;
-	struct ev_io *srv_accept;
-	struct ev_io *net_ntlnk;
-};
+#define ETH_HW_ADDR_LEN		6
+#define ETH_HW_STR_LEN		18
 
-int loop_init(struct events_stct *st_ev);
-int loop_run(struct events_stct *st_ev);
+int net_get_neigh_ether(unsigned char **dst_ethaddr, unsigned char *src_ethaddr, unsigned char family, char *src_ipaddr, char *dst_ipaddr, int outdev);
+int net_get_local_ifinfo(unsigned char **ether, int *ifindex, const char *indev);
+int net_eventd_init(struct events_stct *st_ev);
 
-#endif /* _EVENTS_H_ */
+#endif /* _NETWORK_H_ */

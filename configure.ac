@@ -18,6 +18,7 @@ AC_PROG_SED
 
 PKG_CHECK_MODULES([LIBNFTABLES], [libnftables >= 0.8.5])
 PKG_CHECK_MODULES([LIBJSON], [jansson >= 2.3])
+PKG_CHECK_MODULES([LIBMNL], [libmnl >= 1.0.4])
 
 AC_CHECK_HEADER([ev.h], [EVENTINC="-include ev.h"],
 		[AC_CHECK_HEADER([libev/ev.h],
