@@ -19,10 +19,6 @@
  *
  */
 
-#include "network.h"
-#include "events.h"
-#include "model.h"
-
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
@@ -35,6 +31,10 @@
 #include <arpa/inet.h>
 #include <linux/if_arp.h>
 #include <ev.h>
+
+#include "network.h"
+#include "events.h"
+#include "farms.h"
 
 #define IP_ADDR_LEN		4
 #define IP6_ADDR_LEN		16
@@ -370,7 +370,7 @@ static int data_getev_cb(const struct nlmsghdr *nlh, void *data)
 			dst_ethaddr[2], dst_ethaddr[3], dst_ethaddr[4], dst_ethaddr[5]);
 
 		if ((ndm->ndm_state & NUD_REACHABLE) || (ndm->ndm_state & NUD_PERMANENT))
-			farms_update_by_oifidx(ndm->ndm_ifindex, str_ipaddr, streth);
+			farm_s_set_backend_ether_by_oifidx(ndm->ndm_ifindex, str_ipaddr, streth);
 
 		syslog(LOG_DEBUG, "%s():%d: [NEW NEIGH] family=%u ifindex=%u state=%u dstaddr=%s macaddr=%s",
 		       __FUNCTION__, __LINE__, ndm->ndm_family, ndm->ndm_ifindex, ndm->ndm_state, str_ipaddr,

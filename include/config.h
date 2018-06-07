@@ -22,6 +22,8 @@
 #ifndef _CONFIG_H_
 #define _CONFIG_H_
 
+#include "objects.h"
+
 #define CONFIG_KEY_FARMS		"farms"
 #define CONFIG_KEY_NAME			"name"
 #define CONFIG_KEY_FQDN			"fqdn"
@@ -64,6 +66,18 @@
 #define CONFIG_VALUE_ACTION_START	"start"
 #define CONFIG_VALUE_ACTION_RELOAD	"reload"
 #define CONFIG_VALUE_ACTION_NONE	"none"
+
+enum config_src {
+	CONFIG_SRC_FILE,
+	CONFIG_SRC_BUFFER,
+};
+
+struct config_pair {
+	enum levels	level;
+	enum keys	key;
+	char		*str_value;
+	int		int_value;
+};
 
 int config_file(const char *file);
 int config_buffer(const char *buf);

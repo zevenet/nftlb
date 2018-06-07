@@ -28,7 +28,7 @@
 #include <unistd.h>
 
 #include "config.h"
-#include "model.h"
+#include "objects.h"
 #include "nft.h"
 #include "server.h"
 #include "events.h"
@@ -111,13 +111,13 @@ int main(int argc, char *argv[])
 
 	setlogmask(LOG_UPTO(loglevel));
 
-	model_init();
+	objects_init();
 
 	if (config && config_file(config) != EXIT_SUCCESS)
 		return EXIT_FAILURE;
 
 	if (loglevel > NFTLB_LOGLEVEL_DEFAULT)
-		model_print_farms();
+		obj_print();
 
 	nft_rulerize();
 

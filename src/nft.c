@@ -19,14 +19,18 @@
  *
  */
 
+#include "nft.h"
+#include "objects.h"
+#include "farms.h"
+#include "backends.h"
+#include "config.h"
+#include "list.h"
+
 #include <stdlib.h>
 #include <nftables/nftables.h>
 #include <syslog.h>
 #include <string.h>
 
-#include "nft.h"
-#include "model.h"
-#include "list.h"
 
 #define NFTLB_MAX_CMD			2048
 #define NFTLB_MAX_IFACES		100
@@ -101,24 +105,24 @@ static int exec_cmd(struct nft_ctx *ctx, char *cmd)
 
 static char * print_nft_service(int family, int proto)
 {
-	if (family == MODEL_VALUE_FAMILY_IPV6) {
+	if (family == VALUE_FAMILY_IPV6) {
 		switch (proto) {
-		case MODEL_VALUE_PROTO_TCP:
+		case VALUE_PROTO_TCP:
 			return NFTLB_TCP_SERVICES6_MAP;
-		case MODEL_VALUE_PROTO_UDP:
+		case VALUE_PROTO_UDP:
 			return NFTLB_UDP_SERVICES6_MAP;
-		case MODEL_VALUE_PROTO_SCTP:
+		case VALUE_PROTO_SCTP:
 			return NFTLB_SCTP_SERVICES6_MAP;
 		default:
 			return NFTLB_IP_SERVICES6_MAP;
 		}
 	} else {
 		switch (proto) {
-		case MODEL_VALUE_PROTO_TCP:
+		case VALUE_PROTO_TCP:
 			return NFTLB_TCP_SERVICES_MAP;
-		case MODEL_VALUE_PROTO_UDP:
+		case VALUE_PROTO_UDP:
 			return NFTLB_UDP_SERVICES_MAP;
-		case MODEL_VALUE_PROTO_SCTP:
+		case VALUE_PROTO_SCTP:
 			return NFTLB_SCTP_SERVICES_MAP;
 		default:
 			return NFTLB_IP_SERVICES_MAP;
@@ -129,7 +133,7 @@ static char * print_nft_service(int family, int proto)
 static char * print_nft_family(int family)
 {
 	switch (family) {
-	case MODEL_VALUE_FAMILY_IPV6:
+	case VALUE_FAMILY_IPV6:
 		return NFTLB_IPV6_FAMILY;
 	default:
 		return NFTLB_IPV4_FAMILY;
@@ -138,9 +142,9 @@ static char * print_nft_family(int family)
 
 static char * print_nft_table_family(int family, int mode)
 {
-	if (mode == MODEL_VALUE_MODE_DSR)
+	if (mode == VALUE_MODE_DSR)
 		return NFTLB_NETDEV_FAMILY;
-	else if (family == MODEL_VALUE_FAMILY_IPV6)
+	else if (family == VALUE_FAMILY_IPV6)
 		return NFTLB_IPV6_FAMILY;
 	else
 		return NFTLB_IPV4_FAMILY;
@@ -149,9 +153,9 @@ static char * print_nft_table_family(int family, int mode)
 static char * print_nft_protocol(int protocol)
 {
 	switch (protocol) {
-	case MODEL_VALUE_PROTO_UDP:
+	case VALUE_PROTO_UDP:
 		return NFTLB_UDP_PROTO;
-	case MODEL_VALUE_PROTO_SCTP:
+	case VALUE_PROTO_SCTP:
 		return NFTLB_SCTP_PROTO;
 	default:
 		return NFTLB_TCP_PROTO;
@@ -203,15 +207,15 @@ static unsigned int get_rules_needed(int family, int protocol)
 {
 	unsigned int ret = 0;
 
-	if (family == MODEL_VALUE_FAMILY_IPV4 || family == MODEL_VALUE_FAMILY_INET) {
+	if (family == VALUE_FAMILY_IPV4 || family == VALUE_FAMILY_INET) {
 		switch (protocol) {
-		case MODEL_VALUE_PROTO_UDP:
+		case VALUE_PROTO_UDP:
 			ret |= NFTLB_IPV4_ACTIVE | NFTLB_IPV4_UDP_ACTIVE;
 			break;
-		case MODEL_VALUE_PROTO_TCP:
+		case VALUE_PROTO_TCP:
 			ret |= NFTLB_IPV4_ACTIVE | NFTLB_IPV4_TCP_ACTIVE;
 			break;
-		case MODEL_VALUE_PROTO_SCTP:
+		case VALUE_PROTO_SCTP:
 			ret |= NFTLB_IPV4_ACTIVE | NFTLB_IPV4_SCTP_ACTIVE;
 			break;
 		default:
@@ -220,15 +224,15 @@ static unsigned int get_rules_needed(int family, int protocol)
 		}
 	}
 
-	if (family == MODEL_VALUE_FAMILY_IPV6 || family == MODEL_VALUE_FAMILY_INET) {
+	if (family == VALUE_FAMILY_IPV6 || family == VALUE_FAMILY_INET) {
 		switch (protocol) {
-		case MODEL_VALUE_PROTO_UDP:
+		case VALUE_PROTO_UDP:
 			ret |= NFTLB_IPV6_ACTIVE | NFTLB_IPV6_UDP_ACTIVE;
 			break;
-		case MODEL_VALUE_PROTO_TCP:
+		case VALUE_PROTO_TCP:
 			ret |= NFTLB_IPV6_ACTIVE | NFTLB_IPV6_TCP_ACTIVE;
 			break;
-		case MODEL_VALUE_PROTO_SCTP:
+		case VALUE_PROTO_SCTP:
 			ret |= NFTLB_IPV6_ACTIVE | NFTLB_IPV6_SCTP_ACTIVE;
 			break;
 		default:
@@ -399,7 +403,7 @@ static int run_farm_rules(struct nft_ctx *ctx, struct farm *f, int family,
 	int last = 0;
 	int new;
 
-	if (action == MODEL_ACTION_RELOAD)
+	if (action == ACTION_RELOAD)
 		sprintf(buf, "%s ; flush chain %s %s %s", buf, print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, f->name);
 	else
 		sprintf(buf, "%s ; add chain %s %s %s", buf, print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, f->name);
@@ -409,25 +413,25 @@ static int run_farm_rules(struct nft_ctx *ctx, struct farm *f, int family,
 
 	sprintf(buf, "%s ; add rule %s %s %s", buf, print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, f->name);
 
-	if (f->mode == MODEL_VALUE_MODE_DSR)
+	if (f->mode == VALUE_MODE_DSR)
 		sprintf(buf, "%s ether saddr set %s ether daddr set", buf, f->iethaddr);
 	else
 		sprintf(buf, "%s dnat to", buf);
 
 	switch (f->scheduler) {
-	case MODEL_VALUE_SCHED_RR:
+	case VALUE_SCHED_RR:
 		sprintf(buf, "%s numgen inc mod %d map {", buf, f->total_weight);
 		break;
-	case MODEL_VALUE_SCHED_WEIGHT:
+	case VALUE_SCHED_WEIGHT:
 		sprintf(buf, "%s numgen random mod %d map {", buf, f->total_weight);
 		break;
-	case MODEL_VALUE_SCHED_HASH:
-		if ((f->protocol != MODEL_VALUE_PROTO_TCP || f->protocol == MODEL_VALUE_PROTO_SCTP) && (f->mode == MODEL_VALUE_MODE_DSR))
+	case VALUE_SCHED_HASH:
+		if ((f->protocol != VALUE_PROTO_TCP || f->protocol == VALUE_PROTO_SCTP) && (f->mode == VALUE_MODE_DSR))
 			sprintf(buf, "%s jhash %s saddr . %s sport mod %d map {", buf, print_nft_family(family), print_nft_protocol(f->protocol), f->total_weight);
 		else
 			sprintf(buf, "%s jhash %s saddr mod %d map {", buf, print_nft_family(family), f->total_weight);
 		break;
-	case MODEL_VALUE_SCHED_SYMHASH:
+	case VALUE_SCHED_SYMHASH:
 		sprintf(buf, "%s symhash mod %d map {", buf, f->total_weight);
 		break;
 	default:
@@ -435,7 +439,7 @@ static int run_farm_rules(struct nft_ctx *ctx, struct farm *f, int family,
 	}
 
 	list_for_each_entry(b, &f->backends, list) {
-		if(!model_bck_is_available(f, b))
+		if(!backend_is_available(b))
 			continue;
 
 		if (i != 0)
@@ -443,9 +447,9 @@ static int run_farm_rules(struct nft_ctx *ctx, struct farm *f, int family,
 
 		new = last + b->weight - 1;
 		if (new == last)
-			sprintf(buf, "%s %d: %s", buf, new, (f->mode == MODEL_VALUE_MODE_DSR) ? b->ethaddr : b->ipaddr);
+			sprintf(buf, "%s %d: %s", buf, new, (f->mode == VALUE_MODE_DSR) ? b->ethaddr : b->ipaddr);
 		else
-			sprintf(buf, "%s %d-%d: %s", buf, last, new, (f->mode == MODEL_VALUE_MODE_DSR) ? b->ethaddr : b->ipaddr);
+			sprintf(buf, "%s %d-%d: %s", buf, last, new, (f->mode == VALUE_MODE_DSR) ? b->ethaddr : b->ipaddr);
 
 		last = new + 1;
 		i++;
@@ -453,16 +457,16 @@ static int run_farm_rules(struct nft_ctx *ctx, struct farm *f, int family,
 
 	sprintf(buf, "%s }", buf);
 
-	if (f->mode == MODEL_VALUE_MODE_DSR)
+	if (f->mode == VALUE_MODE_DSR)
 		sprintf(buf, "%s fwd to %s", buf, f->oface);
 
 avoidrules:
-	if (action == MODEL_ACTION_RELOAD) {
+	if (action == ACTION_RELOAD) {
 		exec_cmd(ctx, buf);
 		return EXIT_SUCCESS;
 	}
 
-	if (f->protocol == MODEL_VALUE_PROTO_ALL) {
+	if (f->protocol == VALUE_PROTO_ALL) {
 		sprintf(buf, "%s ; add element %s %s %s { %s : goto %s }", buf, print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, print_nft_service(family, f->protocol), f->virtaddr, f->name);
 	} else {
 		ptr = f->virtports;
@@ -502,22 +506,22 @@ static int run_farm(struct nft_ctx *ctx, struct farm *f, int action)
 {
 	int ret = EXIT_SUCCESS;
 
-	if (f->mode == MODEL_VALUE_MODE_DSR)
+	if (f->mode == VALUE_MODE_DSR)
 		run_base_ndv(ctx, f);
 	else
 		run_base_nat(ctx, f);
 
-	if ((f->family == MODEL_VALUE_FAMILY_IPV4) || (f->family == MODEL_VALUE_FAMILY_INET))
-		run_farm_rules(ctx, f, MODEL_VALUE_FAMILY_IPV4, action);
-	if ((f->family == MODEL_VALUE_FAMILY_IPV6) || (f->family == MODEL_VALUE_FAMILY_INET))
-		run_farm_rules(ctx, f, MODEL_VALUE_FAMILY_IPV6, action);
+	if ((f->family == VALUE_FAMILY_IPV4) || (f->family == VALUE_FAMILY_INET))
+		run_farm_rules(ctx, f, VALUE_FAMILY_IPV4, action);
+	if ((f->family == VALUE_FAMILY_IPV6) || (f->family == VALUE_FAMILY_INET))
+		run_farm_rules(ctx, f, VALUE_FAMILY_IPV6, action);
 
-	if (f->mode == MODEL_VALUE_MODE_SNAT) {
-		if ((f->family == MODEL_VALUE_FAMILY_IPV4) || (f->family == MODEL_VALUE_FAMILY_INET)) {
-			run_farm_snat(ctx, f, MODEL_VALUE_FAMILY_IPV4);
+	if (f->mode == VALUE_MODE_SNAT) {
+		if ((f->family == VALUE_FAMILY_IPV4) || (f->family == VALUE_FAMILY_INET)) {
+			run_farm_snat(ctx, f, VALUE_FAMILY_IPV4);
 		}
-		if ((f->family == MODEL_VALUE_FAMILY_IPV6) || (f->family == MODEL_VALUE_FAMILY_INET)) {
-			run_farm_snat(ctx, f, MODEL_VALUE_FAMILY_IPV6);
+		if ((f->family == VALUE_FAMILY_IPV6) || (f->family == VALUE_FAMILY_INET)) {
+			run_farm_snat(ctx, f, VALUE_FAMILY_IPV6);
 		}
 	}
 
@@ -531,7 +535,7 @@ static int del_farm_rules(struct nft_ctx *ctx, struct farm *f, int family)
 	int new, last, i;
 	char *ptr;
 
-	if (f->protocol == MODEL_VALUE_PROTO_ALL) {
+	if (f->protocol == VALUE_PROTO_ALL) {
 		sprintf(buf, "%s ; delete element %s %s %s { %s }", buf, print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, print_nft_service(family, f->protocol), f->virtaddr);
 	 } else {
 		ptr = f->virtports;
@@ -563,10 +567,10 @@ static int del_farm(struct nft_ctx *ctx, struct farm *f)
 {
 	int ret = EXIT_SUCCESS;
 
-	if ((f->family == MODEL_VALUE_FAMILY_IPV4) || (f->family == MODEL_VALUE_FAMILY_INET))
-		del_farm_rules(ctx, f, MODEL_VALUE_FAMILY_IPV4);
-	if ((f->family == MODEL_VALUE_FAMILY_IPV6) || (f->family == MODEL_VALUE_FAMILY_INET))
-		del_farm_rules(ctx, f, MODEL_VALUE_FAMILY_IPV6);
+	if ((f->family == VALUE_FAMILY_IPV4) || (f->family == VALUE_FAMILY_INET))
+		del_farm_rules(ctx, f, VALUE_FAMILY_IPV4);
+	if ((f->family == VALUE_FAMILY_IPV6) || (f->family == VALUE_FAMILY_INET))
+		del_farm_rules(ctx, f, VALUE_FAMILY_IPV6);
 
 	return ret;
 }
@@ -574,29 +578,29 @@ static int del_farm(struct nft_ctx *ctx, struct farm *f)
 
 int nft_rulerize(void)
 {
-	struct list_head *farms = model_get_farms();
+	struct list_head *farms = obj_get_farms();
 	struct nft_ctx *ctx = nft_ctx_new(0);
 	struct farm *f;
 	int ret = EXIT_SUCCESS;
 
-	model_print_farms();
+	farm_s_print();
 
 	list_for_each_entry(f, farms, list) {
 		switch (f->action) {
-		case MODEL_ACTION_START:
-		case MODEL_ACTION_RELOAD:
+		case ACTION_START:
+		case ACTION_RELOAD:
 			ret = run_farm(ctx, f, f->action);
 			break;
-		case MODEL_ACTION_STOP:
-		case MODEL_ACTION_DELETE:
+		case ACTION_STOP:
+		case ACTION_DELETE:
 			ret = del_farm(ctx, f);
 			break;
-		case MODEL_ACTION_NONE:
+		case ACTION_NONE:
 		default:
 			break;
 		}
 
-		f->action = MODEL_ACTION_NONE;
+		f->action = ACTION_NONE;
 	}
 
 	nft_ctx_free(ctx);

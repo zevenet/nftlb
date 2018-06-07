@@ -4,7 +4,9 @@ sbin_PROGRAMS = nftlb
 
 nftlb_SOURCES = config.c	\
 		main.c		\
-		model.c		\
+		objects.c	\
+		farms.c		\
+		backends.c	\
 		nft.c		\
 		events.c	\
 		network.c	\
