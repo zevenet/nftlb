@@ -50,7 +50,7 @@ static struct backend * backend_create(struct farm *f, char *name)
 	b->ports = DEFAULT_PORTS;
 	b->weight = DEFAULT_WEIGHT;
 	b->priority = DEFAULT_PRIORITY;
-	b->state = DEFAULT_STATE;
+	b->state = DEFAULT_BACKEND_STATE;
 	b->action = DEFAULT_ACTION;
 
 	f->total_weight += DEFAULT_WEIGHT;

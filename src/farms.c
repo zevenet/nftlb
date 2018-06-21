@@ -60,7 +60,7 @@ static struct farm * farm_create(char *name)
 	pfarm->mode = DEFAULT_MODE;
 	pfarm->protocol = DEFAULT_PROTO;
 	pfarm->scheduler = DEFAULT_SCHED;
-	pfarm->state = DEFAULT_STATE;
+	pfarm->state = DEFAULT_FARM_STATE;
 	pfarm->action = DEFAULT_ACTION;
 
 	init_list_head(&pfarm->backends);
