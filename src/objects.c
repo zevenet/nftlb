@@ -137,6 +137,8 @@ char * obj_print_state(int state)
 
 int obj_set_attribute(struct config_pair *c, int actionable)
 {
+	syslog(LOG_DEBUG, "%s():%d: actionable is %d", __FUNCTION__, __LINE__, actionable);
+
 	switch (c->level) {
 	case LEVEL_FARMS:
 		if (actionable)

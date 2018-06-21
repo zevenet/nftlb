@@ -209,6 +209,8 @@ static int farm_set_mode(struct farm *f, int new_value)
 {
 	int old_value = f->mode;
 
+	syslog(LOG_DEBUG, "%s():%d: farm %s old mode %d new mode %d", __FUNCTION__, __LINE__, f->name, old_value, new_value);
+
 	if (old_value != new_value) {
 		farm_set_ifinfo(f, KEY_IFACE);
 		farm_set_ifinfo(f, KEY_OFACE);
@@ -222,6 +224,8 @@ static int farm_set_mode(struct farm *f, int new_value)
 static int farm_set_state(struct farm *f, int new_value)
 {
 	int old_value = f->state;
+
+	syslog(LOG_DEBUG, "%s():%d: farm %s old state %d new state %d", __FUNCTION__, __LINE__, f->name, old_value, new_value);
 
 	if (old_value != VALUE_STATE_UP &&
 	    new_value == VALUE_STATE_UP) {
@@ -249,12 +253,16 @@ int farm_pre_actionable(struct config_pair *c)
 	f = cur->fptr;
 
 	switch (c->key) {
+	case KEY_FAMILY:
+	case KEY_VIRTADDR:
+	case KEY_VIRTPORTS:
+	case KEY_MODE:
 	case KEY_PROTO:
 		if (farm_set_action(f, ACTION_STOP))
 			nft_rulerize();
 		break;
 	default:
-		return EXIT_FAILURE;
+		return EXIT_SUCCESS;
 	}
 
 	return EXIT_SUCCESS;
@@ -271,12 +279,18 @@ int farm_pos_actionable(struct config_pair *c)
 	f = cur->fptr;
 
 	switch (c->key) {
+	case KEY_FAMILY:
+	case KEY_VIRTADDR:
+	case KEY_VIRTPORTS:
+	case KEY_MODE:
 	case KEY_PROTO:
 		farm_set_action(f, ACTION_START);
 		break;
+	case KEY_STATE:
+		break;
 	default:
 		farm_set_action(f, ACTION_RELOAD);
-		return EXIT_FAILURE;
+		return EXIT_SUCCESS;
 	}
 
 	return EXIT_SUCCESS;
@@ -342,6 +356,8 @@ int farm_set_attribute(struct config_pair *c)
 
 int farm_set_action(struct farm *f, int action)
 {
+	syslog(LOG_DEBUG, "%s():%d: farm %s set action %d", __FUNCTION__, __LINE__, f->name, action);
+
 	if (action == ACTION_DELETE) {
 		farm_delete(f);
 		return 1;
