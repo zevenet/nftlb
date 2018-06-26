@@ -45,8 +45,16 @@
 
 #define GET_INET_LEN(family)	((family == AF_INET6) ? IP6_ADDR_LEN : IP_ADDR_LEN)
 
+static int net_event_enabled;
+
+struct net_io {
+	ev_io *io;
+	struct rtgenmsg *rt;
+	struct nlmsghdr *nlh;
+};
+
+static struct net_io io_handle;
 struct mnl_socket *nl;
-struct nlmsghdr *nlh;
 
 struct icmp_packet
 {
@@ -72,6 +80,8 @@ static int send_ping(void *data)
 	struct icmp_packet pckt;
 	ssize_t ret = EXIT_SUCCESS;
 	int sock;
+
+	syslog(LOG_DEBUG, "%s():%d: sending ping", __FUNCTION__, __LINE__);
 
 	bzero(&remote_addr, sizeof(remote_addr));
 	remote_addr.sin_family = sdata->family;
@@ -141,6 +151,8 @@ static int data_getdst_cb(const struct nlmsghdr *nlh, void *data)
 	char out[INET6_ADDRSTRLEN];
 	char out1[INET6_ADDRSTRLEN];
 	struct ntl_data *sdata = data;
+
+	syslog(LOG_DEBUG, "%s():%d: getting destination ethaddr", __FUNCTION__, __LINE__);
 
 	mnl_attr_parse(nlh, sizeof(*ndm), data_attr_cb, tb);
 
@@ -237,7 +249,7 @@ int net_get_neigh_ether(unsigned char **dst_ethaddr, unsigned char *src_ethaddr,
 {
 	int ret = EXIT_SUCCESS;
 
-	syslog(LOG_DEBUG, "%s():%d: source ether is  %02x:%02x:%02x:%02x:%02x:%02x",
+	syslog(LOG_DEBUG, "%s():%d: source ether is %02x:%02x:%02x:%02x:%02x:%02x",
 	       __FUNCTION__, __LINE__, src_ethaddr[0], src_ethaddr[1], src_ethaddr[2],
 	       src_ethaddr[3], src_ethaddr[4], src_ethaddr[5]);
 
@@ -305,6 +317,8 @@ int net_get_local_ifinfo(unsigned char **ether, int *ifindex, const char *indev)
 	struct ifreq ifr;
 	int sd;
 
+	syslog(LOG_DEBUG, "%s():%d: netlink get local interface info for %s", __FUNCTION__, __LINE__, indev);
+
 	sd = socket(AF_PACKET, SOCK_RAW, IPPROTO_RAW);
 
 	if (sd <= 0) {
@@ -352,6 +366,8 @@ static int data_getev_cb(const struct nlmsghdr *nlh, void *data)
 	unsigned char dst_ethaddr[ETH_HW_ADDR_LEN];
 	char streth[ETH_HW_STR_LEN] = {};
 
+	syslog(LOG_DEBUG, "%s():%d: netlink read new info", __FUNCTION__, __LINE__);
+
 	if (nlh->nlmsg_type != RTM_NEWNEIGH)
 		return MNL_CB_STOP;
 
@@ -386,6 +402,8 @@ static void ntlk_cb(struct ev_loop *loop, struct ev_io *watcher, int revents)
 	char buf[MNL_SOCKET_BUFFER_SIZE];
 	int ret, out;
 
+	syslog(LOG_DEBUG, "%s():%d: netlink callback executed", __FUNCTION__, __LINE__);
+
 	ret = mnl_socket_recvfrom(nl, buf, sizeof(buf));
 	while (ret > 0) {
 		ret = mnl_cb_run(buf, ret, 0, 0, data_getev_cb, NULL);
@@ -404,23 +422,23 @@ static void ntlk_cb(struct ev_loop *loop, struct ev_io *watcher, int revents)
 	}
 }
 
-ev_io ntlk_watcher;
-
-int net_eventd_init(struct events_stct *st_ev)
+int net_eventd_init(void)
 {
 	char buf[MNL_SOCKET_BUFFER_SIZE];
-	struct rtgenmsg *rt;
 	int sock;
+	struct ev_loop *st_ev_loop = get_loop();
 
-	st_ev->net_ntlnk = (struct ev_io *) malloc(sizeof(struct ev_io));
+	syslog(LOG_DEBUG, "%s():%d: net eventd launched", __FUNCTION__, __LINE__);
 
-	nlh = mnl_nlmsg_put_header(buf);
-	nlh->nlmsg_type = RTM_GETNEIGH;
-	nlh->nlmsg_flags = NLM_F_REQUEST | NLM_F_DUMP;
-	nlh->nlmsg_seq = time(NULL);
+	io_handle.io = events_create_ntlnk();
 
-	rt = mnl_nlmsg_put_extra_header(nlh, sizeof(struct rtgenmsg));
-	rt->rtgen_family = AF_INET;
+	io_handle.nlh = mnl_nlmsg_put_header(buf);
+	io_handle.nlh->nlmsg_type = RTM_GETNEIGH;
+	io_handle.nlh->nlmsg_flags = NLM_F_REQUEST | NLM_F_DUMP;
+	io_handle.nlh->nlmsg_seq = time(NULL);
+
+	io_handle.rt = mnl_nlmsg_put_extra_header(io_handle.nlh, sizeof(struct rtgenmsg));
+	io_handle.rt->rtgen_family = AF_INET;
 
 	nl = mnl_socket_open(NETLINK_ROUTE);
 	if (nl == NULL) {
@@ -435,8 +453,33 @@ int net_eventd_init(struct events_stct *st_ev)
 		return EXIT_FAILURE;
 	}
 
-	ev_io_init(st_ev->net_ntlnk, ntlk_cb, sock, EV_READ);
-	ev_io_start(st_ev->loop, st_ev->net_ntlnk);
+	ev_io_init(io_handle.io, ntlk_cb, sock, EV_READ);
+	ev_io_start(st_ev_loop, io_handle.io);
+
+	net_event_enabled = 1;
 
 	return 0;
 }
+
+int net_eventd_stop(void)
+{
+	struct ev_loop *st_ev_loop = get_loop();
+
+	syslog(LOG_DEBUG, "%s():%d: net eventd stopped", __FUNCTION__, __LINE__);
+
+	ev_io_stop(st_ev_loop, io_handle.io);
+	mnl_socket_close(nl);
+	free(io_handle.io);
+
+	net_event_enabled = 0;
+
+	return 0;
+}
+
+int net_get_event_enabled(void)
+{
+	syslog(LOG_DEBUG, "%s():%d: net eventd is %d", __FUNCTION__, __LINE__, net_event_enabled);
+	return net_event_enabled;
+}
+
+

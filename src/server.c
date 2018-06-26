@@ -336,12 +336,13 @@ static void accept_cb(struct ev_loop *loop, struct ev_io *watcher, int revents)
 	ev_io_start(loop, w_client);
 }
 
-int server_init(struct events_stct *st_ev)
+int server_init(void)
 {
 	int sd;
 	struct sockaddr_storage addr;
 	socklen_t addrlen = sizeof(addr);
-	st_ev->srv_accept = (struct ev_io *)malloc(sizeof(struct ev_io));
+	struct ev_loop *st_ev_loop = get_loop();
+	struct ev_io *st_ev_accept = events_create_srv();
 
 	if (!nftserver.key)
 		server_set_key(NULL);
@@ -374,8 +375,8 @@ int server_init(struct events_stct *st_ev)
 		return EXIT_FAILURE;
 	}
 
-	ev_io_init(st_ev->srv_accept, accept_cb, sd, EV_READ);
-	ev_io_start(st_ev->loop, st_ev->srv_accept);
+	ev_io_init(st_ev_accept, accept_cb, sd, EV_READ);
+	ev_io_start(st_ev_loop, st_ev_accept);
 
 	return EXIT_SUCCESS;
 }

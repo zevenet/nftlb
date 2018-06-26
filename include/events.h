@@ -24,13 +24,17 @@
 
 #include <ev.h>
 
-struct events_stct {
-	struct ev_loop *loop;
-	struct ev_io *srv_accept;
-	struct ev_io *net_ntlnk;
-};
+int loop_init(void);
+int loop_run(void);
+struct ev_loop *get_loop(void);
 
-int loop_init(struct events_stct *st_ev);
-int loop_run(struct events_stct *st_ev);
+struct ev_io *events_get_ntlnk(void);
+struct ev_io *events_create_ntlnk(void);
+void events_delete_ntlnk(void);
+
+struct ev_io *events_get_srv(void);
+struct ev_io *events_create_srv(void);
+void events_delete_srv(void);
+
 
 #endif /* _EVENTS_H_ */

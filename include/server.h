@@ -22,9 +22,7 @@
 #ifndef _SERVER_H_
 #define _SERVER_H_
 
-#include "events.h"
-
-int server_init(struct events_stct *st_ev);
+int server_init(void);
 void server_set_host(char *host);
 void server_set_port(int port);
 void server_set_key(char *key);

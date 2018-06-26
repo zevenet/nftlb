@@ -22,13 +22,13 @@
 #ifndef _NETWORK_H_
 #define _NETWORK_H_
 
-#include "events.h"
-
 #define ETH_HW_ADDR_LEN		6
 #define ETH_HW_STR_LEN		18
 
 int net_get_neigh_ether(unsigned char **dst_ethaddr, unsigned char *src_ethaddr, unsigned char family, char *src_ipaddr, char *dst_ipaddr, int outdev);
 int net_get_local_ifinfo(unsigned char **ether, int *ifindex, const char *indev);
-int net_eventd_init(struct events_stct *st_ev);
+int net_eventd_init(void);
+int net_eventd_stop(void);
+int net_get_event_enabled(void);
 
 #endif /* _NETWORK_H_ */

@@ -74,7 +74,6 @@ int main(int argc, char *argv[])
 	int		c;
 	int		loglevel = NFTLB_LOGLEVEL_DEFAULT;
 	const char	*config = NULL;
-	struct events_stct st_ev;
 
 	while ((c = getopt_long(argc, argv, "hl:c:k:e6H:P:", options, NULL)) != -1) {
 		switch (c) {
@@ -113,6 +112,8 @@ int main(int argc, char *argv[])
 
 	objects_init();
 
+	loop_init();
+
 	if (config && config_file(config) != EXIT_SUCCESS)
 		return EXIT_FAILURE;
 
@@ -124,19 +125,12 @@ int main(int argc, char *argv[])
 	if (mode == NFTLB_EXIT_MODE)
 		return EXIT_SUCCESS;
 
-	loop_init(&st_ev);
-
-	if (net_eventd_init(&st_ev) != EXIT_SUCCESS) {
-		fprintf(stderr, "Cannot start netlink-ev: %s\n", strerror(errno));
-		return EXIT_FAILURE;
-	}
-
-	if (server_init(&st_ev) != EXIT_SUCCESS) {
+	if (server_init() != EXIT_SUCCESS) {
 		fprintf(stderr, "Cannot start server-ev: %s\n", strerror(errno));
 		return EXIT_FAILURE;
 	}
 
-	loop_run(&st_ev);
+	loop_run();
 
 	return EXIT_SUCCESS;
 }

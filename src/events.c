@@ -25,18 +25,65 @@
 #include <stdlib.h>
 #include <ev.h>
 
-int loop_init(struct events_stct *st_ev)
+struct events_stct {
+	struct ev_loop *loop;
+	struct ev_io *srv_accept;
+	struct ev_io *net_ntlnk;
+};
+
+static struct events_stct st_ev;
+
+int loop_init(void)
 {
-	st_ev->loop = ev_default_loop(0);
+	st_ev.loop = ev_default_loop(0);
 
 	return EXIT_SUCCESS;
 }
 
-int loop_run(struct events_stct *st_ev)
+int loop_run(void)
 {
 	while (1)
-		ev_loop(st_ev->loop, 0);
+		ev_loop(st_ev.loop, 0);
 
 	return EXIT_SUCCESS;
+}
+
+struct ev_loop *get_loop(void)
+{
+	return st_ev.loop;
+}
+
+struct ev_io *events_get_ntlnk(void)
+{
+	return st_ev.net_ntlnk;
+}
+
+struct ev_io *events_create_ntlnk(void)
+{
+	st_ev.net_ntlnk = (struct ev_io *)malloc(sizeof(struct ev_io));
+	return st_ev.net_ntlnk;
+}
+
+void events_delete_ntlnk(void)
+{
+	if (st_ev.net_ntlnk)
+		free(st_ev.net_ntlnk);
+}
+
+struct ev_io *events_get_srv(void)
+{
+	return st_ev.srv_accept;
+}
+
+struct ev_io *events_create_srv(void)
+{
+	st_ev.srv_accept = (struct ev_io *)malloc(sizeof(struct ev_io));
+	return st_ev.srv_accept;
+}
+
+void events_delete_srv(void)
+{
+	if (st_ev.srv_accept)
+		free(st_ev.srv_accept);
 }
 
