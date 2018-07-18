@@ -23,6 +23,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
+#include <net/if.h>
 
 #include "farms.h"
 #include "backends.h"
@@ -48,8 +49,8 @@ static struct farm * farm_create(char *name)
 	obj_set_attribute_string(name, &pfarm->name);
 
 	pfarm->fqdn = DEFAULT_FQDN;
-	pfarm->iface = DEFAULT_IFACE;
-	pfarm->oface = DEFAULT_OFACE;
+	pfarm->iface = NULL;
+	pfarm->oface = NULL;
 	pfarm->iethaddr = DEFAULT_ETHADDR;
 	pfarm->oethaddr = DEFAULT_ETHADDR;
 	pfarm->ifidx = DEFAULT_IFIDX;
@@ -168,13 +169,15 @@ struct farm * farm_lookup_by_name(const char *name)
 	return NULL;
 }
 
-static int farm_set_ifinfo(struct farm *f, int key)
+int farm_set_ifinfo(struct farm *f, int key)
 {
 	unsigned char ether[ETH_HW_ADDR_LEN];
 	char streth[ETH_HW_STR_LEN] = {};
-	int *if_index;
-	char **if_str;
+	char if_str[IFNAMSIZ];
+	struct backend *b;
 	char **ether_addr;
+	int if_index;
+	int ret = EXIT_SUCCESS;
 
 	syslog(LOG_DEBUG, "%s():%d: farm %s set interface info for interface key %d", __FUNCTION__, __LINE__, f->name, key);
 
@@ -183,28 +186,71 @@ static int farm_set_ifinfo(struct farm *f, int key)
 		return EXIT_FAILURE;
 	}
 
-	if (key == KEY_IFACE) {
-		if_index = &f->ifidx;
+	switch (key) {
+	case KEY_IFACE:
 		ether_addr = &f->iethaddr;
-		if_str = &f->iface;
-	} else if (key == KEY_OFACE) {
-		if_index = &f->ofidx;
+
+		if (f->iface == NULL)
+			ret = net_get_local_ifname_per_vip(f->virtaddr, if_str);
+
+		if (ret != EXIT_SUCCESS) {
+			syslog(LOG_ERR, "%s():%d: inbound interface not found with VIP %s by farm %s", __FUNCTION__, __LINE__, f->virtaddr, f->name);
+			return EXIT_FAILURE;
+		}
+
+		obj_set_attribute_string(if_str, &f->iface);
+		if_index = if_nametoindex(if_str);
+
+		if (if_index == 0) {
+			syslog(LOG_ERR, "%s():%d: index of the inbound interface %s in farm %s not found", __FUNCTION__, __LINE__, f->iface, f->name);
+			return EXIT_FAILURE;
+		}
+
+		f->ifidx = if_index;
+
+		net_get_local_ifinfo((unsigned char **)&ether, if_str);
+
+		sprintf(streth, "%02x:%02x:%02x:%02x:%02x:%02x", ether[0],
+			ether[1], ether[2], ether[3], ether[4], ether[5]);
+
+		obj_set_attribute_string(streth, ether_addr);
+		break;
+	case KEY_OFACE:
 		ether_addr = &f->oethaddr;
-		if_str = &f->oface;
+
+		if (f->oface == NULL) {
+			b = backend_get_first(f);
+			if (b->ipaddr == NULL) {
+				syslog(LOG_ERR, "%s():%d: there is no backend yet in the farm %s", __FUNCTION__, __LINE__, f->name);
+				return EXIT_FAILURE;
+			}
+
+			ret = net_get_local_ifidx_per_remote_host(b->ipaddr, &if_index);
+			if (ret == EXIT_FAILURE) {
+				syslog(LOG_ERR, "%s():%d: unable to get the outbound interface to %s for the farm %s", __FUNCTION__, __LINE__, b->ipaddr, f->name);
+				return EXIT_FAILURE;
+			}
+
+			f->ofidx = if_index;
+
+			if (if_indextoname(if_index, if_str) == NULL) {
+				syslog(LOG_ERR, "%s():%d: unable to get the outbound interface name with index %d required by the farm %s", __FUNCTION__, __LINE__, if_index, f->name);
+				return EXIT_FAILURE;
+			}
+
+			obj_set_attribute_string(if_str, &f->oface);
+		} else {
+			if_index = if_nametoindex(f->oface);
+
+			if (if_index == 0) {
+				syslog(LOG_ERR, "%s():%d: index of outbound interface %s in farm %s is not found", __FUNCTION__, __LINE__, f->oface, f->name);
+				return EXIT_FAILURE;
+			}
+
+			f->ofidx = if_index;
+		}
+		break;
 	}
-
-	if (strcmp(*if_str, "") == 0) {
-		syslog(LOG_INFO, "%s():%d: interface not set yet in farm %s", __FUNCTION__, __LINE__, f->name);
-		return EXIT_FAILURE;
-	}
-
-	if (net_get_local_ifinfo((unsigned char **)&ether, if_index, *if_str) != EXIT_SUCCESS)
-		return EXIT_FAILURE;
-
-	sprintf(streth, "%02x:%02x:%02x:%02x:%02x:%02x", ether[0],
-		ether[1], ether[2], ether[3], ether[4], ether[5]);
-
-	obj_set_attribute_string(streth, ether_addr);
 
 	return EXIT_SUCCESS;
 }
@@ -269,6 +315,8 @@ int farm_pre_actionable(struct config_pair *c)
 
 	f = cur->fptr;
 
+	syslog(LOG_DEBUG, "%s():%d: pre actionable farm %s with param %d", __FUNCTION__, __LINE__, f->name, c->key);
+
 	switch (c->key) {
 	case KEY_FAMILY:
 	case KEY_VIRTADDR:
@@ -294,6 +342,8 @@ int farm_pos_actionable(struct config_pair *c)
 		return EXIT_FAILURE;
 
 	f = cur->fptr;
+
+	syslog(LOG_DEBUG, "%s():%d: pos actionable farm %s with param %d", __FUNCTION__, __LINE__, f->name, c->key);
 
 	switch (c->key) {
 	case KEY_FAMILY:

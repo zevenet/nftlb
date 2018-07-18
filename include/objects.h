@@ -24,9 +24,7 @@
 
 #define DEFAULT_NAME		""
 #define DEFAULT_FQDN		""
-#define DEFAULT_IFACE		""
 #define DEFAULT_IFIDX		0
-#define DEFAULT_OFACE		""
 #define DEFAULT_ETHADDR		""
 #define DEFAULT_VIRTADDR	""
 #define DEFAULT_VIRTPORTS	""

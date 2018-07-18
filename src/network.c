@@ -72,6 +72,17 @@ struct ntl_data {
 	int		oifidx;
 };
 
+struct ntl_request {
+	struct mnl_socket *nl;
+	struct nlmsghdr *nlh;
+	struct rtgenmsg *rt;
+	struct rtmsg *rtm;
+	unsigned int portid;
+	int msgtype;
+	char *buf;
+	void *cb;
+	void *data;
+};
 
 static int send_ping(void *data)
 {
@@ -116,7 +127,7 @@ out:
 }
 
 
-static int data_attr_cb(const struct nlattr *attr, void *data)
+static int data_attr_neigh_cb(const struct nlattr *attr, void *data)
 {
 	const struct nlattr **tb = data;
 	int type = mnl_attr_get_type(attr);
@@ -141,8 +152,7 @@ static int data_attr_cb(const struct nlattr *attr, void *data)
 	return MNL_CB_OK;
 }
 
-
-static int data_getdst_cb(const struct nlmsghdr *nlh, void *data)
+static int data_getdst_neigh_cb(const struct nlmsghdr *nlh, void *data)
 {
 	struct nlattr *tb[NDA_MAX + 1] = {};
 	struct ndmsg *ndm = mnl_nlmsg_get_payload(nlh);
@@ -152,9 +162,9 @@ static int data_getdst_cb(const struct nlmsghdr *nlh, void *data)
 	char out1[INET6_ADDRSTRLEN];
 	struct ntl_data *sdata = data;
 
-	syslog(LOG_DEBUG, "%s():%d: getting destination ethaddr", __FUNCTION__, __LINE__);
+	syslog(LOG_DEBUG, "%s():%d: getting ethernet address destination", __FUNCTION__, __LINE__);
 
-	mnl_attr_parse(nlh, sizeof(*ndm), data_attr_cb, tb);
+	mnl_attr_parse(nlh, sizeof(*ndm), data_attr_neigh_cb, tb);
 
 	if (!tb[NDA_DST])
 		return MNL_CB_OK;
@@ -166,7 +176,7 @@ static int data_getdst_cb(const struct nlmsghdr *nlh, void *data)
 
 	if (memcmp(ipaddr, sdata->dst_ipaddr, GET_INET_LEN(sdata->family)) == 0 &&
 	    ((ndm->ndm_state & NUD_REACHABLE) || (ndm->ndm_state & NUD_PERMANENT) || (ndm->ndm_state & NUD_STALE))) {
-		mnl_attr_parse(nlh, sizeof(*ndm), data_attr_cb, tb);
+		mnl_attr_parse(nlh, sizeof(*ndm), data_attr_neigh_cb, tb);
 		if (tb[NDA_LLADDR]) {
 			ethaddr = mnl_attr_get_payload(tb[NDA_LLADDR]);
 			memcpy(&sdata->dst_ethaddr, ethaddr, 6);
@@ -184,45 +194,83 @@ static int data_getdst_cb(const struct nlmsghdr *nlh, void *data)
 	return MNL_CB_OK;
 }
 
-
-static int ntl_request(void *data)
+static int data_route_attr_cb(const struct nlattr *attr, void *data)
 {
-	struct mnl_socket *nl;
-	char buf[MNL_SOCKET_BUFFER_SIZE];
-	struct nlmsghdr *nlh;
-	struct rtgenmsg *rt;
+	const struct nlattr **tb = data;
+	int type = mnl_attr_get_type(attr);
+
+	if (mnl_attr_type_valid(attr, RTA_MAX) < 0)
+		return MNL_CB_OK;
+
+	switch(type) {
+	case RTA_TABLE:
+	case RTA_DST:
+	case RTA_SRC:
+	case RTA_OIF:
+	case RTA_FLOW:
+	case RTA_PREFSRC:
+	case RTA_GATEWAY:
+	case RTA_PRIORITY:
+		if (mnl_attr_validate(attr, MNL_TYPE_U32) < 0) {
+			syslog(LOG_ERR, "%s():%d: mnl_attr_validate error", __FUNCTION__, __LINE__);
+			return MNL_CB_ERROR;
+		}
+		break;
+        case RTA_METRICS:
+                if (mnl_attr_validate(attr, MNL_TYPE_NESTED) < 0) {
+			syslog(LOG_ERR, "%s():%d: mnl_attr_validate error", __FUNCTION__, __LINE__);
+                        return MNL_CB_ERROR;
+                }
+                break;
+	}
+
+	tb[type] = attr;
+	return MNL_CB_OK;
+}
+
+static int data_getdst_route_cb(const struct nlmsghdr *nlh, void *data)
+{
+	struct nlattr *tb[RTA_MAX + 1] = {};
+	struct rtmsg *rm = mnl_nlmsg_get_payload(nlh);
+	struct ntl_data *sdata = data;
+
+	syslog(LOG_DEBUG, "%s():%d: getting interface route destination", __FUNCTION__, __LINE__);
+
+	mnl_attr_parse(nlh, sizeof(*rm), data_route_attr_cb, tb);
+
+	if (tb[RTA_OIF]) {
+		sdata->oifidx = mnl_attr_get_u32(tb[RTA_OIF]);
+		syslog(LOG_INFO, "%s():%d: get routing interface to destination is %u", __FUNCTION__, __LINE__, sdata->oifidx);
+		return MNL_CB_STOP;
+	}
+
+	return MNL_CB_STOP;
+}
+
+static int ntl_request(struct ntl_request *ntl)
+{
 	int ret, out = EXIT_SUCCESS;
-	unsigned int seq, portid;
 
-	nlh = mnl_nlmsg_put_header(buf);
-	nlh->nlmsg_type = RTM_GETNEIGH;
-	nlh->nlmsg_flags = NLM_F_REQUEST | NLM_F_DUMP;
-	nlh->nlmsg_seq = seq = time(NULL);
-
-	rt = mnl_nlmsg_put_extra_header(nlh, sizeof(struct rtgenmsg));
-	rt->rtgen_family = AF_INET;
-
-	nl = mnl_socket_open(NETLINK_ROUTE);
-	if (nl == NULL) {
+	ntl->nl = mnl_socket_open(NETLINK_ROUTE);
+	if (ntl->nl == NULL) {
 		syslog(LOG_ERR, "%s():%d: mnl_socket_open error", __FUNCTION__, __LINE__);
 		return EXIT_FAILURE;
 	}
 
-	if (mnl_socket_bind(nl, 0, MNL_SOCKET_AUTOPID) < 0) {
+	if (mnl_socket_bind(ntl->nl, 0, MNL_SOCKET_AUTOPID) < 0) {
 		syslog(LOG_ERR, "%s():%d: mnl_socket_bind error", __FUNCTION__, __LINE__);
 		return EXIT_FAILURE;
 	}
-	portid = mnl_socket_get_portid(nl);
+	ntl->portid = mnl_socket_get_portid(ntl->nl);
 
-	if (mnl_socket_sendto(nl, nlh, nlh->nlmsg_len) < 0) {
+	if (mnl_socket_sendto(ntl->nl, ntl->nlh, ntl->nlh->nlmsg_len) < 0) {
 		syslog(LOG_ERR, "%s():%d: mnl_socket_sendto error", __FUNCTION__, __LINE__);
 		return EXIT_FAILURE;
 	}
 
-	ret = mnl_socket_recvfrom(nl, buf, sizeof(buf));
+	ret = mnl_socket_recvfrom(ntl->nl, ntl->buf, MNL_SOCKET_BUFFER_SIZE);
 	while (ret > 0) {
-		ret = mnl_cb_run(buf, ret, seq, portid, data_getdst_cb, data);
-
+		ret = mnl_cb_run(ntl->buf, ret, ntl->nlh->nlmsg_seq, ntl->portid, ntl->cb, ntl->data);
 		if (ret <= MNL_CB_STOP) {
 			out = EXIT_SUCCESS | out;
 			goto end;
@@ -230,7 +278,7 @@ static int ntl_request(void *data)
 			out = EXIT_FAILURE;
 		}
 
-		ret = mnl_socket_recvfrom(nl, buf, sizeof(buf));
+		ret = mnl_socket_recvfrom(ntl->nl, ntl->buf, MNL_SOCKET_BUFFER_SIZE);
 	}
 
 	if (ret == -1) {
@@ -239,7 +287,7 @@ static int ntl_request(void *data)
 	}
 
 end:
-	mnl_socket_close(nl);
+	mnl_socket_close(ntl->nl);
 
 	return out;
 }
@@ -247,17 +295,33 @@ end:
 
 int net_get_neigh_ether(unsigned char **dst_ethaddr, unsigned char *src_ethaddr, unsigned char family, char *src_ipaddr, char *dst_ipaddr, int outdev)
 {
+	struct ntl_request ntl;
+	struct ntl_data *data;
 	int ret = EXIT_SUCCESS;
+
+	ntl.buf = (char *) malloc(MNL_SOCKET_BUFFER_SIZE);
+
+	ntl.nlh = mnl_nlmsg_put_header(ntl.buf);
+	ntl.nlh->nlmsg_type = RTM_GETNEIGH;
+	ntl.nlh->nlmsg_flags = NLM_F_REQUEST | NLM_F_DUMP;
+	ntl.nlh->nlmsg_seq = time(NULL);
+
+	ntl.rt = mnl_nlmsg_put_extra_header(ntl.nlh, sizeof(struct rtgenmsg));
+	ntl.rt->rtgen_family = AF_INET;
+
+	ntl.cb = data_getdst_neigh_cb;
 
 	syslog(LOG_DEBUG, "%s():%d: source ether is %02x:%02x:%02x:%02x:%02x:%02x",
 	       __FUNCTION__, __LINE__, src_ethaddr[0], src_ethaddr[1], src_ethaddr[2],
 	       src_ethaddr[3], src_ethaddr[4], src_ethaddr[5]);
 
-	struct ntl_data *data = (struct ntl_data *)calloc(1, sizeof(struct ntl_data));
+	data = (struct ntl_data *)calloc(1, sizeof(struct ntl_data));
 	if (!data) {
 		syslog(LOG_ERR, "%s():%d: memory allocation error", __FUNCTION__, __LINE__);
 		return EXIT_FAILURE;
 	}
+
+	ntl.data = (void *)data;
 
 	data->dst_ipaddr = (struct in6_addr *)calloc(1, sizeof(struct in6_addr));
 	if (!data->dst_ipaddr){
@@ -277,33 +341,32 @@ int net_get_neigh_ether(unsigned char **dst_ethaddr, unsigned char *src_ethaddr,
 
 	data->oifidx = outdev;
 
-	ret = ntl_request(data);
+	ret = ntl_request(&ntl);
 
 	if (ret != EXIT_SUCCESS) {
+		ret = EXIT_FAILURE;
 		syslog(LOG_DEBUG, "%s():%d: not found, send ping for %s", __FUNCTION__, __LINE__, dst_ipaddr);
 
 		data->src_ipaddr = (struct in6_addr *)calloc(1, sizeof(struct in6_addr));
 		if (!data->src_ipaddr){
 			syslog(LOG_ERR, "%s():%d: memory allocation error", __FUNCTION__, __LINE__);
-			return EXIT_FAILURE;
+			return ret;
 		}
 
 		if (inet_pton(data->family, src_ipaddr, data->src_ipaddr) <= 0) {
 			syslog(LOG_ERR, "%s():%d: network translation error for %s", __FUNCTION__, __LINE__, src_ipaddr);
-			return EXIT_FAILURE;
+			return ret;
 		}
 
 		memcpy(data->src_ethaddr, src_ethaddr, ETH_HW_ADDR_LEN);
 
 		send_ping(data);
-		/* second attempt */
-		usleep(ARP_TABLE_RETRY_SLEEP);
-		ret = ntl_request(data);
 
 		free(data->src_ipaddr);
 	}
 
 	memcpy(dst_ethaddr, data->dst_ethaddr, ETH_HW_ADDR_LEN);
+	free(ntl.buf);
 	free(data->dst_ipaddr);
 	free(data);
 
@@ -311,7 +374,76 @@ int net_get_neigh_ether(unsigned char **dst_ethaddr, unsigned char *src_ethaddr,
 }
 
 
-int net_get_local_ifinfo(unsigned char **ether, int *ifindex, const char *indev)
+int net_get_local_ifidx_per_remote_host(char *dst_ipaddr, int *outdev)
+{
+	struct ntl_request ntl;
+	struct ntl_data *data;
+	struct sockaddr_in addr;
+	int ret = EXIT_SUCCESS;
+
+	syslog(LOG_DEBUG, "%s():%d: dst ip address is %s", __FUNCTION__, __LINE__, dst_ipaddr);
+
+	ntl.buf = (char *) malloc(MNL_SOCKET_BUFFER_SIZE);
+
+	ntl.nlh = mnl_nlmsg_put_header(ntl.buf);
+	ntl.nlh->nlmsg_type = RTM_GETROUTE;
+	ntl.nlh->nlmsg_flags = NLM_F_REQUEST;
+	ntl.nlh->nlmsg_seq = time(NULL);
+
+	ntl.rtm = mnl_nlmsg_put_extra_header(ntl.nlh, sizeof(struct rtmsg));
+	ntl.rtm->rtm_family = AF_INET;
+	ntl.rtm->rtm_dst_len = 32;
+	ntl.rtm->rtm_src_len = 0;
+	ntl.rtm->rtm_tos = 0;
+	ntl.rtm->rtm_protocol = RTPROT_UNSPEC;
+	ntl.rtm->rtm_table = RT_TABLE_UNSPEC;
+	ntl.rtm->rtm_type = RTN_UNSPEC;
+	ntl.rtm->rtm_scope = RT_SCOPE_UNIVERSE;
+	ntl.rtm->rtm_flags = RTM_F_LOOKUP_TABLE;
+
+	data = (struct ntl_data *)calloc(1, sizeof(struct ntl_data));
+	if (!data) {
+		syslog(LOG_ERR, "%s():%d: memory allocation error", __FUNCTION__, __LINE__);
+		return EXIT_FAILURE;
+	}
+
+	data->dst_ipaddr = (struct in6_addr *)calloc(1, sizeof(struct in6_addr));
+	if (!data->dst_ipaddr){
+		syslog(LOG_ERR, "%s():%d: memory allocation error", __FUNCTION__, __LINE__);
+		return EXIT_FAILURE;
+	}
+
+	ntl.cb = data_getdst_route_cb;
+	ntl.data = (void *)data;
+	data->family = ntl.rtm->rtm_family;
+
+	if (!inet_pton(AF_INET, dst_ipaddr, &(addr.sin_addr))) {
+		syslog(LOG_ERR, "%s():%d: network translation error for %s", __FUNCTION__, __LINE__, dst_ipaddr);
+		return EXIT_FAILURE;
+	}
+
+	mnl_attr_put(ntl.nlh, RTA_DST, sizeof(uint32_t), &addr.sin_addr.s_addr);
+
+	ret = ntl_request(&ntl);
+
+	if (ret != EXIT_SUCCESS) {
+		syslog(LOG_ERR, "%s():%d: not found route to %s", __FUNCTION__, __LINE__, dst_ipaddr);
+		return EXIT_FAILURE;
+	}
+
+	syslog(LOG_DEBUG, "%s():%d: found route to %s via %d", __FUNCTION__, __LINE__, dst_ipaddr, data->oifidx);
+
+	*outdev = data->oifidx;
+
+	free(ntl.buf);
+	free(data->dst_ipaddr);
+	free(data);
+
+	return ret;
+}
+
+
+int net_get_local_ifinfo(unsigned char **ether, const char *indev)
 {
 	int ret = EXIT_FAILURE;
 	struct ifreq ifr;
@@ -326,19 +458,7 @@ int net_get_local_ifinfo(unsigned char **ether, int *ifindex, const char *indev)
 		goto out;
 	}
 
-	if (strlen(indev) > (IFNAMSIZ - 1)) {
-		syslog(LOG_ERR, "%s():%d: %ld chars too long interface name, max = %i", __FUNCTION__, __LINE__, strlen(indev), IFNAMSIZ - 1);
-		goto out;
-	}
-
 	strcpy(ifr.ifr_name, indev);
-
-	if (ioctl(sd, SIOCGIFINDEX, &ifr) == -1) {
-		syslog(LOG_ERR, "%s():%d: ioctl SIOCGIFINDEX error", __FUNCTION__, __LINE__);
-		goto out;
-	}
-
-	*ifindex = ifr.ifr_ifindex;
 
 	if (ioctl(sd, SIOCGIFHWADDR, &ifr) == -1) {
 		syslog(LOG_ERR, "%s():%d: ioctl SIOCGIFHWADDR error", __FUNCTION__, __LINE__);
@@ -355,6 +475,66 @@ out:
 	return ret;
 }
 
+int net_get_local_ifname_per_vip(char *strvip, char *outdev)
+{
+	int ret = EXIT_FAILURE;
+	struct sockaddr_storage addr;
+	struct ifconf ifc;
+	struct ifreq *ifr;
+	char buf[16384];
+	int sd = 0;
+	int i, found = 0;
+	size_t len;
+	struct sockaddr_in *ipaddr;
+
+	if (strcmp(strvip, "") == 0) {
+		syslog(LOG_ERR, "%s():%d: vip is not set yet", __FUNCTION__, __LINE__);
+		goto out;
+	}
+
+	syslog(LOG_DEBUG, "%s():%d: netlink get local interface name for %s", __FUNCTION__, __LINE__, strvip);
+
+	inet_aton(strvip, &((struct sockaddr_in *) &addr)->sin_addr);
+
+	sd = socket(AF_PACKET, SOCK_RAW, IPPROTO_RAW);
+
+	if (sd <= 0) {
+		syslog(LOG_ERR, "%s():%d: open socket error", __FUNCTION__, __LINE__);
+		goto out;
+	}
+
+	ifc.ifc_len = sizeof(buf);
+	ifc.ifc_buf = buf;
+
+	if (ioctl(sd, SIOCGIFCONF, &ifc) == -1) {
+		syslog(LOG_ERR, "%s():%d: ioctl SIOCGIFCONF error", __FUNCTION__, __LINE__);
+		goto out;
+	}
+
+	ifr = ifc.ifc_req;
+
+	for(i = 0; i < ifc.ifc_len && !found;) {
+		len = sizeof(*ifr);
+		ipaddr = (struct sockaddr_in*)&((*ifr).ifr_addr);
+
+		if (ipaddr->sin_addr.s_addr == ((struct sockaddr_in *) &addr)->sin_addr.s_addr) {
+			found = 1;
+			strcpy(outdev, ifr->ifr_name);
+			ret = EXIT_SUCCESS;
+		}
+
+		ifr = (struct ifreq*)((char*)ifr+len);
+		i += len;
+	}
+
+	syslog(LOG_DEBUG, "%s():%d: netlink get local interface name is %s", __FUNCTION__, __LINE__, outdev);
+
+out:
+	if (sd > 0)
+		close(sd);
+
+	return ret;
+}
 
 static int data_getev_cb(const struct nlmsghdr *nlh, void *data)
 {
@@ -371,7 +551,7 @@ static int data_getev_cb(const struct nlmsghdr *nlh, void *data)
 	if (nlh->nlmsg_type != RTM_NEWNEIGH)
 		return MNL_CB_STOP;
 
-	mnl_attr_parse(nlh, sizeof(*ndm), data_attr_cb, tb);
+	mnl_attr_parse(nlh, sizeof(*ndm), data_attr_neigh_cb, tb);
 
 	if (tb[NDA_DST]) {
 		ipaddr = mnl_attr_get_payload(tb[NDA_DST]);

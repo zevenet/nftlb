@@ -152,8 +152,7 @@ static int backend_set_ipaddr_from_ether(struct backend *b)
 
 			obj_set_attribute_string(streth, &b->ethaddr);
 		} else {
-			syslog(LOG_DEBUG, "%s():%d: backend %s comes to OFF", __FUNCTION__, __LINE__, b->name);
-			backend_set_state(b, VALUE_STATE_OFF);
+			return EXIT_FAILURE;
 		}
 	}
 
@@ -273,7 +272,11 @@ int backend_set_attribute(struct config_pair *c)
 		break;
 	case KEY_IPADDR:
 		obj_set_attribute_string(c->str_value, &b->ipaddr);
-		backend_set_ipaddr_from_ether(b);
+		if (farm_set_ifinfo(b->parent, KEY_OFACE) == EXIT_FAILURE ||
+		    backend_set_ipaddr_from_ether(b) == EXIT_FAILURE) {
+			syslog(LOG_DEBUG, "%s():%d: backend %s comes to OFF", __FUNCTION__, __LINE__, b->name);
+			backend_set_state(b, VALUE_STATE_OFF);
+		}
 		break;
 	case KEY_ETHADDR:
 		obj_set_attribute_string(c->str_value, &b->ethaddr);
@@ -349,5 +352,10 @@ int backend_s_set_ether_by_ipaddr(struct farm *f, const char *ip_bck, char *ethe
 	}
 
 	return changed;
+}
+
+struct backend * backend_get_first(struct farm *f)
+{
+	return list_first_entry(&f->backends, struct backend, list);
 }
 

@@ -26,7 +26,9 @@
 #define ETH_HW_STR_LEN		18
 
 int net_get_neigh_ether(unsigned char **dst_ethaddr, unsigned char *src_ethaddr, unsigned char family, char *src_ipaddr, char *dst_ipaddr, int outdev);
-int net_get_local_ifinfo(unsigned char **ether, int *ifindex, const char *indev);
+int net_get_local_ifidx_per_remote_host(char *dst_ipaddr, int *outdev);
+int net_get_local_ifinfo(unsigned char **ether, const char *indev);
+int net_get_local_ifname_per_vip(char *strvip, char *outdev);
 int net_eventd_init(void);
 int net_eventd_stop(void);
 int net_get_event_enabled(void);
