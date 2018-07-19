@@ -76,6 +76,8 @@ static int config_value_mode(const char *value)
 		return VALUE_MODE_DNAT;
 	if (strcmp(value, CONFIG_VALUE_MODE_DSR) == 0)
 		return VALUE_MODE_DSR;
+	if (strcmp(value, CONFIG_VALUE_MODE_STLSDNAT) == 0)
+		return VALUE_MODE_STLSDNAT;
 
 	return EXIT_FAILURE;
 }

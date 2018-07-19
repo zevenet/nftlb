@@ -1,0 +1,51 @@
+{
+	"farms" : [
+		{
+			"name" : "lb01",
+			"family" : "ipv4",
+			"virtual-addr" : "192.168.56.101",
+			"virtual-ports" : "80",
+			"mode" : "stlsdnat",
+			"protocol" : "tcp",
+			"scheduler" : "weight",
+			"state" : "up",
+			"backends" : [
+				{
+					"name" : "bck0",
+					"ip-addr" : "192.168.0.10",
+					"weight" : "2",
+					"priority" : "1",
+					"state" : "up"
+				},
+				{
+					"name" : "bck1",
+					"ip-addr" : "192.168.0.11",
+					"weight" : "1",
+					"priority" : "1",
+					"state" : "up"
+				},
+				{
+					"name" : "bck2",
+					"ip-addr" : "192.168.0.12",
+					"weight" : "1",
+					"priority" : "1",
+					"state" : "up"
+				},
+				{
+					"name" : "bck3",
+					"ip-addr" : "192.168.0.13",
+					"weight" : "2",
+					"priority" : "1",
+					"state" : "up"
+				},
+				{
+					"name" : "bck4",
+					"ip-addr" : "192.168.0.14",
+					"weight" : "1",
+					"priority" : "1",
+					"state" : "up"
+				}
+			]
+		}
+	]
+}

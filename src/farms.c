@@ -181,8 +181,8 @@ int farm_set_ifinfo(struct farm *f, int key)
 
 	syslog(LOG_DEBUG, "%s():%d: farm %s set interface info for interface key %d", __FUNCTION__, __LINE__, f->name, key);
 
-	if (f->mode != VALUE_MODE_DSR) {
-		syslog(LOG_DEBUG, "%s():%d: farm %s is not in DSR mode", __FUNCTION__, __LINE__, f->name);
+	if (f->mode != VALUE_MODE_DSR && f->mode != VALUE_MODE_STLSDNAT) {
+		syslog(LOG_DEBUG, "%s():%d: farm %s is not in ingress mode", __FUNCTION__, __LINE__, f->name);
 		return EXIT_FAILURE;
 	}
 
