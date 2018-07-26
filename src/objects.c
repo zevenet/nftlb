@@ -34,6 +34,8 @@ struct obj_config	current_obj;
 
 struct list_head	farms;
 int			total_farms = 0;
+int			dsr_counter = 0;
+
 
 void objects_init(void)
 {
@@ -54,6 +56,17 @@ void obj_set_total_farms(int new_value)
 {
 	if (new_value >= 0)
 		total_farms = new_value;
+}
+
+int obj_get_dsr_counter(void)
+{
+	return dsr_counter;
+}
+
+void obj_set_dsr_counter(int new_value)
+{
+	if (new_value >= 0)
+		dsr_counter = new_value;
 }
 
 struct obj_config * obj_get_current_object(void)

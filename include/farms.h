@@ -88,7 +88,6 @@ struct farm {
 	int			total_weight;
 	int			total_bcks;
 	int			bcks_available;
-	int			dsr_counter;
 	struct list_head	backends;
 };
 

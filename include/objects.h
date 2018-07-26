@@ -83,6 +83,9 @@ void objects_init(void);
 struct list_head * obj_get_farms(void);
 int obj_get_total_farms(void);
 void obj_set_total_farms(int new_value);
+int obj_get_dsr_counter(void);
+void obj_set_dsr_counter(int new_value);
+
 struct obj_config * obj_get_current_object(void);
 
 char * obj_print_family(int family);

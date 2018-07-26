@@ -70,7 +70,6 @@ static struct farm * farm_create(char *name)
 	pfarm->priority = DEFAULT_PRIORITY;
 	pfarm->total_bcks = 0;
 	pfarm->bcks_available = 0;
-	pfarm->dsr_counter = 0;
 
 	return pfarm;
 }
@@ -148,7 +147,6 @@ void farm_s_print(void)
 		syslog(LOG_DEBUG,"Model dump    *[total_weight] %d", f->total_weight);
 		syslog(LOG_DEBUG,"Model dump    *[total_bcks] %d", f->total_bcks);
 		syslog(LOG_DEBUG,"Model dump    *[bcks_available] %d", f->bcks_available);
-		syslog(LOG_DEBUG,"Model dump    *[dsr_counter] %d", f->dsr_counter);
 		syslog(LOG_DEBUG,"Model dump    *[action] %d", f->action);
 
 		if (f->total_bcks != 0)
@@ -271,6 +269,26 @@ static int farm_set_mode(struct farm *f, int new_value)
 	return EXIT_SUCCESS;
 }
 
+static int farm_s_update_dsr_counter(void)
+{
+	struct list_head *farms = obj_get_farms();
+	struct farm *f;
+	int dsrcount = 0;
+	int curcount = obj_get_dsr_counter();
+
+	list_for_each_entry(f, farms, list) {
+		if (f->mode == VALUE_MODE_DSR)
+			dsrcount++;
+	}
+
+	if (dsrcount != curcount)
+		syslog(LOG_DEBUG, "%s():%d: farm DSR counter becomes %d", __FUNCTION__, __LINE__, dsrcount);
+
+	obj_set_dsr_counter(dsrcount);
+
+	return dsrcount;
+}
+
 static int farm_set_state(struct farm *f, int new_value)
 {
 	int old_value = f->state;
@@ -280,24 +298,15 @@ static int farm_set_state(struct farm *f, int new_value)
 	if (old_value != VALUE_STATE_UP &&
 	    new_value == VALUE_STATE_UP) {
 
-		if (f->mode == VALUE_MODE_DSR) {
-			f->dsr_counter++;
-			syslog(LOG_DEBUG, "%s():%d: farm DSR counter becomes %d", __FUNCTION__, __LINE__, f->dsr_counter);
-		}
-
 		farm_set_action(f, ACTION_START);
+		farm_s_update_dsr_counter();
 	}
 
 	if (old_value == VALUE_STATE_UP &&
 	    new_value != VALUE_STATE_UP) {
 
 		farm_set_action(f, ACTION_STOP);
-
-		if (f->mode == VALUE_MODE_DSR) {
-			if (f->dsr_counter >= 0)
-				f->dsr_counter--;
-			syslog(LOG_DEBUG, "%s():%d: farm DSR counter becomes %d", __FUNCTION__, __LINE__, f->dsr_counter);
-		}
+		farm_s_update_dsr_counter();
 	}
 
 	f->state = new_value;
@@ -432,11 +441,11 @@ int farm_set_action(struct farm *f, int action)
 
 	if (f->action > action) {
 
-		if (f->dsr_counter && !net_get_event_enabled()) {
+		if (obj_get_dsr_counter() && !net_get_event_enabled()) {
 			net_eventd_init();
 		}
 
-		if (!f->dsr_counter && net_get_event_enabled()) {
+		if (!obj_get_dsr_counter() && net_get_event_enabled()) {
 			net_eventd_stop();
 		}
 
