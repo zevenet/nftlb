@@ -118,6 +118,8 @@ static int config_value_state(const char *value)
 		return VALUE_STATE_DOWN;
 	if (strcmp(value, CONFIG_VALUE_STATE_OFF) == 0)
 		return VALUE_STATE_OFF;
+	if (strcmp(value, CONFIG_VALUE_STATE_CONFERR) == 0)
+		return VALUE_STATE_CONFERR;
 
 	return EXIT_FAILURE;
 }

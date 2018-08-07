@@ -56,6 +56,7 @@ enum states {
 	VALUE_STATE_UP,
 	VALUE_STATE_DOWN,
 	VALUE_STATE_OFF,
+	VALUE_STATE_CONFERR,
 };
 
 enum actions {

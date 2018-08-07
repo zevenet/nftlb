@@ -60,11 +60,14 @@ void obj_set_total_farms(int new_value)
 
 int obj_get_dsr_counter(void)
 {
+	syslog(LOG_DEBUG, "%s():%d: current dsr counter is %d", __FUNCTION__, __LINE__, dsr_counter);
 	return dsr_counter;
 }
 
 void obj_set_dsr_counter(int new_value)
 {
+	syslog(LOG_DEBUG, "%s():%d: new dsr counter is %d", __FUNCTION__, __LINE__, new_value);
+
 	if (new_value >= 0)
 		dsr_counter = new_value;
 }
@@ -145,6 +148,8 @@ char * obj_print_state(int state)
 		return CONFIG_VALUE_STATE_DOWN;
 	case VALUE_STATE_OFF:
 		return CONFIG_VALUE_STATE_OFF;
+	case VALUE_STATE_CONFERR:
+		return CONFIG_VALUE_STATE_CONFERR;
 	default:
 		return NULL;
 	}

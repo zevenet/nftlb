@@ -303,28 +303,72 @@ int backend_set_attribute(struct config_pair *c)
 	return EXIT_SUCCESS;
 }
 
-int backend_set_state(struct backend *b, int new_value)
+static int backend_validate(struct backend *b)
 {
 	struct farm *f = b->parent;
+
+	syslog(LOG_DEBUG, "%s():%d: validating farm %s backend %s",
+	       __FUNCTION__, __LINE__, f->name, b->name);
+
+	if (!b->ipaddr || strcmp(b->ipaddr, "") == 0)
+		return 0;
+
+	if (f->mode == VALUE_MODE_DSR &&
+		(!b->ethaddr ||
+		strcmp(b->ethaddr, "") == 0))
+		return 0;
+
+	return 1;
+}
+
+static int backend_switch(struct backend *b, int new_state)
+{
+	struct farm *f = b->parent;
+
+	syslog(LOG_DEBUG, "%s():%d: backend %s switched to %d",
+	       __FUNCTION__, __LINE__, b->name, new_state);
+
+	if (b->state == VALUE_STATE_UP) {
+		f->total_weight += b->weight;
+		f->bcks_available++;
+	} else {
+		f->total_weight -= b->weight;
+		f->bcks_available--;
+	}
+
+	return EXIT_SUCCESS;
+}
+
+int backend_set_state(struct backend *b, int new_value)
+{
 	int old_value = b->state;
 
 	syslog(LOG_DEBUG, "%s():%d: current value is %d, but new value will be %d",
 	       __FUNCTION__, __LINE__, old_value, new_value);
 
+	if (old_value == VALUE_STATE_CONFERR &&
+		backend_validate(b)) {
+		b->state = VALUE_STATE_UP;
+		backend_switch(b, VALUE_STATE_UP);
+	}
+
 	if (backend_is_available(b) &&
 	    new_value != VALUE_STATE_UP) {
 		b->state = new_value;
-		f->total_weight -= b->weight;
-		f->bcks_available--;
+		backend_switch(b, new_value);
 	}
-
 	else if (old_value != VALUE_STATE_UP &&
 		 new_value == VALUE_STATE_UP) {
+
+		if (!backend_validate(b)) {
+			b->state = VALUE_STATE_CONFERR;
+			return EXIT_FAILURE;
+		}
+
 		b->state = new_value;
 
 		if (backend_is_available(b)) {
-			f->total_weight += b->weight;
-			f->bcks_available++;
+			backend_switch(b, VALUE_STATE_UP);
 		}
 	}
 
@@ -349,6 +393,24 @@ int backend_s_set_ether_by_ipaddr(struct farm *f, const char *ip_bck, char *ethe
 			changed = 1;
 			syslog(LOG_INFO, "%s():%d: ether address changed for backend %s with %s", __FUNCTION__, __LINE__, b->name, ether_bck);
 		}
+	}
+
+	return changed;
+}
+
+int backend_s_find_ethers(struct farm *f)
+{
+	struct backend *b;
+	int changed = 0;
+
+	syslog(LOG_DEBUG, "%s():%d: finding backends for %s", __FUNCTION__, __LINE__, f->name);
+
+	list_for_each_entry(b, &f->backends, list) {
+
+		if (backend_validate(b))
+			continue;
+
+		backend_set_ipaddr_from_ether(b);
 	}
 
 	return changed;

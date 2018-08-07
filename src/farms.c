@@ -49,8 +49,8 @@ static struct farm * farm_create(char *name)
 	obj_set_attribute_string(name, &pfarm->name);
 
 	pfarm->fqdn = DEFAULT_FQDN;
-	pfarm->iface = NULL;
-	pfarm->oface = NULL;
+	pfarm->iface = DEFAULT_IFNAME;
+	pfarm->oface = DEFAULT_IFNAME;
 	pfarm->iethaddr = DEFAULT_ETHADDR;
 	pfarm->oethaddr = DEFAULT_ETHADDR;
 	pfarm->ifidx = DEFAULT_IFIDX;
@@ -102,6 +102,99 @@ static int farm_delete(struct farm *pfarm)
 	return EXIT_SUCCESS;
 }
 
+static int farm_s_update_dsr_counter(void)
+{
+	struct list_head *farms = obj_get_farms();
+	struct farm *f;
+	int dsrcount = 0;
+	int curcount = obj_get_dsr_counter();
+
+	syslog(LOG_DEBUG, "%s():%d: updating dsr counter", __FUNCTION__, __LINE__);
+
+	list_for_each_entry(f, farms, list) {
+		if (f->mode == VALUE_MODE_DSR)
+			dsrcount++;
+	}
+
+	if (dsrcount != curcount)
+		syslog(LOG_DEBUG, "%s():%d: farm DSR counter becomes %d", __FUNCTION__, __LINE__, dsrcount);
+
+	obj_set_dsr_counter(dsrcount);
+
+	return dsrcount;
+}
+
+static void farm_manage_eventd(void)
+{
+	farm_s_update_dsr_counter();
+
+	if (obj_get_dsr_counter() && !net_get_event_enabled()) {
+		net_eventd_init();
+	}
+
+	if (!obj_get_dsr_counter() && net_get_event_enabled()) {
+		net_eventd_stop();
+	}
+}
+
+static int farm_set_netinfo(struct farm *f)
+{
+	syslog(LOG_DEBUG, "%s():%d: farm %s", __FUNCTION__, __LINE__, f->name);
+
+	if (f->state != VALUE_STATE_UP) {
+		syslog(LOG_INFO, "%s():%d: farm %s doesn't require low level network info", __FUNCTION__, __LINE__, f->name);
+		return EXIT_FAILURE;
+	}
+
+	if (farm_set_ifinfo(f, KEY_IFACE) == EXIT_SUCCESS &&
+		farm_set_ifinfo(f, KEY_OFACE) == EXIT_SUCCESS &&
+		f->mode == VALUE_MODE_DSR) {
+
+		farm_manage_eventd();
+		backend_s_find_ethers(f);
+	}
+
+	return EXIT_SUCCESS;
+}
+
+static int farm_set_state(struct farm *f, int new_value)
+{
+	int old_value = f->state;
+
+	syslog(LOG_DEBUG, "%s():%d: farm %s old state %d new state %d", __FUNCTION__, __LINE__, f->name, old_value, new_value);
+
+	if (old_value != VALUE_STATE_UP &&
+	    new_value == VALUE_STATE_UP) {
+
+		farm_set_action(f, ACTION_START);
+		farm_set_netinfo(f);
+	}
+
+	if (old_value == VALUE_STATE_UP &&
+	    new_value != VALUE_STATE_UP) {
+
+		farm_set_action(f, ACTION_STOP);
+		farm_manage_eventd();
+	}
+
+	f->state = new_value;
+
+	return EXIT_SUCCESS;
+}
+
+static int farm_set_mode(struct farm *f, int new_value)
+{
+	int old_value = f->mode;
+
+	syslog(LOG_DEBUG, "%s():%d: farm %s old mode %d new mode %d", __FUNCTION__, __LINE__, f->name, old_value, new_value);
+
+	if (old_value != new_value) {
+		f->mode = new_value;
+		farm_set_netinfo(f);
+	}
+
+	return EXIT_SUCCESS;
+}
 
 void farm_s_print(void)
 {
@@ -186,39 +279,46 @@ int farm_set_ifinfo(struct farm *f, int key)
 
 	switch (key) {
 	case KEY_IFACE:
-		ether_addr = &f->iethaddr;
 
-		if (f->iface == NULL)
+		if (f->iface == DEFAULT_IFNAME) {
 			ret = net_get_local_ifname_per_vip(f->virtaddr, if_str);
 
-		if (ret != EXIT_SUCCESS) {
-			syslog(LOG_ERR, "%s():%d: inbound interface not found with VIP %s by farm %s", __FUNCTION__, __LINE__, f->virtaddr, f->name);
-			return EXIT_FAILURE;
+			if (ret != EXIT_SUCCESS) {
+				syslog(LOG_ERR, "%s():%d: inbound interface not found with VIP %s by farm %s", __FUNCTION__, __LINE__, f->virtaddr, f->name);
+				return EXIT_FAILURE;
+			}
+
+			obj_set_attribute_string(if_str, &f->iface);
 		}
 
-		obj_set_attribute_string(if_str, &f->iface);
-		if_index = if_nametoindex(if_str);
+		if (f->ifidx == DEFAULT_IFIDX) {
+			if_index = if_nametoindex(f->iface);
 
-		if (if_index == 0) {
-			syslog(LOG_ERR, "%s():%d: index of the inbound interface %s in farm %s not found", __FUNCTION__, __LINE__, f->iface, f->name);
-			return EXIT_FAILURE;
+			if (if_index == 0) {
+				syslog(LOG_ERR, "%s():%d: index of the inbound interface %s in farm %s not found", __FUNCTION__, __LINE__, f->iface, f->name);
+				return EXIT_FAILURE;
+			}
+
+			f->ifidx = if_index;
 		}
 
-		f->ifidx = if_index;
+		if (f->iethaddr == DEFAULT_ETHADDR) {
+			ether_addr = &f->iethaddr;
 
-		net_get_local_ifinfo((unsigned char **)&ether, if_str);
+			net_get_local_ifinfo((unsigned char **)&ether, f->iface);
 
-		sprintf(streth, "%02x:%02x:%02x:%02x:%02x:%02x", ether[0],
-			ether[1], ether[2], ether[3], ether[4], ether[5]);
+			sprintf(streth, "%02x:%02x:%02x:%02x:%02x:%02x", ether[0],
+				ether[1], ether[2], ether[3], ether[4], ether[5]);
 
-		obj_set_attribute_string(streth, ether_addr);
+			obj_set_attribute_string(streth, ether_addr);
+		}
 		break;
 	case KEY_OFACE:
 		ether_addr = &f->oethaddr;
 
-		if (f->oface == NULL) {
+		if (f->oface == DEFAULT_IFNAME) {
 			b = backend_get_first(f);
-			if (b->ipaddr == NULL) {
+			if (b->ipaddr == DEFAULT_IPADDR) {
 				syslog(LOG_ERR, "%s():%d: there is no backend yet in the farm %s", __FUNCTION__, __LINE__, f->name);
 				return EXIT_FAILURE;
 			}
@@ -249,67 +349,6 @@ int farm_set_ifinfo(struct farm *f, int key)
 		}
 		break;
 	}
-
-	return EXIT_SUCCESS;
-}
-
-static int farm_set_mode(struct farm *f, int new_value)
-{
-	int old_value = f->mode;
-
-	syslog(LOG_DEBUG, "%s():%d: farm %s old mode %d new mode %d", __FUNCTION__, __LINE__, f->name, old_value, new_value);
-
-	if (old_value != new_value) {
-		f->mode = new_value;
-
-		farm_set_ifinfo(f, KEY_IFACE);
-		farm_set_ifinfo(f, KEY_OFACE);
-	}
-
-	return EXIT_SUCCESS;
-}
-
-static int farm_s_update_dsr_counter(void)
-{
-	struct list_head *farms = obj_get_farms();
-	struct farm *f;
-	int dsrcount = 0;
-	int curcount = obj_get_dsr_counter();
-
-	list_for_each_entry(f, farms, list) {
-		if (f->mode == VALUE_MODE_DSR)
-			dsrcount++;
-	}
-
-	if (dsrcount != curcount)
-		syslog(LOG_DEBUG, "%s():%d: farm DSR counter becomes %d", __FUNCTION__, __LINE__, dsrcount);
-
-	obj_set_dsr_counter(dsrcount);
-
-	return dsrcount;
-}
-
-static int farm_set_state(struct farm *f, int new_value)
-{
-	int old_value = f->state;
-
-	syslog(LOG_DEBUG, "%s():%d: farm %s old state %d new state %d", __FUNCTION__, __LINE__, f->name, old_value, new_value);
-
-	if (old_value != VALUE_STATE_UP &&
-	    new_value == VALUE_STATE_UP) {
-
-		farm_set_action(f, ACTION_START);
-		farm_s_update_dsr_counter();
-	}
-
-	if (old_value == VALUE_STATE_UP &&
-	    new_value != VALUE_STATE_UP) {
-
-		farm_set_action(f, ACTION_STOP);
-		farm_s_update_dsr_counter();
-	}
-
-	f->state = new_value;
 
 	return EXIT_SUCCESS;
 }
@@ -440,16 +479,10 @@ int farm_set_action(struct farm *f, int action)
 	}
 
 	if (f->action > action) {
-
-		if (obj_get_dsr_counter() && !net_get_event_enabled()) {
-			net_eventd_init();
-		}
-
-		if (!obj_get_dsr_counter() && net_get_event_enabled()) {
-			net_eventd_stop();
-		}
-
+		farm_manage_eventd();
 		f->action = action;
+		farm_set_netinfo(f);
+
 		return 1;
 	}
 
