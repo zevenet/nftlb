@@ -318,9 +318,9 @@ int farm_set_ifinfo(struct farm *f, int key)
 
 		if (f->oface == DEFAULT_IFNAME) {
 			b = backend_get_first(f);
-			if (b->ipaddr == DEFAULT_IPADDR) {
+			if (!b || b->ipaddr == DEFAULT_IPADDR) {
 				syslog(LOG_ERR, "%s():%d: there is no backend yet in the farm %s", __FUNCTION__, __LINE__, f->name);
-				return EXIT_FAILURE;
+				return EXIT_SUCCESS;
 			}
 
 			ret = net_get_local_ifidx_per_remote_host(b->ipaddr, &if_index);

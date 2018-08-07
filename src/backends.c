@@ -418,6 +418,9 @@ int backend_s_find_ethers(struct farm *f)
 
 struct backend * backend_get_first(struct farm *f)
 {
+	if (list_empty(&f->backends))
+		return NULL;
+
 	return list_first_entry(&f->backends, struct backend, list);
 }
 
