@@ -434,7 +434,7 @@ static int run_farm_rules(struct nft_ctx *ctx, struct farm *f, int family,
 			sprintf(buf, "%s ; add chain %s %s %s-back", buf, print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, f->name);
 
 		sprintf(buf2, "%s ; add rule %s %s %s-back %s saddr set %s fwd to %s", buf2, print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, f->name, print_nft_family(family), f->virtaddr, f->iface);
-		__attribute__ ((fallthrough));
+		/* fallthrough */;
 	default:
 		if (action == ACTION_RELOAD)
 			sprintf(buf, "%s ; flush chain %s %s %s", buf, print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, f->name);
@@ -556,7 +556,7 @@ static int run_farm(struct nft_ctx *ctx, struct farm *f, int action)
 	switch (f->mode) {
 	case VALUE_MODE_STLSDNAT:
 		run_base_ndv(ctx, f, KEY_OFACE);
-		__attribute__ ((fallthrough));
+		/* fallthrough */
 	case VALUE_MODE_DSR:
 		run_base_ndv(ctx, f, KEY_IFACE);
 		break;
