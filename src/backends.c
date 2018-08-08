@@ -135,25 +135,30 @@ struct backend * backend_lookup_by_name(struct farm *f, const char *name)
 static int backend_set_ipaddr_from_ether(struct backend *b)
 {
 	struct farm *f = b->parent;
-	int ret = EXIT_SUCCESS;
+	int ret = EXIT_FAILURE;
 	unsigned char dst_ethaddr[ETH_HW_ADDR_LEN];
 	unsigned char src_ethaddr[ETH_HW_ADDR_LEN];
 	char streth[ETH_HW_STR_LEN] = {};
 
-	if (f->mode == VALUE_MODE_DSR) {
-		sscanf(f->iethaddr, "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx", &src_ethaddr[0], &src_ethaddr[1], &src_ethaddr[2], &src_ethaddr[3], &src_ethaddr[4], &src_ethaddr[5]);
+	if (f->mode != VALUE_MODE_DSR)
+		return EXIT_SUCCESS;
 
-		ret = net_get_neigh_ether((unsigned char **) &dst_ethaddr, src_ethaddr, f->family, f->virtaddr, b->ipaddr, f->ofidx);
-		if (ret == EXIT_SUCCESS) {
-			sprintf(streth, "%02x:%02x:%02x:%02x:%02x:%02x", dst_ethaddr[0],
-				dst_ethaddr[1], dst_ethaddr[2], dst_ethaddr[3], dst_ethaddr[4], dst_ethaddr[5]);
+	if (f->iethaddr == DEFAULT_ETHADDR ||
+		b->ipaddr == DEFAULT_IPADDR ||
+		f->ofidx == DEFAULT_IFIDX)
+		return EXIT_FAILURE;
 
-			syslog(LOG_DEBUG, "%s():%d: discovered ether address for %s is %s", __FUNCTION__, __LINE__, b->name, streth);
+	sscanf(f->iethaddr, "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx", &src_ethaddr[0], &src_ethaddr[1], &src_ethaddr[2], &src_ethaddr[3], &src_ethaddr[4], &src_ethaddr[5]);
 
-			obj_set_attribute_string(streth, &b->ethaddr);
-		} else {
-			return EXIT_FAILURE;
-		}
+	ret = net_get_neigh_ether((unsigned char **) &dst_ethaddr, src_ethaddr, f->family, f->virtaddr, b->ipaddr, f->ofidx);
+
+	if (ret == EXIT_SUCCESS) {
+		sprintf(streth, "%02x:%02x:%02x:%02x:%02x:%02x", dst_ethaddr[0],
+			dst_ethaddr[1], dst_ethaddr[2], dst_ethaddr[3], dst_ethaddr[4], dst_ethaddr[5]);
+
+		syslog(LOG_DEBUG, "%s():%d: discovered ether address for %s is %s", __FUNCTION__, __LINE__, b->name, streth);
+
+		obj_set_attribute_string(streth, &b->ethaddr);
 	}
 
 	return ret;
@@ -275,7 +280,7 @@ int backend_set_attribute(struct config_pair *c)
 		if (farm_set_ifinfo(b->parent, KEY_OFACE) == EXIT_FAILURE ||
 		    backend_set_ipaddr_from_ether(b) == EXIT_FAILURE) {
 			syslog(LOG_DEBUG, "%s():%d: backend %s comes to OFF", __FUNCTION__, __LINE__, b->name);
-			backend_set_state(b, VALUE_STATE_OFF);
+			backend_set_state(b, VALUE_STATE_CONFERR);
 		}
 		break;
 	case KEY_ETHADDR:
@@ -346,6 +351,9 @@ int backend_set_state(struct backend *b, int new_value)
 	syslog(LOG_DEBUG, "%s():%d: current value is %d, but new value will be %d",
 	       __FUNCTION__, __LINE__, old_value, new_value);
 
+	if (old_value == new_value)
+		return EXIT_SUCCESS;
+
 	if (old_value == VALUE_STATE_CONFERR &&
 		backend_validate(b)) {
 		b->state = VALUE_STATE_UP;
@@ -387,7 +395,7 @@ int backend_s_set_ether_by_ipaddr(struct farm *f, const char *ip_bck, char *ethe
 
 		syslog(LOG_DEBUG, "%s():%d: backend with ip address %s found", __FUNCTION__, __LINE__, ip_bck);
 
-		if (strcmp(b->ethaddr, ether_bck) != 0) {
+		if (!b->ethaddr || (b->ethaddr && strcmp(b->ethaddr, ether_bck) != 0)) {
 			obj_set_attribute_string(ether_bck, &b->ethaddr);
 			backend_set_state(b, VALUE_STATE_UP);
 			changed = 1;
@@ -410,7 +418,8 @@ int backend_s_find_ethers(struct farm *f)
 		if (backend_validate(b))
 			continue;
 
-		backend_set_ipaddr_from_ether(b);
+		if ( backend_set_ipaddr_from_ether(b) == EXIT_FAILURE )
+			backend_set_state(b, VALUE_STATE_CONFERR);
 	}
 
 	return changed;

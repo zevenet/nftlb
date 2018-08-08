@@ -299,6 +299,8 @@ int net_get_neigh_ether(unsigned char **dst_ethaddr, unsigned char *src_ethaddr,
 	struct ntl_data *data;
 	int ret = EXIT_SUCCESS;
 
+	syslog(LOG_DEBUG, "%s():%d: source mac address %s source ip address %s destination ip address %s", __FUNCTION__, __LINE__, src_ethaddr, src_ipaddr, dst_ipaddr);
+
 	ntl.buf = (char *) malloc(MNL_SOCKET_BUFFER_SIZE);
 
 	ntl.nlh = mnl_nlmsg_put_header(ntl.buf);
