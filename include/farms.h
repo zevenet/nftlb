@@ -106,4 +106,7 @@ int farm_set_action(struct farm *f, int action);
 int farm_s_set_action(int action);
 void farm_s_set_backend_ether_by_oifidx(int interface_idx, const char * ip_bck, char * ether_bck);
 
+int farm_rulerize(struct farm *f);
+int farm_s_rulerize(void);
+
 #endif /* _FARMS_H_ */

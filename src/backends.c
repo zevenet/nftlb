@@ -99,24 +99,24 @@ void backend_s_print(struct farm *f)
 	struct backend *b;
 
 	list_for_each_entry(b, &f->backends, list) {
-		syslog(LOG_DEBUG,"Model dump    [backend] ");
-		syslog(LOG_DEBUG,"Model dump       [name] %s", b->name);
+		syslog(LOG_DEBUG,"    [backend] ");
+		syslog(LOG_DEBUG,"       [name] %s", b->name);
 
 		if (b->fqdn)
-			syslog(LOG_DEBUG,"Model dump       [fqdn] %s", b->fqdn);
+			syslog(LOG_DEBUG,"       [fqdn] %s", b->fqdn);
 
 		if (b->ipaddr)
-			syslog(LOG_DEBUG,"Model dump       [ipaddr] %s", b->ipaddr);
+			syslog(LOG_DEBUG,"       [ipaddr] %s", b->ipaddr);
 
 		if (b->ethaddr)
-			syslog(LOG_DEBUG,"Model dump       [ethaddr] %s", b->ethaddr);
+			syslog(LOG_DEBUG,"       [ethaddr] %s", b->ethaddr);
 
 		if (b->ports)
-			syslog(LOG_DEBUG,"Model dump       [ports] %s", b->ports);
+			syslog(LOG_DEBUG,"       [ports] %s", b->ports);
 
-		syslog(LOG_DEBUG,"Model dump       [weight] %d", b->weight);
-		syslog(LOG_DEBUG,"Model dump       [priority] %d", b->priority);
-		syslog(LOG_DEBUG,"Model dump       [state] %s", obj_print_state(b->state));
+		syslog(LOG_DEBUG,"       [weight] %d", b->weight);
+		syslog(LOG_DEBUG,"       [priority] %d", b->priority);
+		syslog(LOG_DEBUG,"       [state] %s", obj_print_state(b->state));
 	}
 }
 
@@ -209,8 +209,8 @@ int backend_is_available(struct backend *b)
 {
 	struct farm *f = b->parent;
 
-	syslog(LOG_DEBUG, "%s():%d: backend %s state is %d and priority %d",
-	       __FUNCTION__, __LINE__, b->name, b->state, b->priority);
+	syslog(LOG_DEBUG, "%s():%d: backend %s state is %s and priority %d",
+	       __FUNCTION__, __LINE__, b->name, obj_print_state(b->state), b->priority);
 
 	return (b->state == VALUE_STATE_UP) && (b->priority <= f->priority);
 }
@@ -330,8 +330,8 @@ static int backend_switch(struct backend *b, int new_state)
 {
 	struct farm *f = b->parent;
 
-	syslog(LOG_DEBUG, "%s():%d: backend %s switched to %d",
-	       __FUNCTION__, __LINE__, b->name, new_state);
+	syslog(LOG_DEBUG, "%s():%d: backend %s switched to %s",
+	       __FUNCTION__, __LINE__, b->name, obj_print_state(new_state));
 
 	if (b->state == VALUE_STATE_UP) {
 		f->total_weight += b->weight;
@@ -348,36 +348,29 @@ int backend_set_state(struct backend *b, int new_value)
 {
 	int old_value = b->state;
 
-	syslog(LOG_DEBUG, "%s():%d: current value is %d, but new value will be %d",
-	       __FUNCTION__, __LINE__, old_value, new_value);
+	syslog(LOG_DEBUG, "%s():%d: backend %s current value is %s, but new value will be %s",
+	       __FUNCTION__, __LINE__, b->name, obj_print_state(old_value), obj_print_state(new_value));
 
 	if (old_value == new_value)
 		return EXIT_SUCCESS;
 
-	if (old_value == VALUE_STATE_CONFERR &&
-		backend_validate(b)) {
-		b->state = VALUE_STATE_UP;
-		backend_switch(b, VALUE_STATE_UP);
-	}
-
 	if (backend_is_available(b) &&
 	    new_value != VALUE_STATE_UP) {
+
 		b->state = new_value;
 		backend_switch(b, new_value);
+		return EXIT_SUCCESS;
 	}
-	else if (old_value != VALUE_STATE_UP &&
-		 new_value == VALUE_STATE_UP) {
 
-		if (!backend_validate(b)) {
+	b->state = new_value;
+
+	if (new_value == VALUE_STATE_UP) {
+
+		if (!backend_validate(b))
 			b->state = VALUE_STATE_CONFERR;
-			return EXIT_FAILURE;
-		}
 
-		b->state = new_value;
-
-		if (backend_is_available(b)) {
-			backend_switch(b, VALUE_STATE_UP);
-		}
+		if (backend_is_available(b))
+			backend_switch(b, new_value);
 	}
 
 	return EXIT_SUCCESS;
@@ -415,11 +408,16 @@ int backend_s_find_ethers(struct farm *f)
 
 	list_for_each_entry(b, &f->backends, list) {
 
+		if (!backend_is_available(b))
+			continue;
+
 		if (backend_validate(b))
 			continue;
 
-		if ( backend_set_ipaddr_from_ether(b) == EXIT_FAILURE )
+		if (backend_set_ipaddr_from_ether(b) == EXIT_FAILURE)
 			backend_set_state(b, VALUE_STATE_CONFERR);
+		else
+			backend_set_state(b, VALUE_STATE_UP);
 	}
 
 	return changed;

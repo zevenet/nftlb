@@ -102,6 +102,33 @@ static int farm_delete(struct farm *pfarm)
 	return EXIT_SUCCESS;
 }
 
+static int farm_is_ingress_mode(struct farm *f)
+{
+	syslog(LOG_DEBUG, "%s():%d: farm %s is in ingress mode?", __FUNCTION__, __LINE__, f->name);
+	return (f->mode == VALUE_MODE_DSR || f->mode == VALUE_MODE_STLSDNAT);
+}
+
+static int farm_validate(struct farm *f)
+{
+	syslog(LOG_DEBUG, "%s():%d: validating farm %s",
+	       __FUNCTION__, __LINE__, f->name);
+
+	if (!f->virtaddr || strcmp(f->virtaddr, "") == 0)
+		return 0;
+
+	if (farm_is_ingress_mode(f) &&
+		(!f->iface || (strcmp(f->iface, "") == 0) ||
+		!f->oface || (strcmp(f->oface, "") == 0))) {
+		return 0;
+	}
+
+	if (f->mode == VALUE_MODE_DSR &&
+		(!f->iethaddr || strcmp(f->iethaddr, "") == 0))
+		return 0;
+
+	return 1;
+}
+
 static int farm_s_update_dsr_counter(void)
 {
 	struct list_head *farms = obj_get_farms();
@@ -196,57 +223,60 @@ static int farm_set_mode(struct farm *f, int new_value)
 	return EXIT_SUCCESS;
 }
 
+static void farm_print(struct farm *f)
+{
+	syslog(LOG_DEBUG," [farm] ");
+	syslog(LOG_DEBUG,"    [name] %s", f->name);
+
+	if (f->fqdn)
+		syslog(LOG_DEBUG,"    [fqdn] %s", f->fqdn);
+
+	if (f->iface)
+		syslog(LOG_DEBUG,"    [iface] %s", f->iface);
+
+	if (f->iethaddr)
+		syslog(LOG_DEBUG,"    [iethaddr] %s", f->iethaddr);
+
+	syslog(LOG_DEBUG,"    *[ifidx] %d", f->ifidx);
+
+	if (f->oface)
+		syslog(LOG_DEBUG,"    [oface] %s", f->oface);
+
+	if (f->oethaddr)
+		syslog(LOG_DEBUG,"    [oethaddr] %s", f->oethaddr);
+
+	syslog(LOG_DEBUG,"    *[ofidx] %d", f->ofidx);
+
+	if (f->virtaddr)
+		syslog(LOG_DEBUG,"    [virtaddr] %s", f->virtaddr);
+
+	if (f->virtports)
+		syslog(LOG_DEBUG,"    [virtports] %s", f->virtports);
+
+	syslog(LOG_DEBUG,"    [family] %s", obj_print_family(f->family));
+	syslog(LOG_DEBUG,"    [mode] %s", obj_print_mode(f->mode));
+	syslog(LOG_DEBUG,"    [protocol] %s", obj_print_proto(f->protocol));
+	syslog(LOG_DEBUG,"    [scheduler] %s", obj_print_sched(f->scheduler));
+	syslog(LOG_DEBUG,"    [state] %s", obj_print_state(f->state));
+	syslog(LOG_DEBUG,"    [priority] %d", f->priority);
+	syslog(LOG_DEBUG,"    *[total_weight] %d", f->total_weight);
+	syslog(LOG_DEBUG,"    *[total_bcks] %d", f->total_bcks);
+	syslog(LOG_DEBUG,"    *[bcks_available] %d", f->bcks_available);
+	syslog(LOG_DEBUG,"    *[action] %d", f->action);
+
+	if (f->total_bcks != 0)
+		backend_s_print(f);
+}
+
 void farm_s_print(void)
 {
 	struct list_head *farms = obj_get_farms();
 	struct farm *f;
 
 	list_for_each_entry(f, farms, list) {
-
-		syslog(LOG_DEBUG,"Model dump [farm] ");
-		syslog(LOG_DEBUG,"Model dump    [name] %s", f->name);
-
-		if (f->fqdn)
-			syslog(LOG_DEBUG,"Model dump    [fqdn] %s", f->fqdn);
-
-		if (f->iface)
-			syslog(LOG_DEBUG,"Model dump    [iface] %s", f->iface);
-
-		if (f->iethaddr)
-			syslog(LOG_DEBUG,"Model dump    [iethaddr] %s", f->iethaddr);
-
-		syslog(LOG_DEBUG,"Model dump    *[ifidx] %d", f->ifidx);
-
-		if (f->oface)
-			syslog(LOG_DEBUG,"Model dump    [oface] %s", f->oface);
-
-		if (f->oethaddr)
-			syslog(LOG_DEBUG,"Model dump    [oethaddr] %s", f->oethaddr);
-
-		syslog(LOG_DEBUG,"Model dump    *[ofidx] %d", f->ofidx);
-
-		if (f->virtaddr)
-			syslog(LOG_DEBUG,"Model dump    [virtaddr] %s", f->virtaddr);
-
-		if (f->virtports)
-			syslog(LOG_DEBUG,"Model dump    [virtports] %s", f->virtports);
-
-		syslog(LOG_DEBUG,"Model dump    [family] %s", obj_print_family(f->family));
-		syslog(LOG_DEBUG,"Model dump    [mode] %s", obj_print_mode(f->mode));
-		syslog(LOG_DEBUG,"Model dump    [protocol] %s", obj_print_proto(f->protocol));
-		syslog(LOG_DEBUG,"Model dump    [scheduler] %s", obj_print_sched(f->scheduler));
-		syslog(LOG_DEBUG,"Model dump    [state] %s", obj_print_state(f->state));
-		syslog(LOG_DEBUG,"Model dump    [priority] %d", f->priority);
-		syslog(LOG_DEBUG,"Model dump    *[total_weight] %d", f->total_weight);
-		syslog(LOG_DEBUG,"Model dump    *[total_bcks] %d", f->total_bcks);
-		syslog(LOG_DEBUG,"Model dump    *[bcks_available] %d", f->bcks_available);
-		syslog(LOG_DEBUG,"Model dump    *[action] %d", f->action);
-
-		if (f->total_bcks != 0)
-			backend_s_print(f);
+		farm_print(f);
 	}
 }
-
 struct farm * farm_lookup_by_name(const char *name)
 {
 	struct list_head *farms = obj_get_farms();
@@ -272,7 +302,7 @@ int farm_set_ifinfo(struct farm *f, int key)
 
 	syslog(LOG_DEBUG, "%s():%d: farm %s set interface info for interface key %d", __FUNCTION__, __LINE__, f->name, key);
 
-	if (f->mode != VALUE_MODE_DSR && f->mode != VALUE_MODE_STLSDNAT) {
+	if (!farm_is_ingress_mode(f)) {
 		syslog(LOG_DEBUG, "%s():%d: farm %s is not in ingress mode", __FUNCTION__, __LINE__, f->name);
 		return EXIT_FAILURE;
 	}
@@ -366,13 +396,15 @@ int farm_pre_actionable(struct config_pair *c)
 	syslog(LOG_DEBUG, "%s():%d: pre actionable farm %s with param %d", __FUNCTION__, __LINE__, f->name, c->key);
 
 	switch (c->key) {
+	case KEY_NAME:
+		break;
 	case KEY_FAMILY:
 	case KEY_VIRTADDR:
 	case KEY_VIRTPORTS:
 	case KEY_MODE:
 	case KEY_PROTO:
 		if (farm_set_action(f, ACTION_STOP))
-			nft_rulerize();
+			farm_rulerize(f);
 		break;
 	default:
 		return EXIT_SUCCESS;
@@ -394,6 +426,8 @@ int farm_pos_actionable(struct config_pair *c)
 	syslog(LOG_DEBUG, "%s():%d: pos actionable farm %s with param %d", __FUNCTION__, __LINE__, f->name, c->key);
 
 	switch (c->key) {
+	case KEY_NAME:
+		break;
 	case KEY_FAMILY:
 	case KEY_VIRTADDR:
 	case KEY_VIRTPORTS:
@@ -504,7 +538,6 @@ void farm_s_set_backend_ether_by_oifidx(int interface_idx, const char * ip_bck, 
 {
 	struct list_head *farms = obj_get_farms();
 	struct farm *f;
-	int changed = 0;
 
 	syslog(LOG_DEBUG, "%s():%d: updating farms with oifidx %d and backends with ip address %s and ether address %s", __FUNCTION__, __LINE__, interface_idx, ip_bck, ether_bck);
 
@@ -515,13 +548,46 @@ void farm_s_set_backend_ether_by_oifidx(int interface_idx, const char * ip_bck, 
 
 		syslog(LOG_DEBUG, "%s():%d: farm with oifidx %d found", __FUNCTION__, __LINE__, interface_idx);
 
+		if (!farm_validate(f)) {
+			syslog(LOG_INFO, "%s():%d: farm %s doesn't validate", __FUNCTION__, __LINE__, f->name);
+			farm_set_state(f, VALUE_STATE_CONFERR);
+			continue;
+		}
+
 		if (backend_s_set_ether_by_ipaddr(f, ip_bck, ether_bck)) {
 			farm_set_action(f, ACTION_RELOAD);
-			changed = 1;
+			farm_rulerize(f);
 		}
 	}
-
-	if (changed)
-		nft_rulerize();
 }
 
+int farm_rulerize(struct farm *f)
+{
+	syslog(LOG_DEBUG, "%s():%d: rulerize farm %s", __FUNCTION__, __LINE__, f->name);
+
+	if ((f->action == ACTION_START || f->action == ACTION_RELOAD) &&
+		!farm_validate(f)) {
+		syslog(LOG_INFO, "%s():%d: farm %s can't be rulerized", __FUNCTION__, __LINE__, f->name);
+		farm_set_state(f, VALUE_STATE_CONFERR);
+		return EXIT_FAILURE;
+	}
+
+	farm_print(f);
+	return nft_rulerize(f);
+}
+
+int farm_s_rulerize(void)
+{
+	struct farm *f;
+	int ret = EXIT_SUCCESS;
+
+	syslog(LOG_DEBUG, "%s():%d: rulerize everything", __FUNCTION__, __LINE__);
+
+	struct list_head *farms = obj_get_farms();
+
+	list_for_each_entry(f, farms, list) {
+		ret = ret || farm_rulerize(f);
+	}
+
+	return ret;
+}

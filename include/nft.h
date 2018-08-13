@@ -22,6 +22,8 @@
 #ifndef _NFT_H_
 #define _NFT_H_
 
-int nft_rulerize(void);
+#include "farms.h"
+
+int nft_rulerize(struct farm *f);
 
 #endif /* _NFT_H_ */

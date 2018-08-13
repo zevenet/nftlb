@@ -201,3 +201,7 @@ void obj_print(void)
 	farm_s_print();
 }
 
+void obj_rulerize(void)
+{
+	farm_s_rulerize();
+}

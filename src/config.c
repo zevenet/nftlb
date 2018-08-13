@@ -45,16 +45,10 @@ static void init_pair(struct config_pair *c)
 	c->int_value = -1;
 }
 
-static void config_print_pair(struct config_pair *c)
-{
-	syslog(LOG_DEBUG,"pair: %d(level) %d(key) %s(value) %d(value)", c->level, c->key, c->str_value, c->int_value);
-}
-
 static void config_dump_int(char *buf, int value)
 {
 	sprintf(buf, "%d", value);
 }
-
 
 static int config_value_family(const char *value)
 {
@@ -248,7 +242,9 @@ static void config_json_array(json_t *element, int level, int source)
 static void config_json_string(json_t *element, int level, int source)
 {
 	config_value(json_string_value(element));
-	config_print_pair(&c);
+
+	syslog(LOG_DEBUG, "%s():%d: %d(level) %d(key) %s(value) %d(value)", __FUNCTION__, __LINE__, c.level, c.key, c.str_value, c.int_value);
+
 	obj_set_attribute(&c, source);
 	init_pair(&c);
 }

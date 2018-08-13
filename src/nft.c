@@ -629,32 +629,26 @@ static int del_farm(struct nft_ctx *ctx, struct farm *f)
 }
 
 
-int nft_rulerize(void)
+int nft_rulerize(struct farm *f)
 {
-	struct list_head *farms = obj_get_farms();
 	struct nft_ctx *ctx = nft_ctx_new(0);
-	struct farm *f;
 	int ret = EXIT_SUCCESS;
 
-	farm_s_print();
-
-	list_for_each_entry(f, farms, list) {
-		switch (f->action) {
-		case ACTION_START:
-		case ACTION_RELOAD:
-			ret = run_farm(ctx, f, f->action);
-			break;
-		case ACTION_STOP:
-		case ACTION_DELETE:
-			ret = del_farm(ctx, f);
-			break;
-		case ACTION_NONE:
-		default:
-			break;
-		}
-
-		f->action = ACTION_NONE;
+	switch (f->action) {
+	case ACTION_START:
+	case ACTION_RELOAD:
+		ret = run_farm(ctx, f, f->action);
+		break;
+	case ACTION_STOP:
+	case ACTION_DELETE:
+		ret = del_farm(ctx, f);
+		break;
+	case ACTION_NONE:
+	default:
+		break;
 	}
+
+	f->action = ACTION_NONE;
 
 	nft_ctx_free(ctx);
 

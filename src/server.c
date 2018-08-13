@@ -176,7 +176,7 @@ static int send_delete_response(char **buf, char *uri, char *content)
 			config_print_response(buf, "error reloading farm");
 			goto delete_end;
 		}
-		ret = nft_rulerize();
+		ret = farm_s_rulerize();
 		if (ret != EXIT_SUCCESS) {
 			config_print_response(buf, "error generating rules");
 			goto delete_end;
@@ -187,7 +187,7 @@ static int send_delete_response(char **buf, char *uri, char *content)
 			config_print_response(buf, "error stopping farm");
 			goto delete_end;
 		}
-		ret = nft_rulerize();
+		ret = farm_s_rulerize();
 		if (ret != EXIT_SUCCESS) {
 			config_print_response(buf, "error generating rules");
 			goto delete_end;
@@ -217,7 +217,7 @@ static int send_post_response(char **buf, char *uri, char *content)
 		goto post_end;
 	}
 
-	if (nft_rulerize() != EXIT_SUCCESS) {
+	if (farm_s_rulerize() != EXIT_SUCCESS) {
 		config_print_response(buf, "error generating rules");
 		goto post_end;
 	}

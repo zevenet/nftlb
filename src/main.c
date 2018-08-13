@@ -29,7 +29,6 @@
 
 #include "config.h"
 #include "objects.h"
-#include "nft.h"
 #include "server.h"
 #include "events.h"
 #include "network.h"
@@ -120,7 +119,7 @@ int main(int argc, char *argv[])
 	if (loglevel > NFTLB_LOGLEVEL_DEFAULT)
 		obj_print();
 
-	nft_rulerize();
+	obj_rulerize();
 
 	if (mode == NFTLB_EXIT_MODE)
 		return EXIT_SUCCESS;

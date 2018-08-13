@@ -37,9 +37,9 @@
 #define DEFAULT_SCHED		VALUE_SCHED_RR
 #define DEFAULT_WEIGHT		1
 #define DEFAULT_PRIORITY	1
-#define DEFAULT_FARM_STATE	VALUE_STATE_DOWN
+#define DEFAULT_FARM_STATE	VALUE_STATE_UP
 #define DEFAULT_BACKEND_STATE	VALUE_STATE_UP
-#define DEFAULT_ACTION		ACTION_NONE
+#define DEFAULT_ACTION		ACTION_START
 
 enum levels {
 	LEVEL_INIT,
@@ -97,5 +97,6 @@ char * obj_print_state(int state);
 int obj_set_attribute(struct config_pair *c, int actionable);
 int obj_set_attribute_string(char *src, char **dst);
 void obj_print(void);
+void obj_rulerize(void);
 
 #endif /* _OBJECTS_H_ */
