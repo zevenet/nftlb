@@ -33,7 +33,7 @@
 #include "nft.h"
 #include "events.h"
 
-#define SRV_MAX_BUF			4096
+#define SRV_MAX_BUF			40960
 #define SRV_MAX_HEADER			300
 #define SRV_MAX_IDENT			200
 #define SRV_KEY_LENGTH			16
