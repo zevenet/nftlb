@@ -303,6 +303,9 @@ int config_buffer(const char *buf)
 	json_t		*root;
 	int		ret = EXIT_SUCCESS;
 
+	syslog(LOG_DEBUG, "%s():%d: received buffer %d : %s", __FUNCTION__, __LINE__, (int)strlen(buf), buf);
+	//syslog(LOG_ERR, "Configuration error on line %d: %s", error.line, error.text);
+
 	root = json_loadb(buf, strlen(buf), JSON_ALLOW_NUL, &error);
 
 	if (root) {
@@ -341,11 +344,7 @@ static void add_dump_list(json_t *obj, const char *objname, int object,
 
 			item = json_object();
 			add_dump_obj(item, "name", f->name);
-			add_dump_obj(item, "fqdn", f->fqdn);
-			add_dump_obj(item, "iface", f->iface);
-			add_dump_obj(item, "oface", f->oface);
 			add_dump_obj(item, "family", obj_print_family(f->family));
-			add_dump_obj(item, "ether-addr", f->iethaddr);
 			add_dump_obj(item, "virtual-addr", f->virtaddr);
 			add_dump_obj(item, "virtual-ports", f->virtports);
 			add_dump_obj(item, "mode", obj_print_mode(f->mode));
@@ -362,10 +361,7 @@ static void add_dump_list(json_t *obj, const char *objname, int object,
 		list_for_each_entry(b, head, list) {
 			item = json_object();
 			add_dump_obj(item, "name", b->name);
-			add_dump_obj(item, "fqdn", b->fqdn);
-			add_dump_obj(item, "ether-addr", b->ethaddr);
 			add_dump_obj(item, "ip-addr", b->ipaddr);
-			add_dump_obj(item, "ports", b->ports);
 			config_dump_int(value, b->weight);
 			add_dump_obj(item, "weight", value);
 			config_dump_int(value, b->priority);
