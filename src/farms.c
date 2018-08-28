@@ -129,6 +129,14 @@ static int farm_validate(struct farm *f)
 	return 1;
 }
 
+static int farm_is_available(struct farm *f)
+{
+	syslog(LOG_DEBUG, "%s():%d: farm %s state is %s",
+	       __FUNCTION__, __LINE__, f->name, obj_print_state(f->state));
+
+	return (f->state == VALUE_STATE_UP) && farm_validate(f);
+}
+
 static int farm_s_update_dsr_counter(void)
 {
 	struct list_head *farms = obj_get_farms();
@@ -277,6 +285,7 @@ void farm_s_print(void)
 		farm_print(f);
 	}
 }
+
 struct farm * farm_lookup_by_name(const char *name)
 {
 	struct list_head *farms = obj_get_farms();
@@ -566,7 +575,7 @@ int farm_rulerize(struct farm *f)
 	syslog(LOG_DEBUG, "%s():%d: rulerize farm %s", __FUNCTION__, __LINE__, f->name);
 
 	if ((f->action == ACTION_START || f->action == ACTION_RELOAD) &&
-		!farm_validate(f)) {
+		!farm_is_available(f)) {
 		syslog(LOG_INFO, "%s():%d: farm %s can't be rulerized", __FUNCTION__, __LINE__, f->name);
 		farm_set_state(f, VALUE_STATE_CONFERR);
 		return EXIT_FAILURE;
@@ -586,7 +595,7 @@ int farm_s_rulerize(void)
 	struct list_head *farms = obj_get_farms();
 
 	list_for_each_entry(f, farms, list) {
-		ret = ret || farm_rulerize(f);
+			ret = ret || farm_rulerize(f);
 	}
 
 	return ret;
