@@ -324,13 +324,13 @@ static int run_base_ndv(struct nft_ctx *ctx, struct farm *f, int key)
 
 	if ((rules_needed & NFTLB_IPV4_IP_ACTIVE) && !(if_base->active & NFTLB_IPV4_IP_ACTIVE)) {
 		sprintf(buf, "%s ; add map %s %s %s { type %s : verdict ;}", buf, NFTLB_NETDEV_FAMILY, NFTLB_TABLE_NAME, NFTLB_IP_SERVICES_MAP, NFTLB_MAP_TYPE_IPV4);
-		sprintf(buf, "%s ; add rule %s %s %s-%s %s daddr vmap @%s", buf, NFTLB_NETDEV_FAMILY, NFTLB_TABLE_NAME, NFTLB_TABLE_INGRESS, if_str, NFTLB_IPV4_FAMILY, NFTLB_IP_SERVICES_MAP);
+		sprintf(buf, "%s ; add rule %s %s %s-%s %s saddr vmap @%s", buf, NFTLB_NETDEV_FAMILY, NFTLB_TABLE_NAME, NFTLB_TABLE_INGRESS, if_str, NFTLB_IPV4_FAMILY, NFTLB_IP_SERVICES_MAP);
 		if_base->active |= NFTLB_IPV4_IP_ACTIVE;
 	}
 
 	if ((rules_needed & NFTLB_IPV6_IP_ACTIVE) && !(if_base->active & NFTLB_IPV6_IP_ACTIVE)) {
 		sprintf(buf, "%s ; add map %s %s %s { type %s : verdict ;}", buf, NFTLB_NETDEV_FAMILY, NFTLB_TABLE_NAME, NFTLB_IP_SERVICES6_MAP, NFTLB_MAP_TYPE_IPV6);
-		sprintf(buf, "%s ; add rule %s %s %s-%s %s daddr vmap @%s", buf, NFTLB_NETDEV_FAMILY, NFTLB_TABLE_NAME, NFTLB_TABLE_INGRESS, if_str, NFTLB_IPV6_FAMILY, NFTLB_IP_SERVICES6_MAP);
+		sprintf(buf, "%s ; add rule %s %s %s-%s %s saddr vmap @%s", buf, NFTLB_NETDEV_FAMILY, NFTLB_TABLE_NAME, NFTLB_TABLE_INGRESS, if_str, NFTLB_IPV6_FAMILY, NFTLB_IP_SERVICES6_MAP);
 		if_base->active |= NFTLB_IPV6_IP_ACTIVE;
 	}
 
