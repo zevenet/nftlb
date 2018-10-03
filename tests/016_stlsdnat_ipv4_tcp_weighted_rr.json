@@ -3,6 +3,8 @@
 		{
 			"name" : "lb01",
 			"family" : "ipv4",
+			"iface" : "lo",
+			"oface" : "lo",
 			"virtual-addr" : "192.168.56.101",
 			"virtual-ports" : "80",
 			"mode" : "stlsdnat",

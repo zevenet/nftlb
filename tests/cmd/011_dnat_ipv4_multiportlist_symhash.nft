@@ -1,31 +1,31 @@
 table ip nftlb {
 	map tcp-services {
 		type ipv4_addr . inet_service : verdict
-		elements = { 192.168.0.100 . http : goto lb01,
+		elements = { 192.168.0.100 . 80 : goto lb01,
 			     192.168.0.100 . 81 : goto lb01,
 			     192.168.0.100 . 82 : goto lb01,
 			     192.168.0.100 . 83 : goto lb01,
 			     192.168.0.100 . 84 : goto lb01,
 			     192.168.0.100 . 85 : goto lb01,
 			     192.168.0.100 . 86 : goto lb01,
-			     192.168.0.100 . link : goto lb01,
-			     192.168.0.100 . kerberos : goto lb01,
+			     192.168.0.100 . 87 : goto lb01,
+			     192.168.0.100 . 88 : goto lb01,
 			     192.168.0.100 . 90 : goto lb01,
 			     192.168.0.100 . 91 : goto lb01,
 			     192.168.0.100 . 92 : goto lb01,
 			     192.168.0.100 . 93 : goto lb01,
 			     192.168.0.100 . 94 : goto lb01,
-			     192.168.0.100 . supdup : goto lb01,
+			     192.168.0.100 . 95 : goto lb01,
 			     192.168.0.100 . 96 : goto lb01 }
 	}
 
 	chain prerouting {
-		type nat hook prerouting priority 0; policy accept;
+		type nat hook prerouting priority filter; policy accept;
 		ip daddr . tcp dport vmap @tcp-services
 	}
 
 	chain postrouting {
-		type nat hook postrouting priority 100; policy accept;
+		type nat hook postrouting priority srcnat; policy accept;
 		ct mark 0x00000100 masquerade
 	}
 

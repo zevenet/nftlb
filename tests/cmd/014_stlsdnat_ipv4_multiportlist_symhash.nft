@@ -1,0 +1,41 @@
+table netdev nftlb {
+	map services {
+		type ipv4_addr : verdict
+		elements = { 192.168.0.10 : goto lb01-back, 192.168.0.11 : goto lb01-back,
+			     192.168.0.13 : goto lb01-back, 192.168.0.15 : goto lb01-back }
+	}
+
+	map tcp-services {
+		type ipv4_addr . inet_service : verdict
+		elements = { 192.168.0.154 . 80 : goto lb01,
+			     192.168.0.154 . 81 : goto lb01,
+			     192.168.0.154 . 82 : goto lb01,
+			     192.168.0.154 . 83 : goto lb01,
+			     192.168.0.154 . 84 : goto lb01,
+			     192.168.0.154 . 85 : goto lb01,
+			     192.168.0.154 . 86 : goto lb01,
+			     192.168.0.154 . 87 : goto lb01,
+			     192.168.0.154 . 88 : goto lb01,
+			     192.168.0.154 . 90 : goto lb01,
+			     192.168.0.154 . 91 : goto lb01,
+			     192.168.0.154 . 92 : goto lb01,
+			     192.168.0.154 . 93 : goto lb01,
+			     192.168.0.154 . 94 : goto lb01,
+			     192.168.0.154 . 95 : goto lb01,
+			     192.168.0.154 . 96 : goto lb01 }
+	}
+
+	chain ingress-lo {
+		type filter hook ingress device lo priority filter; policy accept;
+		ip saddr vmap @services
+		ip daddr . tcp dport vmap @tcp-services
+	}
+
+	chain lb01-back {
+		ip saddr set 192.168.0.154 fwd to "lo"
+	}
+
+	chain lb01 {
+		ip daddr set symhash mod 20 map { 0-4 : 192.168.0.10, 5-9 : 192.168.0.11, 10-14 : 192.168.0.13, 15-19 : 192.168.0.15 } fwd to "lo"
+	}
+}
