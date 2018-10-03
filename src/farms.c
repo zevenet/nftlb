@@ -61,6 +61,7 @@ static struct farm * farm_create(char *name)
 	pfarm->mode = DEFAULT_MODE;
 	pfarm->protocol = DEFAULT_PROTO;
 	pfarm->scheduler = DEFAULT_SCHED;
+	pfarm->helper = DEFAULT_HELPER;
 	pfarm->state = DEFAULT_FARM_STATE;
 	pfarm->action = DEFAULT_ACTION;
 
@@ -265,6 +266,7 @@ static void farm_print(struct farm *f)
 	syslog(LOG_DEBUG,"    [mode] %s", obj_print_mode(f->mode));
 	syslog(LOG_DEBUG,"    [protocol] %s", obj_print_proto(f->protocol));
 	syslog(LOG_DEBUG,"    [scheduler] %s", obj_print_sched(f->scheduler));
+	syslog(LOG_DEBUG,"    [helper] %s", obj_print_helper(f->helper));
 	syslog(LOG_DEBUG,"    [state] %s", obj_print_state(f->state));
 	syslog(LOG_DEBUG,"    [priority] %d", f->priority);
 	syslog(LOG_DEBUG,"    *[total_weight] %d", f->total_weight);
@@ -498,6 +500,9 @@ int farm_set_attribute(struct config_pair *c)
 		break;
 	case KEY_SCHED:
 		f->scheduler = c->int_value;
+		break;
+	case KEY_HELPER:
+		f->helper = c->int_value;
 		break;
 	case KEY_STATE:
 		farm_set_state(f, c->int_value);

@@ -52,6 +52,20 @@ enum schedulers {
 	VALUE_SCHED_SYMHASH,
 };
 
+enum helpers {
+	VALUE_HELPER_NONE,
+	VALUE_HELPER_AMANDA,
+	VALUE_HELPER_FTP,
+	VALUE_HELPER_H323,
+	VALUE_HELPER_IRC,
+	VALUE_HELPER_NETBIOSNS,
+	VALUE_HELPER_PPTP,
+	VALUE_HELPER_SANE,
+	VALUE_HELPER_SIP,
+	VALUE_HELPER_SNMP,
+	VALUE_HELPER_TFTP,
+};
+
 enum states {
 	VALUE_STATE_UP,
 	VALUE_STATE_DOWN,
@@ -84,6 +98,7 @@ struct farm {
 	int			mode;
 	int			protocol;
 	int			scheduler;
+	int			helper;
 	int			state;
 	int			priority;
 	int			total_weight;

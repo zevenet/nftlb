@@ -445,7 +445,6 @@ static int run_farm_rules(struct nft_ctx *ctx, struct farm *f, int family,
 	if (f->bcks_available == 0)
 		goto avoidrules;
 
-
 	sprintf(buf, "%s ; add rule %s %s %s", buf, print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, f->name);
 
 	switch (f->mode) {
@@ -456,6 +455,10 @@ static int run_farm_rules(struct nft_ctx *ctx, struct farm *f, int family,
 		sprintf(buf, "%s %s daddr set", buf, print_nft_family(family));
 		break;
 	default:
+		if (f->helper) {
+			sprintf(buf2, "%s ; add ct helper %s %s %s { type \"%s\" protocol %s ; }", buf2, print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, obj_print_helper(f->helper), obj_print_helper(f->helper), obj_print_proto(f->protocol));
+			sprintf(buf, "%s ct helper %s", buf, obj_print_helper(f->helper));
+		}
 		sprintf(buf, "%s dnat to", buf);
 	}
 

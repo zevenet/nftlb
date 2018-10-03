@@ -139,6 +139,36 @@ char * obj_print_sched(int scheduler)
 	}
 }
 
+char * obj_print_helper(int helper)
+{
+	switch (helper) {
+	case VALUE_HELPER_NONE:
+		return CONFIG_VALUE_HELPER_NONE;
+	case VALUE_HELPER_AMANDA:
+		return CONFIG_VALUE_HELPER_AMANDA;
+	case VALUE_HELPER_FTP:
+		return CONFIG_VALUE_HELPER_FTP;
+	case VALUE_HELPER_H323:
+		return CONFIG_VALUE_HELPER_H323;
+	case VALUE_HELPER_IRC:
+		return CONFIG_VALUE_HELPER_IRC;
+	case VALUE_HELPER_NETBIOSNS:
+		return CONFIG_VALUE_HELPER_NETBIOSNS;
+	case VALUE_HELPER_PPTP:
+		return CONFIG_VALUE_HELPER_PPTP;
+	case VALUE_HELPER_SANE:
+		return CONFIG_VALUE_HELPER_SANE;
+	case VALUE_HELPER_SIP:
+		return CONFIG_VALUE_HELPER_SIP;
+	case VALUE_HELPER_SNMP:
+		return CONFIG_VALUE_HELPER_SNMP;
+	case VALUE_HELPER_TFTP:
+		return CONFIG_VALUE_HELPER_TFTP;
+	default:
+		return NULL;
+	}
+}
+
 char * obj_print_state(int state)
 {
 	switch (state) {

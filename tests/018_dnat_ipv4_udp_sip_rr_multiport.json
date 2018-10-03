@@ -1,0 +1,32 @@
+{
+	"farms" : [
+		{
+			"name" : "lb01",
+			"family" : "ipv4",
+			"virtual-addr" : "192.168.56.154",
+			"virtual-ports" : "5060-5066",
+			"mode" : "dnat",
+			"protocol" : "udp",
+			"scheduler" : "rr",
+			"helper" : "sip",
+			"priority" : "1",
+			"state" : "up",
+			"backends" : [
+				{
+					"name" : "bck0",
+					"ip-addr" : "192.168.0.22",
+					"weight" : "5",
+					"priority" : "1",
+					"state" : "up"
+				},
+				{
+					"name" : "bck1",
+					"ip-addr" : "192.168.0.23",
+					"weight" : "5",
+					"priority" : "1",
+					"state" : "up"
+				}
+			]
+		}
+	]
+}

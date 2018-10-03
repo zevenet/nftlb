@@ -35,6 +35,7 @@
 #define DEFAULT_MODE		VALUE_MODE_SNAT
 #define DEFAULT_PROTO		VALUE_PROTO_TCP
 #define DEFAULT_SCHED		VALUE_SCHED_RR
+#define DEFAULT_HELPER		VALUE_HELPER_NONE
 #define DEFAULT_WEIGHT		1
 #define DEFAULT_PRIORITY	1
 #define DEFAULT_FARM_STATE	VALUE_STATE_UP
@@ -62,6 +63,7 @@ enum keys {
 	KEY_MODE,
 	KEY_PROTO,
 	KEY_SCHED,
+	KEY_HELPER,
 	KEY_STATE,
 	KEY_BCKS,
 	KEY_WEIGHT,
@@ -93,6 +95,7 @@ char * obj_print_family(int family);
 char * obj_print_mode(int mode);
 char * obj_print_proto(int protocol);
 char * obj_print_sched(int scheduler);
+char * obj_print_helper(int helper);
 char * obj_print_state(int state);
 int obj_set_attribute(struct config_pair *c, int actionable);
 int obj_set_attribute_string(char *src, char **dst);

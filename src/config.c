@@ -104,6 +104,34 @@ static int config_value_sched(const char *value)
 	return EXIT_FAILURE;
 }
 
+static int config_value_helper(const char *value)
+{
+	if (strcmp(value, CONFIG_VALUE_HELPER_NONE) == 0)
+		return VALUE_HELPER_NONE;
+	if (strcmp(value, CONFIG_VALUE_HELPER_AMANDA) == 0)
+		return VALUE_HELPER_AMANDA;
+	if (strcmp(value, CONFIG_VALUE_HELPER_FTP) == 0)
+		return VALUE_HELPER_FTP;
+	if (strcmp(value, CONFIG_VALUE_HELPER_H323) == 0)
+		return VALUE_HELPER_H323;
+	if (strcmp(value, CONFIG_VALUE_HELPER_IRC) == 0)
+		return VALUE_HELPER_IRC;
+	if (strcmp(value, CONFIG_VALUE_HELPER_NETBIOSNS) == 0)
+		return VALUE_HELPER_NETBIOSNS;
+	if (strcmp(value, CONFIG_VALUE_HELPER_PPTP) == 0)
+		return VALUE_HELPER_PPTP;
+	if (strcmp(value, CONFIG_VALUE_HELPER_SANE) == 0)
+		return VALUE_HELPER_SANE;
+	if (strcmp(value, CONFIG_VALUE_HELPER_SIP) == 0)
+		return VALUE_HELPER_SIP;
+	if (strcmp(value, CONFIG_VALUE_HELPER_SNMP) == 0)
+		return VALUE_HELPER_SNMP;
+	if (strcmp(value, CONFIG_VALUE_HELPER_TFTP) == 0)
+		return VALUE_HELPER_TFTP;
+
+	return EXIT_FAILURE;
+}
+
 static int config_value_state(const char *value)
 {
 	if (strcmp(value, CONFIG_VALUE_STATE_UP) == 0)
@@ -146,6 +174,9 @@ static void config_value(const char *value)
 		break;
 	case KEY_SCHED:
 		c.int_value = config_value_sched(value);
+		break;
+	case KEY_HELPER:
+		c.int_value = config_value_helper(value);
 		break;
 	case KEY_STATE:
 		c.int_value = config_value_state(value);
@@ -193,6 +224,8 @@ static int config_key(const char *key)
 		return KEY_PROTO;
 	if (strcmp(key, CONFIG_KEY_SCHED) == 0)
 		return KEY_SCHED;
+	if (strcmp(key, CONFIG_KEY_HELPER) == 0)
+		return KEY_HELPER;
 	if (strcmp(key, CONFIG_KEY_STATE) == 0)
 		return KEY_STATE;
 	if (strcmp(key, CONFIG_KEY_BCKS) == 0)
@@ -350,6 +383,7 @@ static void add_dump_list(json_t *obj, const char *objname, int object,
 			add_dump_obj(item, "mode", obj_print_mode(f->mode));
 			add_dump_obj(item, "protocol", obj_print_proto(f->protocol));
 			add_dump_obj(item, "scheduler", obj_print_sched(f->scheduler));
+			add_dump_obj(item, "helper", obj_print_helper(f->helper));
 			config_dump_int(value, f->priority);
 			add_dump_obj(item, "priority", value);
 			add_dump_obj(item, "state", obj_print_state(f->state));
