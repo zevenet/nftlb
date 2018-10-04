@@ -1,0 +1,25 @@
+table ip6 nftlb {
+	ct helper tftp {
+		type "tftp" protocol udp
+		l3proto ip6
+	}
+
+	map udp-services6 {
+		type ipv6_addr . inet_service : verdict
+		elements = { 2001:db8:0:1:1:1:1:1 . 69 : goto lb01 }
+	}
+
+	chain prerouting {
+		type nat hook prerouting priority filter; policy accept;
+		ip6 daddr . udp dport vmap @udp-services6
+	}
+
+	chain postrouting {
+		type nat hook postrouting priority srcnat; policy accept;
+		ct mark 0x00000100 masquerade
+	}
+
+	chain lb01 {
+		ct helper "tftp" dnat to numgen inc mod 10 map { 0-4 : 2001:db8:0:1:1:1:1:2, 5-9 : 2001:db8:0:1:1:1:1:3 }
+	}
+}

@@ -1,0 +1,37 @@
+{
+	"farms" : [
+		{
+			"name" : "lb01",
+			"family" : "ipv6",
+			"iface" : "lo",
+			"oface" : "lo",
+			"virtual-addr" : "2001:db8:0:1:1:1:1:1",
+			"ether-addr" : "01:01:01:01:01:01",
+			"virtual-ports" : "69",
+			"mode" : "dnat",
+			"protocol" : "udp",
+			"helper" : "tftp",
+			"scheduler" : "rr",
+			"priority" : "1",
+			"state" : "up",
+			"backends" : [
+				{
+					"name" : "bck0",
+					"ip-addr" : "2001:db8:0:1:1:1:1:2",
+					"ether-addr" : "02:02:02:02:02:02",
+					"weight" : "5",
+					"priority" : "1",
+					"state" : "up"
+				},
+				{
+					"name" : "bck1",
+					"ip-addr" : "2001:db8:0:1:1:1:1:3",
+					"ether-addr" : "03:03:03:03:03:03",
+					"weight" : "5",
+					"priority" : "1",
+					"state" : "up"
+				}
+			]
+		}
+	]
+}
