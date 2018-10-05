@@ -257,6 +257,7 @@ static void read_cb(struct ev_loop *loop, struct ev_io *watcher, int revents)
 
 	if(EV_ERROR & revents) {
 		syslog(LOG_ERR, "Server got invalid event from client read");
+		free(uri);
 		return;
 	}
 
@@ -264,6 +265,7 @@ static void read_cb(struct ev_loop *loop, struct ev_io *watcher, int revents)
 
 	if(size < 0) {
 		syslog(LOG_ERR, "Server read error from client");
+		free(uri);
 		return;
 	}
 
@@ -306,6 +308,7 @@ end:
 	if (watcher != NULL)
 		free(watcher);
 
+	free(uri);
 	syslog(LOG_DEBUG, "%d client(s) connected", --nftserver.clients);
 	return;
 }
@@ -317,8 +320,14 @@ static void accept_cb(struct ev_loop *loop, struct ev_io *watcher, int revents)
 	int client_sd;
 	struct ev_io *w_client = (struct ev_io*) malloc(sizeof(struct ev_io));
 
+	if (!w_client) {
+		syslog(LOG_ERR, "No memory available to allocate new client");
+		return;
+	}
+
 	if(EV_ERROR & revents) {
 		syslog(LOG_ERR, "Server got an invalid event from client");
+		free(w_client);
 		return;
 	}
 
@@ -327,6 +336,7 @@ static void accept_cb(struct ev_loop *loop, struct ev_io *watcher, int revents)
 
 	if (client_sd < 0) {
 		syslog(LOG_ERR, "Server accept error");
+		free(w_client);
 		return;
 	}
 
@@ -384,6 +394,12 @@ int server_init(void)
 void server_set_host(char *host)
 {
 	nftserver.host = malloc(strlen(host));
+
+	if (!nftserver.host) {
+		syslog(LOG_ERR, "No memory available to allocate the server host");
+		return;
+	}
+
 	sprintf(nftserver.host, "%s", host);
 }
 
@@ -396,8 +412,13 @@ void server_set_key(char *key)
 {
 	int i;
 
-	if (!nftserver.key)
+	if (!nftserver.key) {
 		nftserver.key = (char *)malloc(SRV_MAX_IDENT);
+		if (!nftserver.key) {
+			syslog(LOG_ERR, "No memory available to allocate the server key");
+			return;
+		}
+	}
 
 	if (!key) {
 		srand((unsigned int) time(0) + getpid());
