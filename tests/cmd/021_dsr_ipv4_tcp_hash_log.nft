@@ -1,0 +1,16 @@
+table netdev nftlb {
+	map tcp-services {
+		type ipv4_addr . inet_service : verdict
+		elements = { 192.168.0.100 . 80 : goto lb01 }
+	}
+
+	chain ingress-lo {
+		type filter hook ingress device lo priority filter; policy accept;
+		ip daddr . tcp dport vmap @tcp-services
+	}
+
+	chain lb01 {
+		log prefix "INPUT-lb01 "
+		ether saddr set 01:01:01:01:01:01 ether daddr set jhash ip saddr mod 10 map { 0-4 : 02:02:02:02:02:02, 5-9 : 03:03:03:03:03:03 } fwd to "lo"
+	}
+}

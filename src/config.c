@@ -132,6 +132,25 @@ static int config_value_helper(const char *value)
 	return EXIT_FAILURE;
 }
 
+static int config_value_log(const char *value)
+{
+	int logmask = 0;
+
+	if (strstr(value, CONFIG_VALUE_LOG_NONE) != NULL) {
+		logmask = VALUE_LOG_NONE;
+		return logmask;
+	}
+
+	if (strstr(value, CONFIG_VALUE_LOG_INPUT) != NULL)
+		logmask |= VALUE_LOG_INPUT;
+	if (strstr(value, CONFIG_VALUE_LOG_FORWARD) != NULL)
+		logmask |= VALUE_LOG_FORWARD;
+	if (strstr(value, CONFIG_VALUE_LOG_OUTPUT) != NULL)
+		logmask |= VALUE_LOG_OUTPUT;
+
+	return logmask;
+}
+
 static int config_value_state(const char *value)
 {
 	if (strcmp(value, CONFIG_VALUE_STATE_UP) == 0)
@@ -177,6 +196,9 @@ static void config_value(const char *value)
 		break;
 	case KEY_HELPER:
 		c.int_value = config_value_helper(value);
+		break;
+	case KEY_LOG:
+		c.int_value = config_value_log(value);
 		break;
 	case KEY_STATE:
 		c.int_value = config_value_state(value);
@@ -226,6 +248,8 @@ static int config_key(const char *key)
 		return KEY_SCHED;
 	if (strcmp(key, CONFIG_KEY_HELPER) == 0)
 		return KEY_HELPER;
+	if (strcmp(key, CONFIG_KEY_LOG) == 0)
+		return KEY_LOG;
 	if (strcmp(key, CONFIG_KEY_STATE) == 0)
 		return KEY_STATE;
 	if (strcmp(key, CONFIG_KEY_BCKS) == 0)
@@ -368,6 +392,7 @@ static void add_dump_list(json_t *obj, const char *objname, int object,
 	json_t *jarray = json_array();
 	json_t *item;
 	char value[10];
+	char buf[100] = {};
 
 	switch (object) {
 	case LEVEL_FARMS:
@@ -384,6 +409,8 @@ static void add_dump_list(json_t *obj, const char *objname, int object,
 			add_dump_obj(item, "protocol", obj_print_proto(f->protocol));
 			add_dump_obj(item, "scheduler", obj_print_sched(f->scheduler));
 			add_dump_obj(item, "helper", obj_print_helper(f->helper));
+			obj_print_log(f->log, (char *)buf);
+			add_dump_obj(item, "log", buf);
 			config_dump_int(value, f->priority);
 			add_dump_obj(item, "priority", value);
 			add_dump_obj(item, "state", obj_print_state(f->state));

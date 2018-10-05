@@ -169,6 +169,25 @@ char * obj_print_helper(int helper)
 	}
 }
 
+void obj_print_log(int log, char* buf)
+{
+	if (log == 0) {
+		sprintf(buf, "%s", CONFIG_VALUE_LOG_NONE);
+		return;
+	}
+
+	if (log & VALUE_LOG_INPUT)
+		sprintf(buf, "%s", CONFIG_VALUE_LOG_INPUT);
+
+	if (log & VALUE_LOG_FORWARD)
+		sprintf(buf, "%s %s", buf, CONFIG_VALUE_LOG_FORWARD);
+
+	if (log & VALUE_LOG_OUTPUT)
+		sprintf(buf, "%s %s", buf, CONFIG_VALUE_LOG_OUTPUT);
+
+	return;
+}
+
 char * obj_print_state(int state)
 {
 	switch (state) {

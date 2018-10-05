@@ -1,0 +1,22 @@
+table ip nftlb {
+	map tcp-services {
+		type ipv4_addr . inet_service : verdict
+		elements = { 192.168.1.100 . 80 : goto lb01 }
+	}
+
+	chain prerouting {
+		type nat hook prerouting priority filter; policy accept;
+		ip daddr . tcp dport vmap @tcp-services
+	}
+
+	chain postrouting {
+		type nat hook postrouting priority srcnat; policy accept;
+		ct mark 0x00000100 masquerade
+	}
+
+	chain lb01 {
+		ct mark set 0x00000100
+		log prefix "INPUT-lb01 "
+		dnat to numgen inc mod 10 map { 0-4 : 192.168.0.10, 5-9 : 192.168.0.11 }
+	}
+}

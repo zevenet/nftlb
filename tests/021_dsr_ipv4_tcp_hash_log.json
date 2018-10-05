@@ -1,0 +1,36 @@
+{
+	"farms" : [
+		{
+			"name" : "lb01",
+			"family" : "ipv4",
+			"iface" : "lo",
+			"oface" : "lo",
+			"virtual-addr" : "192.168.0.100",
+			"ether-addr" : "01:01:01:01:01:01",
+			"virtual-ports" : "80",
+			"mode" : "dsr",
+			"protocol" : "tcp",
+			"log" : "input",
+			"scheduler" : "hash",
+			"state" : "up",
+			"backends" : [
+				{
+					"name" : "bck0",
+					"ip-addr" : "192.168.0.10",
+					"ether-addr" : "02:02:02:02:02:02",
+					"weight" : "5",
+					"priority" : "1",
+					"state" : "up"
+				},
+				{
+					"name" : "bck1",
+					"ip-addr" : "192.168.0.11",
+					"ether-addr" : "03:03:03:03:03:03",
+					"weight" : "5",
+					"priority" : "1",
+					"state" : "up"
+				}
+			]
+		}
+	]
+}

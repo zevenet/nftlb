@@ -442,6 +442,9 @@ static int run_farm_rules(struct nft_ctx *ctx, struct farm *f, int family,
 			sprintf(buf, "%s ; add chain %s %s %s", buf, print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, f->name);
 	}
 
+	if (f->log & VALUE_LOG_INPUT)
+		sprintf(buf, "%s ; add rule %s %s %s log prefix \"INPUT-%s \"", buf, print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, f->name, f->name);
+
 	if (f->bcks_available == 0)
 		goto avoidrules;
 

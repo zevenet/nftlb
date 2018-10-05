@@ -81,6 +81,11 @@ enum actions {
 	ACTION_NONE,
 };
 
+#define VALUE_LOG_NONE			0
+#define VALUE_LOG_INPUT			(1 << 0)
+#define VALUE_LOG_FORWARD		(1 << 1)
+#define VALUE_LOG_OUTPUT		(1 << 2)
+
 struct farm {
 	struct list_head	list;
 	int			action;
@@ -99,6 +104,7 @@ struct farm {
 	int			protocol;
 	int			scheduler;
 	int			helper;
+	int			log;
 	int			state;
 	int			priority;
 	int			total_weight;
