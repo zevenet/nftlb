@@ -62,6 +62,7 @@ static struct farm * farm_create(char *name)
 	pfarm->protocol = DEFAULT_PROTO;
 	pfarm->scheduler = DEFAULT_SCHED;
 	pfarm->helper = DEFAULT_HELPER;
+	pfarm->log = DEFAULT_LOG;
 	pfarm->state = DEFAULT_FARM_STATE;
 	pfarm->action = DEFAULT_ACTION;
 
