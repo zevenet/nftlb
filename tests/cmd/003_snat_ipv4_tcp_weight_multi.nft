@@ -1,18 +1,13 @@
 table ip nftlb {
 	map tcp-services {
 		type ipv4_addr . inet_service : verdict
-		elements = { 192.168.0.100 . 80 : goto lb01 }
-	}
-
-	map udp-services {
-		type ipv4_addr . inet_service : verdict
-		elements = { 192.168.0.101 . 82 : goto lb02 }
+		elements = { 192.168.0.100 . 80 : goto lb01,
+			     192.168.0.101 . 82 : goto lb02 }
 	}
 
 	chain prerouting {
 		type nat hook prerouting priority filter; policy accept;
 		ip daddr . tcp dport vmap @tcp-services
-		ip daddr . udp dport vmap @udp-services
 	}
 
 	chain postrouting {

@@ -32,7 +32,7 @@
 			"virtual-addr" : "192.168.0.101",
 			"virtual-ports" : "82",
 			"mode" : "dnat",
-			"protocol" : "udp",
+			"protocol" : "tcp",
 			"scheduler" : "rr",
 			"state" : "up",
 			"backends" : [
