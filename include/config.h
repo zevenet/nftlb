@@ -26,6 +26,7 @@
 
 #define CONFIG_KEY_FARMS		"farms"
 #define CONFIG_KEY_NAME			"name"
+#define CONFIG_KEY_NEWNAME		"newname"
 #define CONFIG_KEY_FQDN			"fqdn"
 #define CONFIG_KEY_IFACE		"iface"
 #define CONFIG_KEY_OFACE		"oface"

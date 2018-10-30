@@ -52,6 +52,7 @@ enum levels {
 enum keys {
 	KEY_FARMS,
 	KEY_NAME,
+	KEY_NEWNAME,
 	KEY_FQDN,
 	KEY_IFACE,
 	KEY_OFACE,

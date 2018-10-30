@@ -414,6 +414,7 @@ int farm_pre_actionable(struct config_pair *c)
 	switch (c->key) {
 	case KEY_NAME:
 		break;
+	case KEY_NEWNAME:
 	case KEY_FAMILY:
 	case KEY_VIRTADDR:
 	case KEY_VIRTPORTS:
@@ -444,6 +445,7 @@ int farm_pos_actionable(struct config_pair *c)
 	switch (c->key) {
 	case KEY_NAME:
 		break;
+	case KEY_NEWNAME:
 	case KEY_FAMILY:
 	case KEY_VIRTADDR:
 	case KEY_VIRTPORTS:
@@ -465,6 +467,7 @@ int farm_set_attribute(struct config_pair *c)
 {
 	struct obj_config *cur = obj_get_current_object();
 	struct farm *f = cur->fptr;
+	struct farm *nf;
 
 	switch (c->key) {
 	case KEY_NAME:
@@ -475,6 +478,13 @@ int farm_set_attribute(struct config_pair *c)
 				return EXIT_FAILURE;
 		}
 		cur->fptr = f;
+		break;
+	case KEY_NEWNAME:
+		nf = farm_lookup_by_name(c->str_value);
+		if (!nf) {
+			free(f->name);
+			obj_set_attribute_string(c->str_value, &f->name);
+		}
 		break;
 	case KEY_FQDN:
 		obj_set_attribute_string(c->str_value, &f->fqdn);
@@ -589,8 +599,9 @@ int farm_rulerize(struct farm *f)
 
 	if ((f->action == ACTION_START || f->action == ACTION_RELOAD) &&
 		!farm_is_available(f)) {
-		syslog(LOG_INFO, "%s():%d: farm %s can't be rulerized", __FUNCTION__, __LINE__, f->name);
-		farm_set_state(f, VALUE_STATE_CONFERR);
+		syslog(LOG_INFO, "%s():%d: farm %s won't be rulerized", __FUNCTION__, __LINE__, f->name);
+		if (f->state == VALUE_STATE_UP)
+			farm_set_state(f, VALUE_STATE_CONFERR);
 		return EXIT_FAILURE;
 	}
 

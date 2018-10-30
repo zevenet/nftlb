@@ -272,6 +272,9 @@ int backend_set_attribute(struct config_pair *c)
 		}
 		cur->bptr = b;
 		break;
+	case KEY_NEWNAME:
+		obj_set_attribute_string(c->str_value, &b->name);
+		break;
 	case KEY_FQDN:
 		obj_set_attribute_string(c->str_value, &b->fqdn);
 		break;

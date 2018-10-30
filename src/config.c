@@ -222,6 +222,8 @@ static int config_key(const char *key)
 		return KEY_FARMS;
 	if (strcmp(key, CONFIG_KEY_NAME) == 0)
 		return KEY_NAME;
+	if (strcmp(key, CONFIG_KEY_NEWNAME) == 0)
+		return KEY_NEWNAME;
 	if (strcmp(key, CONFIG_KEY_FQDN) == 0)
 		return KEY_FQDN;
 	if (strcmp(key, CONFIG_KEY_IFACE) == 0)
