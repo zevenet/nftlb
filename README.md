@@ -109,6 +109,10 @@ Setup a new virtual service.
 ```
 curl -H "Key: <MYKEY>" -X POST http://<NFTLB IP>:5555/farms -d "@tests/008_snat_ipv4_all_rr.json"
 ```
+Add a new backend into a virtual service.
+```
+curl -H "Key: <MYKEY>" -X POST http://<NFTLB IP>:5555/farms -d '{"farms" : [ { "name" : "myfarm", "backends" : [ { "name" : "mynewbck", "ip-addr" : "192.168.0.150", "state" : "up" } ] } ] }'
+```
 Delete a virtual service.
 ```
 curl -H "Key: <MYKEY>" -X DELETE http://<NFTLB IP>:5555/farms/lb01
