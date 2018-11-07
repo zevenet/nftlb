@@ -115,7 +115,7 @@ void backend_s_print(struct farm *f)
 		if (b->ports)
 			syslog(LOG_DEBUG,"       [ports] %s", b->ports);
 
-		syslog(LOG_DEBUG,"       [mark] %x", b->mark);
+		syslog(LOG_DEBUG,"       [mark] 0x%x", b->mark);
 		syslog(LOG_DEBUG,"       [weight] %d", b->weight);
 		syslog(LOG_DEBUG,"       [priority] %d", b->priority);
 		syslog(LOG_DEBUG,"       [state] %s", obj_print_state(b->state));

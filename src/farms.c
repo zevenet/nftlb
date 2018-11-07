@@ -207,7 +207,7 @@ static int farm_set_mark(struct farm *f, int new_value)
 	}
 
 	if (new_value & NFTLB_POSTROUTING_MARK) {
-		syslog(LOG_ERR, "%s():%d: mark %x for farm %s conflicts with the POSTROUTING mark %X", __FUNCTION__, __LINE__, f->mark, f->name, NFTLB_POSTROUTING_MARK);
+		syslog(LOG_ERR, "%s():%d: mark 0x%x for farm %s conflicts with the POSTROUTING mark 0x%x", __FUNCTION__, __LINE__, f->mark, f->name, NFTLB_POSTROUTING_MARK);
 		return EXIT_FAILURE;
 	}
 
@@ -294,7 +294,7 @@ static void farm_print(struct farm *f)
 	syslog(LOG_DEBUG,"    [helper] %s", obj_print_helper(f->helper));
 	obj_print_log(f->log, (char *)buf);
 	syslog(LOG_DEBUG,"    [log] %s", buf);
-	syslog(LOG_DEBUG,"    [mark] %x", f->mark);
+	syslog(LOG_DEBUG,"    [mark] 0x%x", f->mark);
 	syslog(LOG_DEBUG,"    [state] %s", obj_print_state(f->state));
 	syslog(LOG_DEBUG,"    [priority] %d", f->priority);
 	syslog(LOG_DEBUG,"    *[total_weight] %d", f->total_weight);
