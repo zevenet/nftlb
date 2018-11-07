@@ -200,6 +200,9 @@ static void config_value(const char *value)
 	case KEY_LOG:
 		c.int_value = config_value_log(value);
 		break;
+	case KEY_MARK:
+		c.int_value = (int)strtol(value, NULL, 16);
+		break;
 	case KEY_STATE:
 		c.int_value = config_value_state(value);
 		break;
@@ -252,6 +255,8 @@ static int config_key(const char *key)
 		return KEY_HELPER;
 	if (strcmp(key, CONFIG_KEY_LOG) == 0)
 		return KEY_LOG;
+	if (strcmp(key, CONFIG_KEY_MARK) == 0)
+		return KEY_MARK;
 	if (strcmp(key, CONFIG_KEY_STATE) == 0)
 		return KEY_STATE;
 	if (strcmp(key, CONFIG_KEY_BCKS) == 0)
@@ -413,6 +418,8 @@ static void add_dump_list(json_t *obj, const char *objname, int object,
 			add_dump_obj(item, "helper", obj_print_helper(f->helper));
 			obj_print_log(f->log, (char *)buf);
 			add_dump_obj(item, "log", buf);
+			config_dump_int(value, f->mark);
+			add_dump_obj(item, "mark", buf);
 			config_dump_int(value, f->priority);
 			add_dump_obj(item, "priority", value);
 			add_dump_obj(item, "state", obj_print_state(f->state));
@@ -429,6 +436,8 @@ static void add_dump_list(json_t *obj, const char *objname, int object,
 			add_dump_obj(item, "weight", value);
 			config_dump_int(value, b->priority);
 			add_dump_obj(item, "priority", value);
+			config_dump_int(value, b->mark);
+			add_dump_obj(item, "mark", value);
 			add_dump_obj(item, "state", obj_print_state(b->state));
 			json_array_append_new(jarray, item);
 		}

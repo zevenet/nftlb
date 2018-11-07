@@ -24,6 +24,8 @@
 
 #include "farms.h"
 
+#define NFTLB_POSTROUTING_MARK		0x80000000
+
 int nft_rulerize(struct farm *f);
 
 #endif /* _NFT_H_ */

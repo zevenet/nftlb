@@ -50,6 +50,7 @@ static struct backend * backend_create(struct farm *f, char *name)
 	b->ports = DEFAULT_PORTS;
 	b->weight = DEFAULT_WEIGHT;
 	b->priority = DEFAULT_PRIORITY;
+	b->mark = DEFAULT_MARK;
 	b->state = DEFAULT_BACKEND_STATE;
 	b->action = DEFAULT_ACTION;
 
@@ -114,6 +115,7 @@ void backend_s_print(struct farm *f)
 		if (b->ports)
 			syslog(LOG_DEBUG,"       [ports] %s", b->ports);
 
+		syslog(LOG_DEBUG,"       [mark] %x", b->mark);
 		syslog(LOG_DEBUG,"       [weight] %d", b->weight);
 		syslog(LOG_DEBUG,"       [priority] %d", b->priority);
 		syslog(LOG_DEBUG,"       [state] %s", obj_print_state(b->state));
@@ -201,6 +203,18 @@ static int backend_set_priority(struct backend *b, int new_value)
 	}
 
 	b->priority = new_value;
+
+	return EXIT_SUCCESS;
+}
+
+static int backend_set_mark(struct backend *b, int new_value)
+{
+	int old_value = b->mark;
+
+	syslog(LOG_DEBUG, "%s():%d: current value is %d, but new value will be %d",
+	       __FUNCTION__, __LINE__, old_value, new_value);
+
+	b->mark = new_value;
 
 	return EXIT_SUCCESS;
 }
@@ -297,6 +311,9 @@ int backend_set_attribute(struct config_pair *c)
 		break;
 	case KEY_PRIORITY:
 		backend_set_priority(b, c->int_value);
+		break;
+	case KEY_MARK:
+		backend_set_mark(b, c->int_value);
 		break;
 	case KEY_STATE:
 		backend_set_state(b, c->int_value);

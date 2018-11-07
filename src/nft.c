@@ -48,8 +48,6 @@
 #define NFTLB_INGRESS_PRIO		0
 #define NFTLB_POSTROUTING_PRIO		100
 
-#define NFTLB_POSTROUTING_MARK		"0x100"
-
 #define NFTLB_UDP_PROTO			"udp"
 #define NFTLB_TCP_PROTO			"tcp"
 #define NFTLB_SCTP_PROTO		"sctp"
@@ -349,7 +347,7 @@ static int run_base_nat(struct nft_ctx *ctx, struct farm *f)
 		sprintf(buf, "%s ; add table %s %s", buf, NFTLB_IPV4_FAMILY, NFTLB_TABLE_NAME);
 		sprintf(buf, "%s ; add chain %s %s %s { type nat hook %s priority %d ;}", buf, NFTLB_IPV4_FAMILY, NFTLB_TABLE_NAME, NFTLB_TABLE_PREROUTING, NFTLB_HOOK_PREROUTING, NFTLB_PREROUTING_PRIO);
 		sprintf(buf, "%s ; add chain %s %s %s { type nat hook %s priority %d ;}", buf, NFTLB_IPV4_FAMILY, NFTLB_TABLE_NAME, NFTLB_TABLE_POSTROUTING, NFTLB_HOOK_POSTROUTING, NFTLB_POSTROUTING_PRIO);
-		sprintf(buf, "%s ; add rule %s %s %s ct mark %s masquerade", buf, NFTLB_IPV4_FAMILY, NFTLB_TABLE_NAME, NFTLB_TABLE_POSTROUTING, NFTLB_POSTROUTING_MARK);
+		sprintf(buf, "%s ; add rule %s %s %s ct mark and 0x%x == 0x%x masquerade", buf, NFTLB_IPV4_FAMILY, NFTLB_TABLE_NAME, NFTLB_TABLE_POSTROUTING, NFTLB_POSTROUTING_MARK, NFTLB_POSTROUTING_MARK);
 		nat_base_rules |= NFTLB_IPV4_ACTIVE;
 	}
 
@@ -357,7 +355,7 @@ static int run_base_nat(struct nft_ctx *ctx, struct farm *f)
 		sprintf(buf, "%s ; add table %s %s", buf, NFTLB_IPV6_FAMILY, NFTLB_TABLE_NAME);
 		sprintf(buf, "%s ; add chain %s %s %s { type nat hook %s priority %d ;}", buf, NFTLB_IPV6_FAMILY, NFTLB_TABLE_NAME, NFTLB_TABLE_PREROUTING, NFTLB_HOOK_PREROUTING, NFTLB_PREROUTING_PRIO);
 		sprintf(buf, "%s ; add chain %s %s %s { type nat hook %s priority %d ;}", buf, NFTLB_IPV6_FAMILY, NFTLB_TABLE_NAME, NFTLB_TABLE_POSTROUTING, NFTLB_HOOK_POSTROUTING, NFTLB_POSTROUTING_PRIO);
-		sprintf(buf, "%s ; add rule %s %s %s ct mark %s masquerade", buf, NFTLB_IPV6_FAMILY, NFTLB_TABLE_NAME, NFTLB_TABLE_POSTROUTING, NFTLB_POSTROUTING_MARK);
+		sprintf(buf, "%s ; add rule %s %s %s ct mark and 0x%x == 0x%x masquerade", buf, NFTLB_IPV6_FAMILY, NFTLB_TABLE_NAME, NFTLB_TABLE_POSTROUTING, NFTLB_POSTROUTING_MARK, NFTLB_POSTROUTING_MARK);
 		nat_base_rules |= NFTLB_IPV6_ACTIVE;
 	}
 
@@ -447,6 +445,9 @@ static int run_farm_rules(struct nft_ctx *ctx, struct farm *f, int family,
 
 	if (f->bcks_available == 0)
 		goto avoidrules;
+
+	if (f->mark != DEFAULT_MARK && f->mode != VALUE_MODE_SNAT)
+		sprintf(buf, "%s ; add rule %s %s %s ct mark set 0x%x", buf, print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, f->name, f->mark);
 
 	sprintf(buf, "%s ; add rule %s %s %s", buf, print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, f->name);
 
@@ -548,7 +549,7 @@ static int run_farm_snat(struct nft_ctx *ctx, struct farm *f, int family)
 {
 	char buf[NFTLB_MAX_CMD];
 
-	sprintf(buf, "insert rule %s %s %s ct mark set %s", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, f->name, NFTLB_POSTROUTING_MARK);
+	sprintf(buf, "insert rule %s %s %s ct mark set 0x%x", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, f->name, f->mark | NFTLB_POSTROUTING_MARK);
 	exec_cmd(ctx, buf);
 
 	return EXIT_SUCCESS;

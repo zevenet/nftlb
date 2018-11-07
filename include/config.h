@@ -41,6 +41,7 @@
 #define CONFIG_KEY_SCHED		"scheduler"
 #define CONFIG_KEY_HELPER		"helper"
 #define CONFIG_KEY_LOG			"log"
+#define CONFIG_KEY_MARK			"mark"
 #define CONFIG_KEY_STATE		"state"
 #define CONFIG_KEY_BCKS			"backends"
 #define CONFIG_KEY_WEIGHT		"weight"

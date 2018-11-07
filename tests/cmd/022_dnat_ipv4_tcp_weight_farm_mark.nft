@@ -1,7 +1,7 @@
 table ip nftlb {
 	map tcp-services {
 		type ipv4_addr . inet_service : verdict
-		elements = { 192.168.56.101 . 80 : goto lb01 }
+		elements = { 192.168.0.100 . 80 : goto lb01 }
 	}
 
 	chain prerouting {
@@ -15,6 +15,7 @@ table ip nftlb {
 	}
 
 	chain lb01 {
-		dnat to numgen random mod 7 map { 0-1 : 192.168.0.10, 2 : 192.168.0.11, 3 : 192.168.0.12, 4-5 : 192.168.0.13, 6 : 192.168.0.14 }
+		ct mark set 0x0000dead
+		dnat to numgen random mod 10 map { 0-4 : 192.168.0.10, 5-9 : 192.168.0.11 }
 	}
 }

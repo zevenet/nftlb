@@ -63,6 +63,7 @@ static struct farm * farm_create(char *name)
 	pfarm->scheduler = DEFAULT_SCHED;
 	pfarm->helper = DEFAULT_HELPER;
 	pfarm->log = DEFAULT_LOG;
+	pfarm->mark = DEFAULT_MARK;
 	pfarm->state = DEFAULT_FARM_STATE;
 	pfarm->action = DEFAULT_ACTION;
 
@@ -194,6 +195,27 @@ static int farm_set_netinfo(struct farm *f)
 	return EXIT_SUCCESS;
 }
 
+static int farm_set_mark(struct farm *f, int new_value)
+{
+	int old_value = f->mark;
+
+	syslog(LOG_DEBUG, "%s():%d: farm %s old mark %d new mark %d", __FUNCTION__, __LINE__, f->name, old_value, new_value);
+
+	if (f->mode != VALUE_MODE_DNAT && f->mode != VALUE_MODE_SNAT) {
+		syslog(LOG_ERR, "%s():%d: mark for farm %s not available for the current mode %d", __FUNCTION__, __LINE__, f->name, f->mode);
+		return EXIT_FAILURE;
+	}
+
+	if (new_value & NFTLB_POSTROUTING_MARK) {
+		syslog(LOG_ERR, "%s():%d: mark %x for farm %s conflicts with the POSTROUTING mark %X", __FUNCTION__, __LINE__, f->mark, f->name, NFTLB_POSTROUTING_MARK);
+		return EXIT_FAILURE;
+	}
+
+	f->mark = new_value;
+
+	return EXIT_SUCCESS;
+}
+
 static int farm_set_state(struct farm *f, int new_value)
 {
 	int old_value = f->state;
@@ -272,6 +294,7 @@ static void farm_print(struct farm *f)
 	syslog(LOG_DEBUG,"    [helper] %s", obj_print_helper(f->helper));
 	obj_print_log(f->log, (char *)buf);
 	syslog(LOG_DEBUG,"    [log] %s", buf);
+	syslog(LOG_DEBUG,"    [mark] %x", f->mark);
 	syslog(LOG_DEBUG,"    [state] %s", obj_print_state(f->state));
 	syslog(LOG_DEBUG,"    [priority] %d", f->priority);
 	syslog(LOG_DEBUG,"    *[total_weight] %d", f->total_weight);
@@ -521,6 +544,9 @@ int farm_set_attribute(struct config_pair *c)
 		break;
 	case KEY_LOG:
 		f->log = c->int_value;
+		break;
+	case KEY_MARK:
+		farm_set_mark(f, c->int_value);
 		break;
 	case KEY_STATE:
 		farm_set_state(f, c->int_value);

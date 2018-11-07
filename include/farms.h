@@ -105,6 +105,7 @@ struct farm {
 	int			scheduler;
 	int			helper;
 	int			log;
+	int			mark;
 	int			state;
 	int			priority;
 	int			total_weight;

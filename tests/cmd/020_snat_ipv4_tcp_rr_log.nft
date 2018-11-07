@@ -11,11 +11,11 @@ table ip nftlb {
 
 	chain postrouting {
 		type nat hook postrouting priority srcnat; policy accept;
-		ct mark 0x00000100 masquerade
+		ct mark 0x80000000/1 masquerade
 	}
 
 	chain lb01 {
-		ct mark set 0x00000100
+		ct mark set 0x80000000
 		log prefix "INPUT-lb01 "
 		dnat to numgen inc mod 10 map { 0-4 : 192.168.0.10, 5-9 : 192.168.0.11 }
 	}

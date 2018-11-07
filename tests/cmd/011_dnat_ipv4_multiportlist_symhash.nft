@@ -26,7 +26,7 @@ table ip nftlb {
 
 	chain postrouting {
 		type nat hook postrouting priority srcnat; policy accept;
-		ct mark 0x00000100 masquerade
+		ct mark 0x80000000/1 masquerade
 	}
 
 	chain lb01 {

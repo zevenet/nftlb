@@ -35,6 +35,7 @@ struct backend {
 	char			*ports;
 	int			weight;
 	int			priority;
+	int			mark;
 	int			state;
 };
 
