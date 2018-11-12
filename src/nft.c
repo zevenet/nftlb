@@ -464,7 +464,7 @@ static int run_farm_rules_gen_sched(char *buf, struct farm *f, int family)
 	return EXIT_SUCCESS;
 }
 
-static int run_farm_rules_gen_bck_map(char *buf, struct farm *f, enum map_modes key_mode, enum map_modes data_mode)
+static int run_farm_rules_gen_bck_map(char *buf, struct farm *f, enum map_modes key_mode, enum map_modes data_mode, int offset)
 {
 	char key_str[255] = { 0 };
 	char data_str[255] = { 0 };
@@ -484,7 +484,7 @@ static int run_farm_rules_gen_bck_map(char *buf, struct farm *f, enum map_modes 
 
 		switch (key_mode) {
 		case BCK_MAP_MARK:
-			sprintf(key_str, "0x%x", b->mark);
+			sprintf(key_str, "0x%x", b->mark | offset);
 			break;
 		case BCK_MAP_WEIGHT:
 			new = last + b->weight - 1;
@@ -499,7 +499,7 @@ static int run_farm_rules_gen_bck_map(char *buf, struct farm *f, enum map_modes 
 
 		switch (data_mode) {
 		case BCK_MAP_MARK:
-			sprintf(data_str, "0x%x", b->mark);
+			sprintf(data_str, "0x%x", b->mark | offset);
 			break;
 		case BCK_MAP_ETHADDR:
 			sprintf(data_str, "%s", b->ethaddr);
@@ -589,6 +589,7 @@ static int run_farm_rules(struct nft_ctx *ctx, struct farm *f, int family, int a
 	char buf[NFTLB_MAX_CMD] = { 0 };
 	char buf2[NFTLB_MAX_CMD] = { 0 };
 	int out = EXIT_SUCCESS;
+	int mark;
 
 	run_farm_rules_gen_chains(buf, f, f->name, family, action);
 
@@ -600,18 +601,31 @@ static int run_farm_rules(struct nft_ctx *ctx, struct farm *f, int family, int a
 	if (f->bcks_available == 0)
 		goto avoidrules;
 
+	/* backends rule */
+	sprintf(buf, "%s ; add rule %s %s %s", buf, print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, f->name);
+
 	/* helpers */
 	if (f->helper && (f->mode == VALUE_MODE_SNAT || f->mode == VALUE_MODE_DNAT)) {
+		sprintf(buf, "%s ct helper set %s", buf, obj_print_helper(f->helper));
 		sprintf(buf2, "%s ; add ct helper %s %s %s { type \"%s\" protocol %s ; }", buf2, print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, obj_print_helper(f->helper), obj_print_helper(f->helper), obj_print_proto(f->protocol));
 		exec_cmd(ctx, buf2);
 	}
 
-	/* backends rule */
-	sprintf(buf, "%s ; add rule %s %s %s", buf, print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, f->name);
+	/* set marks */
+	mark = f->mark;
+	if (f->mode == VALUE_MODE_SNAT)
+		mark |= NFTLB_POSTROUTING_MARK;
 
-	/* mark per service */
-	if (f->mark != DEFAULT_MARK && f->mode != VALUE_MODE_SNAT)
-		sprintf(buf, "%s ct mark set 0x%x", buf, f->mark);
+	if (mark != DEFAULT_MARK || f->bcks_are_marked)
+		sprintf(buf, "%s ct mark set", buf);
+
+	if (f->bcks_are_marked) {
+		if (run_farm_rules_gen_sched(buf, f, family) == EXIT_FAILURE)
+			return EXIT_FAILURE;
+		run_farm_rules_gen_bck_map(buf, f, BCK_MAP_WEIGHT, BCK_MAP_MARK, mark);
+	} else if (mark != DEFAULT_MARK) {
+		sprintf(buf, "%s 0x%x", buf, mark);
+	}
 
 	switch (f->mode) {
 	case VALUE_MODE_DSR:
@@ -621,18 +635,22 @@ static int run_farm_rules(struct nft_ctx *ctx, struct farm *f, int family, int a
 		sprintf(buf, "%s %s daddr set", buf, print_nft_family(family));
 		break;
 	default:
-		if (f->helper)
-			sprintf(buf, "%s ct helper set %s", buf, obj_print_helper(f->helper));
 		sprintf(buf, "%s dnat to", buf);
 	}
 
-	if (run_farm_rules_gen_sched(buf, f, family) == EXIT_FAILURE)
+	if (!f->bcks_are_marked && run_farm_rules_gen_sched(buf, f, family) == EXIT_FAILURE)
 		return EXIT_FAILURE;
 
 	if (f->mode == VALUE_MODE_DSR)
-		out = run_farm_rules_gen_bck_map(buf, f, BCK_MAP_WEIGHT, BCK_MAP_ETHADDR);
-	else
-		out = run_farm_rules_gen_bck_map(buf, f, BCK_MAP_WEIGHT, BCK_MAP_IPADDR);
+		out = run_farm_rules_gen_bck_map(buf, f, BCK_MAP_WEIGHT, BCK_MAP_ETHADDR, 0);
+	else {
+		if(!f->bcks_are_marked)
+			out = run_farm_rules_gen_bck_map(buf, f, BCK_MAP_WEIGHT, BCK_MAP_IPADDR, 0);
+		else {
+			sprintf(buf, "%s ct mark", buf);
+			out = run_farm_rules_gen_bck_map(buf, f, BCK_MAP_MARK, BCK_MAP_IPADDR, mark);
+		}
+	}
 
 	if (out == EXIT_FAILURE)
 		return EXIT_FAILURE;
@@ -658,11 +676,6 @@ avoidrules:
 
 static int run_farm_snat(struct nft_ctx *ctx, struct farm *f, int family)
 {
-	char buf[NFTLB_MAX_CMD];
-
-	sprintf(buf, "insert rule %s %s %s ct mark set 0x%x", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, f->name, f->mark | NFTLB_POSTROUTING_MARK);
-	exec_cmd(ctx, buf);
-
 	return EXIT_SUCCESS;
 }
 

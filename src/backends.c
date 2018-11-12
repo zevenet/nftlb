@@ -207,12 +207,34 @@ static int backend_set_priority(struct backend *b, int new_value)
 	return EXIT_SUCCESS;
 }
 
+static int backend_s_set_marked(struct farm *f)
+{
+	struct backend *b;
+
+	syslog(LOG_DEBUG, "%s():%d: finding marked backends for %s", __FUNCTION__, __LINE__, f->name);
+
+	list_for_each_entry(b, &f->backends, list) {
+		if (b->mark != DEFAULT_MARK) {
+			f->bcks_are_marked = 1;
+			return 1;
+		}
+	}
+
+	f->bcks_are_marked = 0;
+	return 0;
+}
+
 static int backend_set_mark(struct backend *b, int new_value)
 {
 	int old_value = b->mark;
 
 	syslog(LOG_DEBUG, "%s():%d: current value is %d, but new value will be %d",
 	       __FUNCTION__, __LINE__, old_value, new_value);
+
+	if (b->mark != DEFAULT_MARK)
+		b->parent->bcks_are_marked = 1;
+	else
+		backend_s_set_marked(b->parent);
 
 	b->mark = new_value;
 

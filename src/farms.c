@@ -73,6 +73,7 @@ static struct farm * farm_create(char *name)
 	pfarm->priority = DEFAULT_PRIORITY;
 	pfarm->total_bcks = 0;
 	pfarm->bcks_available = 0;
+	pfarm->bcks_are_marked = 0;
 
 	return pfarm;
 }
@@ -300,6 +301,7 @@ static void farm_print(struct farm *f)
 	syslog(LOG_DEBUG,"    *[total_weight] %d", f->total_weight);
 	syslog(LOG_DEBUG,"    *[total_bcks] %d", f->total_bcks);
 	syslog(LOG_DEBUG,"    *[bcks_available] %d", f->bcks_available);
+	syslog(LOG_DEBUG,"    *[bcks_are_marked] %d", f->bcks_are_marked);
 	syslog(LOG_DEBUG,"    *[action] %d", f->action);
 
 	if (f->total_bcks != 0)

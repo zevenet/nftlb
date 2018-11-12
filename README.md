@@ -76,6 +76,7 @@ Where every farm object has the following attributes:
 	"scheduler": "<weight | rr | hash | symhash>",	*Scheduler to be used (round robin by default)*
 	"helper": "<none | amanda | ftp | h323 | irc | netbios-ns | pptp | sane | sip | snmp | tftp>",	*L7 helper to be used (none by default)*
 	"log": "<none | input | forward | output>",	*Enable logging (none by default)*
+	"mark": "<hexadecimal mark>",			*Set mark mask for the farm (none by default)*
 	"priority": "<number>",				*Priority availability for backends > 0 (1 by default)*
 	"state": "<up | down | off>",			*Set the status of the virtual service (up by default)*
 	"backends" : [					*List of backends*
@@ -93,6 +94,7 @@ Where every backend object has the following attributes:
 	"ip-addr": "<ip address>",			*IP address for the backend (required, except for DSR)*
 	"weight": "<number>",				*Weight of the backend (1 by default)*
 	"priority": "<number>",				*Priority availability for the backend > 0 (1 by default)*
+	"mark": "<hexadecimal mark>",			*Set mark mask for the backend (none by default)*
 	"state": "<up | down | off>",			*Set the status of the backend (up by default)*
 }
 ```

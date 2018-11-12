@@ -111,6 +111,7 @@ struct farm {
 	int			total_weight;
 	int			total_bcks;
 	int			bcks_available;
+	int			bcks_are_marked;
 	struct list_head	backends;
 };
 
