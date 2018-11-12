@@ -20,7 +20,13 @@ for file in `ls ${ARG}`; do
 	fi
 
 	nftfile=`echo ${file} | awk -F'.' '{ print $1 }'`
-	diff cmd/${nftfile}.nft <($NFTBIN list ruleset)
+
+	if [ ! -f "cmd/$nftfile.nft" ]; then
+		echo "Dump file doesn't exist"
+		continue;
+	fi
+
+	diff -Nru "cmd/${nftfile}.nft" <($NFTBIN list ruleset)
 	statusnft=$?
 
 	if [ $statusnft -eq 0 ]; then
