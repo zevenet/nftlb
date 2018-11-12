@@ -17,11 +17,11 @@ table netdev nftlb {
 		ip daddr . tcp dport vmap @tcp-services
 	}
 
-	chain lb01-back {
-		ip saddr set 192.168.56.101 fwd to "lo"
-	}
-
 	chain lb01 {
 		ip daddr set numgen random mod 7 map { 0-1 : 192.168.0.10, 2 : 192.168.0.11, 3 : 192.168.0.12, 4-5 : 192.168.0.13, 6 : 192.168.0.14 } fwd to "lo"
+	}
+
+	chain lb01-back {
+		ip saddr set 192.168.56.101 fwd to "lo"
 	}
 }

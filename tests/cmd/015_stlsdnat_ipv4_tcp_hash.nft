@@ -15,11 +15,11 @@ table netdev nftlb {
 		ip daddr . tcp dport vmap @tcp-services
 	}
 
-	chain lb01-back {
-		ip saddr set 192.168.0.100 fwd to "lo"
-	}
-
 	chain lb01 {
 		ip daddr set jhash ip saddr mod 10 map { 0-4 : 192.168.0.10, 5-9 : 192.168.0.11 } fwd to "lo"
+	}
+
+	chain lb01-back {
+		ip saddr set 192.168.0.100 fwd to "lo"
 	}
 }

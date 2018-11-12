@@ -20,6 +20,6 @@ table ip6 nftlb {
 	}
 
 	chain lb01 {
-		ct helper "tftp" dnat to numgen inc mod 10 map { 0-4 : 2001:db8:0:1:1:1:1:2, 5-9 : 2001:db8:0:1:1:1:1:3 }
+		ct helper set "tftp" dnat to numgen inc mod 10 map { 0-4 : 2001:db8:0:1:1:1:1:2, 5-9 : 2001:db8:0:1:1:1:1:3 }
 	}
 }

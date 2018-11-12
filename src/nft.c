@@ -80,6 +80,13 @@
 #define NFTLB_IPV6_SCTP_ACTIVE		(1 << 8)
 #define NFTLB_IPV6_IP_ACTIVE		(1 << 9)
 
+enum map_modes {
+	BCK_MAP_IPADDR,
+	BCK_MAP_ETHADDR,
+	BCK_MAP_WEIGHT,
+	BCK_MAP_MARK,
+	BCK_MAP_IPADDR_PORT
+};
 
 struct if_base_rule {
 	char			*ifname;
@@ -166,7 +173,7 @@ static char * print_nft_protocol(int protocol)
 	}
 }
 
-static void get_ports(const char *ptr, int *first, int *last)
+static void get_range_ports(const char *ptr, int *first, int *last)
 {
 	sscanf(ptr, "%d-%d[^,]", first, last);
 }
@@ -413,43 +420,198 @@ static int run_base_nat(struct nft_ctx *ctx, struct farm *f)
 	return EXIT_SUCCESS;
 }
 
-static int run_farm_rules(struct nft_ctx *ctx, struct farm *f, int family,
-			  int action)
+static void run_farm_rules_gen_chains(char *buf, struct farm *f, char *chain, int family, int action)
 {
-	char buf[NFTLB_MAX_CMD] = { 0 };
-	char buf2[NFTLB_MAX_CMD] = { 0 };
+	switch (action) {
+	case ACTION_RELOAD:
+		sprintf(buf, "%s ; flush chain %s %s %s", buf, print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain);
+		break;
+	case ACTION_START:
+		sprintf(buf, "%s ; add chain %s %s %s", buf, print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain);
+		break;
+	case ACTION_DELETE:
+		sprintf(buf, "%s ; flush chain %s %s %s", buf, print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain);
+		sprintf(buf, "%s ; delete chain %s %s %s", buf, print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain);
+		break;
+	default:
+		break;
+	}
+}
+
+static int run_farm_rules_gen_sched(char *buf, struct farm *f, int family)
+{
+	switch (f->scheduler) {
+	case VALUE_SCHED_RR:
+		sprintf(buf, "%s numgen inc mod %d", buf, f->total_weight);
+		break;
+	case VALUE_SCHED_WEIGHT:
+		sprintf(buf, "%s numgen random mod %d", buf, f->total_weight);
+		break;
+	case VALUE_SCHED_HASH:
+		if ((f->protocol != VALUE_PROTO_TCP || f->protocol == VALUE_PROTO_SCTP) &&
+		    (f->mode == VALUE_MODE_DSR || f->mode == VALUE_MODE_STLSDNAT))
+			sprintf(buf, "%s jhash %s saddr . %s sport mod %d", buf, print_nft_family(family), print_nft_protocol(f->protocol), f->total_weight);
+		else
+			sprintf(buf, "%s jhash %s saddr mod %d", buf, print_nft_family(family), f->total_weight);
+		break;
+	case VALUE_SCHED_SYMHASH:
+		sprintf(buf, "%s symhash mod %d", buf, f->total_weight);
+		break;
+	default:
+		return EXIT_FAILURE;
+	}
+
+	return EXIT_SUCCESS;
+}
+
+static int run_farm_rules_gen_bck_map(char *buf, struct farm *f, enum map_modes key_mode, enum map_modes data_mode)
+{
+	char key_str[255] = { 0 };
+	char data_str[255] = { 0 };
 	struct backend *b;
-	char *ptr;
 	int i = 0;
 	int last = 0;
 	int new;
 
-	switch (f->mode) {
-	case VALUE_MODE_STLSDNAT:
-		if (action == ACTION_RELOAD)
-			sprintf(buf, "%s ; flush chain %s %s %s-back", buf, print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, f->name);
-		else
-			sprintf(buf, "%s ; add chain %s %s %s-back", buf, print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, f->name);
+	sprintf(buf, "%s map {", buf);
 
-		sprintf(buf2, "%s ; add rule %s %s %s-back %s saddr set %s fwd to %s", buf2, print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, f->name, print_nft_family(family), f->virtaddr, f->iface);
-		/* fallthrough */
-	default:
-		if (action == ACTION_RELOAD)
-			sprintf(buf, "%s ; flush chain %s %s %s", buf, print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, f->name);
-		else
-			sprintf(buf, "%s ; add chain %s %s %s", buf, print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, f->name);
+	list_for_each_entry(b, &f->backends, list) {
+		if(!backend_is_available(b))
+			continue;
+
+		if (i != 0)
+			sprintf(buf, "%s,", buf);
+
+		switch (key_mode) {
+		case BCK_MAP_MARK:
+			sprintf(key_str, "0x%x", b->mark);
+			break;
+		case BCK_MAP_WEIGHT:
+			new = last + b->weight - 1;
+			sprintf(key_str, "%d", last);
+			if (new != last)
+				sprintf(key_str, "%s-%d", key_str, new);
+			last = new + 1;
+			break;
+		default:
+			break;
+		}
+
+		switch (data_mode) {
+		case BCK_MAP_MARK:
+			sprintf(data_str, "0x%x", b->mark);
+			break;
+		case BCK_MAP_ETHADDR:
+			sprintf(data_str, "%s", b->ethaddr);
+			break;
+		case BCK_MAP_IPADDR:
+			sprintf(data_str, "%s", b->ipaddr);
+			break;
+		default:
+			break;
+		}
+
+		sprintf(buf, "%s %s: %s", buf, key_str, data_str);
+		i++;
 	}
 
+	sprintf(buf, "%s }", buf);
+
+	if (i == 0)
+		return EXIT_FAILURE;
+
+	return EXIT_SUCCESS;
+}
+
+static int get_array_ports(int *port_list, struct farm *f)
+{
+	int index = 0;
+	char *ptr;
+	int i, new;
+	int last = 0;
+
+	ptr = f->virtports;
+	while (ptr != NULL && *ptr != '\0') {
+		last = new = 0;
+		get_range_ports(ptr, &new, &last);
+		if (last == 0)
+			last = new;
+		if (new > last)
+			goto next;
+		for (i = new; i <= last; i++, index++)
+			port_list[index] = i;
+next:
+		ptr = strchr(ptr, ',');
+		if (ptr != NULL)
+			ptr++;
+	}
+
+	return index;
+}
+
+static int run_farm_rules_gen_srv(char *buf, struct farm *f, int family, int action, enum map_modes key_mode)
+{
+	int port_list[65535] = { 0 };
+	char action_str[255] = { 0 };
+	char data_str[255] = { 0 };
+	int nports;
+	int i;
+
+	switch (action) {
+	case ACTION_DELETE:
+		sprintf(action_str, "delete");
+		break;
+	default:
+		sprintf(action_str, "add");
+		sprintf(data_str, ": goto %s ", f->name);
+		break;
+	}
+
+	switch (key_mode) {
+	case BCK_MAP_IPADDR:
+		sprintf(buf, "%s ; %s element %s %s %s { %s %s}", buf, action_str, print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, print_nft_service(family, f->protocol, KEY_IFACE), f->virtaddr, data_str);
+		break;
+	case BCK_MAP_IPADDR_PORT:
+		nports = get_array_ports(port_list, f);
+		for (i = 0; i < nports; i++)
+			sprintf(buf, "%s ; %s element %s %s %s { %s . %d %s}", buf, action_str, print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, print_nft_service(family, f->protocol, KEY_IFACE), f->virtaddr, port_list[i], data_str);
+		break;
+	default:
+		return EXIT_FAILURE;
+		break;
+	}
+
+	return EXIT_SUCCESS;
+}
+
+static int run_farm_rules(struct nft_ctx *ctx, struct farm *f, int family, int action)
+{
+	char buf[NFTLB_MAX_CMD] = { 0 };
+	char buf2[NFTLB_MAX_CMD] = { 0 };
+	int out = EXIT_SUCCESS;
+
+	run_farm_rules_gen_chains(buf, f, f->name, family, action);
+
+	/* input log */
 	if (f->log & VALUE_LOG_INPUT)
 		sprintf(buf, "%s ; add rule %s %s %s log prefix \"INPUT-%s \"", buf, print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, f->name, f->name);
 
+	/* no bck rules */
 	if (f->bcks_available == 0)
 		goto avoidrules;
 
-	if (f->mark != DEFAULT_MARK && f->mode != VALUE_MODE_SNAT)
-		sprintf(buf, "%s ; add rule %s %s %s ct mark set 0x%x", buf, print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, f->name, f->mark);
+	/* helpers */
+	if (f->helper && (f->mode == VALUE_MODE_SNAT || f->mode == VALUE_MODE_DNAT)) {
+		sprintf(buf2, "%s ; add ct helper %s %s %s { type \"%s\" protocol %s ; }", buf2, print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, obj_print_helper(f->helper), obj_print_helper(f->helper), obj_print_proto(f->protocol));
+		exec_cmd(ctx, buf2);
+	}
 
+	/* backends rule */
 	sprintf(buf, "%s ; add rule %s %s %s", buf, print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, f->name);
+
+	/* mark per service */
+	if (f->mark != DEFAULT_MARK && f->mode != VALUE_MODE_SNAT)
+		sprintf(buf, "%s ct mark set 0x%x", buf, f->mark);
 
 	switch (f->mode) {
 	case VALUE_MODE_DSR:
@@ -459,55 +621,21 @@ static int run_farm_rules(struct nft_ctx *ctx, struct farm *f, int family,
 		sprintf(buf, "%s %s daddr set", buf, print_nft_family(family));
 		break;
 	default:
-		if (f->helper) {
-			sprintf(buf2, "%s ; add ct helper %s %s %s { type \"%s\" protocol %s ; }", buf2, print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, obj_print_helper(f->helper), obj_print_helper(f->helper), obj_print_proto(f->protocol));
-			sprintf(buf, "%s ct helper %s", buf, obj_print_helper(f->helper));
-		}
+		if (f->helper)
+			sprintf(buf, "%s ct helper set %s", buf, obj_print_helper(f->helper));
 		sprintf(buf, "%s dnat to", buf);
 	}
 
-	switch (f->scheduler) {
-	case VALUE_SCHED_RR:
-		sprintf(buf, "%s numgen inc mod %d map {", buf, f->total_weight);
-		break;
-	case VALUE_SCHED_WEIGHT:
-		sprintf(buf, "%s numgen random mod %d map {", buf, f->total_weight);
-		break;
-	case VALUE_SCHED_HASH:
-		if ((f->protocol != VALUE_PROTO_TCP || f->protocol == VALUE_PROTO_SCTP) &&
-		    (f->mode == VALUE_MODE_DSR || f->mode == VALUE_MODE_STLSDNAT))
-			sprintf(buf, "%s jhash %s saddr . %s sport mod %d map {", buf, print_nft_family(family), print_nft_protocol(f->protocol), f->total_weight);
-		else
-			sprintf(buf, "%s jhash %s saddr mod %d map {", buf, print_nft_family(family), f->total_weight);
-		break;
-	case VALUE_SCHED_SYMHASH:
-		sprintf(buf, "%s symhash mod %d map {", buf, f->total_weight);
-		break;
-	default:
+	if (run_farm_rules_gen_sched(buf, f, family) == EXIT_FAILURE)
 		return EXIT_FAILURE;
-	}
 
-	list_for_each_entry(b, &f->backends, list) {
-		if(!backend_is_available(b))
-			continue;
+	if (f->mode == VALUE_MODE_DSR)
+		out = run_farm_rules_gen_bck_map(buf, f, BCK_MAP_WEIGHT, BCK_MAP_ETHADDR);
+	else
+		out = run_farm_rules_gen_bck_map(buf, f, BCK_MAP_WEIGHT, BCK_MAP_IPADDR);
 
-		if (i != 0)
-			sprintf(buf, "%s,", buf);
-
-		new = last + b->weight - 1;
-		if (new == last)
-			sprintf(buf, "%s %d: %s", buf, new, (f->mode == VALUE_MODE_DSR) ? b->ethaddr : b->ipaddr);
-		else
-			sprintf(buf, "%s %d-%d: %s", buf, last, new, (f->mode == VALUE_MODE_DSR) ? b->ethaddr : b->ipaddr);
-
-		if (f->mode == VALUE_MODE_STLSDNAT)
-			sprintf(buf2, "%s ; add element %s %s %s { %s : goto %s-back }", buf2, print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, print_nft_service(family, f->protocol, KEY_OFACE), b->ipaddr, f->name);
-
-		last = new + 1;
-		i++;
-	}
-
-	sprintf(buf, "%s }", buf);
+	if (out == EXIT_FAILURE)
+		return EXIT_FAILURE;
 
 	if (f->mode == VALUE_MODE_DSR || f->mode == VALUE_MODE_STLSDNAT)
 		sprintf(buf, "%s fwd to %s", buf, f->oface);
@@ -515,32 +643,15 @@ static int run_farm_rules(struct nft_ctx *ctx, struct farm *f, int family,
 avoidrules:
 	if (action == ACTION_RELOAD) {
 		exec_cmd(ctx, buf);
-		exec_cmd(ctx, buf2);
 		return EXIT_SUCCESS;
 	}
 
-	if (f->protocol == VALUE_PROTO_ALL) {
-		sprintf(buf, "%s ; add element %s %s %s { %s : goto %s }", buf, print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, print_nft_service(family, f->protocol, KEY_IFACE), f->virtaddr, f->name);
-	} else {
-		ptr = f->virtports;
-		while (ptr != NULL && *ptr != '\0') {
-			last = new = 0;
-			get_ports(ptr, &new, &last);
-			if (last == 0)
-				last = new;
-			if (new > last)
-				goto next;
-			for (i = new; i <= last; i++)
-				sprintf(buf, "%s ; add element %s %s %s { %s . %d : goto %s }", buf, print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, print_nft_service(family, f->protocol, KEY_IFACE), f->virtaddr, i, f->name);
-next:
-			ptr = strchr(ptr, ',');
-			if (ptr != NULL)
-				ptr++;
-		}
-	}
+	if (f->protocol == VALUE_PROTO_ALL)
+		run_farm_rules_gen_srv(buf, f, family, action, BCK_MAP_IPADDR);
+	else
+		run_farm_rules_gen_srv(buf, f, family, action, BCK_MAP_IPADDR_PORT);
 
 	exec_cmd(ctx, buf);
-	exec_cmd(ctx, buf2);
 
 	return EXIT_SUCCESS;
 }
@@ -555,6 +666,27 @@ static int run_farm_snat(struct nft_ctx *ctx, struct farm *f, int family)
 	return EXIT_SUCCESS;
 }
 
+static int run_farm_stlsnat(struct nft_ctx *ctx, struct farm *f, int family, int action)
+{
+	char buf[NFTLB_MAX_CMD] = { 0 };
+	char name[255] = { 0 };
+	struct backend *b;
+
+	sprintf(name, "%s-back", f->name);
+	run_farm_rules_gen_chains(buf, f, name, family, action);
+	sprintf(buf, "%s ; add rule %s %s %s %s saddr set %s fwd to %s", buf, print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, name, print_nft_family(family), f->virtaddr, f->iface);
+
+	list_for_each_entry(b, &f->backends, list) {
+		if(!backend_is_available(b))
+			continue;
+
+		sprintf(buf, "%s ; add element %s %s %s { %s : goto %s }", buf, print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, print_nft_service(family, f->protocol, KEY_OFACE), b->ipaddr, name);
+	}
+
+	exec_cmd(ctx, buf);
+
+	return EXIT_SUCCESS;
+}
 
 static int run_farm(struct nft_ctx *ctx, struct farm *f, int action)
 {
@@ -585,6 +717,15 @@ static int run_farm(struct nft_ctx *ctx, struct farm *f, int action)
 		}
 	}
 
+	if (f->mode == VALUE_MODE_STLSDNAT) {
+		if ((f->family == VALUE_FAMILY_IPV4) || (f->family == VALUE_FAMILY_INET)) {
+			run_farm_stlsnat(ctx, f, VALUE_FAMILY_IPV4, action);
+		}
+		if ((f->family == VALUE_FAMILY_IPV6) || (f->family == VALUE_FAMILY_INET)) {
+			run_farm_stlsnat(ctx, f, VALUE_FAMILY_IPV6, action);
+		}
+	}
+
 	return ret;
 }
 
@@ -592,31 +733,13 @@ static int del_farm_rules(struct nft_ctx *ctx, struct farm *f, int family)
 {
 	char buf[NFTLB_MAX_CMD] = { 0 };
 	int ret = EXIT_SUCCESS;
-	int new, last, i;
-	char *ptr;
 
-	if (f->protocol == VALUE_PROTO_ALL) {
-		sprintf(buf, "%s ; delete element %s %s %s { %s }", buf, print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, print_nft_service(family, f->protocol, KEY_IFACE), f->virtaddr);
-	 } else {
-		ptr = f->virtports;
-		while (ptr != NULL && *ptr != '\0') {
-			last = new = 0;
-			get_ports(ptr, &new, &last);
-			if (last == 0)
-				last = new;
-			if (new > last)
-				goto next;
-			for (i = new; i <= last; i++)
-				sprintf(buf, "%s ; delete element %s %s %s { %s . %d }", buf, print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, print_nft_service(family, f->protocol, KEY_IFACE), f->virtaddr, i);
-next:
-			ptr = strchr(ptr, ',');
-			if (ptr != NULL)
-				ptr++;
-		}
-	}
+	if (f->protocol == VALUE_PROTO_ALL)
+		run_farm_rules_gen_srv(buf, f, family, ACTION_DELETE, BCK_MAP_IPADDR);
+	else
+		run_farm_rules_gen_srv(buf, f, family, ACTION_DELETE, BCK_MAP_IPADDR_PORT);
 
-	sprintf(buf, "%s ; flush chain %s %s %s", buf, print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, f->name);
-	sprintf(buf, "%s ; delete chain %s %s %s", buf, print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, f->name);
+	run_farm_rules_gen_chains(buf, f, f->name, family, ACTION_DELETE);
 
 	exec_cmd(ctx, buf);
 
