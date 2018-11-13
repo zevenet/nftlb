@@ -67,6 +67,13 @@ static const struct option options[] = {
 	{ NULL },
 };
 
+static void nftlb_sighandler(int signo)
+{
+	syslog(LOG_INFO, "shuting down %s, bye", PACKAGE);
+	server_fini();
+	exit(EXIT_SUCCESS);
+}
+
 int main(int argc, char *argv[])
 {
 	int		mode = NFTLB_SERVER_MODE;
@@ -107,7 +114,10 @@ int main(int argc, char *argv[])
 		}
 	}
 
-	setlogmask(LOG_UPTO(loglevel));
+	if (signal(SIGINT, nftlb_sighandler) == SIG_ERR ||
+	    signal(SIGTERM, nftlb_sighandler) == SIG_ERR ||
+	    signal(SIGPIPE, SIG_IGN) == SIG_ERR)
+		return EXIT_FAILURE;
 
 	objects_init();
 

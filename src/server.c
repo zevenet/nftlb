@@ -84,6 +84,7 @@ struct nftlb_server {
 	int			family;
 	char			*host;
 	int			port;
+	int			sd;
 };
 
 struct nftlb_server nftserver = {
@@ -348,11 +349,11 @@ static void accept_cb(struct ev_loop *loop, struct ev_io *watcher, int revents)
 
 int server_init(void)
 {
-	int sd;
-	struct sockaddr_storage addr;
+	struct sockaddr_in addr = {};
 	socklen_t addrlen = sizeof(addr);
 	struct ev_loop *st_ev_loop = get_loop();
 	struct ev_io *st_ev_accept = events_create_srv();
+	int server_sd;
 	int yes = 1;
 
 	if (!nftserver.key)
@@ -360,37 +361,43 @@ int server_init(void)
 
 	printf("Key: %s\n", nftserver.key);
 
-	if ( (sd = socket(nftserver.family, SOCK_STREAM, 0)) < 0 ) {
+	server_sd = socket(nftserver.family, SOCK_STREAM, 0);
+	if (server_sd < 0) {
 		fprintf(stderr, "Server socket error\n");
 		syslog(LOG_ERR, "Server socket error");
 		return EXIT_FAILURE;
 	}
-	setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int));
+	setsockopt(server_sd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int));
 
-	bzero(&addr, addrlen);
-	addr.ss_family = nftserver.family;
-	((struct sockaddr_in *) &addr)->sin_port = htons(nftserver.port);
+	addr.sin_family = nftserver.family;
+	addr.sin_port = htons(nftserver.port);
 	if (nftserver.host == NULL)
-		((struct sockaddr_in *) &addr)->sin_addr.s_addr = SRV_HOST_DEF;
+		addr.sin_addr.s_addr = SRV_HOST_DEF;
 	else
-		inet_aton(nftserver.host, &((struct sockaddr_in *) &addr)->sin_addr);
+		inet_aton(nftserver.host, &addr.sin_addr);
 
-	if (bind(sd, (struct sockaddr *) &addr, addrlen) != 0) {
+	if (bind(server_sd, (struct sockaddr *) &addr, addrlen) != 0) {
 		fprintf(stderr, "Server bind error\n");
 		syslog(LOG_ERR, "Server bind error");
 		return EXIT_FAILURE;
 	}
 
-	if (listen(sd, 2) < 0) {
+	if (listen(server_sd, 2) < 0) {
 		fprintf(stderr, "Server listen error\n");
 		syslog(LOG_ERR, "Server listen error");
 		return EXIT_FAILURE;
 	}
+	nftserver.sd = server_sd;
 
-	ev_io_init(st_ev_accept, accept_cb, sd, EV_READ);
+	ev_io_init(st_ev_accept, accept_cb, server_sd, EV_READ);
 	ev_io_start(st_ev_loop, st_ev_accept);
 
 	return EXIT_SUCCESS;
+}
+
+void server_fini(void)
+{
+	close(nftserver.sd);
 }
 
 void server_set_host(char *host)
