@@ -244,10 +244,27 @@ static int send_response(char **buf, int action, char *uri, char *content)
 	}
 }
 
-static void read_cb(struct ev_loop *loop, struct ev_io *watcher, int revents)
+/* If client doesn't send us anything in 30 seconds, close connection. */
+#define NFTLB_CLIENT_TIMEOUT	30
+
+struct nftlb_client {
+	struct ev_io		io;
+	struct ev_timer		timer;
+	struct sockaddr_in	addr;
+};
+
+static void nftlb_client_release(struct ev_loop *loop, struct nftlb_client *cli)
+{
+	ev_io_stop(loop, &cli->io);
+	close(cli->io.fd);
+	free(cli);
+}
+
+static void nftlb_read_cb(struct ev_loop *loop, struct ev_io *io, int revents)
 {
 	char buffer[SRV_MAX_BUF] = {0};
 	char resheader[SRV_MAX_HEADER];
+	struct nftlb_client *cli;
 	char *buf_res = NULL;
 	char *uri = (char *)malloc(SRV_MAX_IDENT);
 	char *content;
@@ -256,34 +273,35 @@ static void read_cb(struct ev_loop *loop, struct ev_io *watcher, int revents)
 	int bufsize = 0;
 	int code;
 
-	if(EV_ERROR & revents) {
+	if (EV_ERROR & revents) {
 		syslog(LOG_ERR, "Server got invalid event from client read");
 		free(uri);
 		return;
 	}
+	cli = container_of(io, struct nftlb_client, io);
 
-	size = recv(watcher->fd, buffer, SRV_MAX_BUF, 0);
-
-	if(size < 0) {
-		syslog(LOG_ERR, "Server read error from client");
+	size = recv(io->fd, buffer, SRV_MAX_BUF, 0);
+	if (size < 0) {
 		free(uri);
 		return;
 	}
-
-	if(size == 0)
+	if (size == 0) {
+		syslog(LOG_DEBUG, "connection closed by client %s:%hu\n",
+		       inet_ntoa(cli->addr.sin_addr), ntohs(cli->addr.sin_port));
 		goto end;
+	}
 
 	code = get_request(buffer, &action, &uri, &content);
 	if (code < HTTP_MIN_CONTINUE) {
 		sprintf(resheader, "%s%s%d%s%s", ws_str_responses[code], HTTP_HEADER_CONTENTLEN, 0, HTTP_LINE_END, HTTP_LINE_END);
-		send(watcher->fd, resheader, strlen(resheader), 0);
+		send(io->fd, resheader, strlen(resheader), 0);
 		goto end;
 	}
 
 	code = send_response(&buf_res, action, uri, content);
 	if (code < HTTP_MIN_CONTINUE) {
 		sprintf(resheader, "%s%s%d%s%s", ws_str_responses[code], HTTP_HEADER_CONTENTLEN, 0, HTTP_LINE_END, HTTP_LINE_END);
-		send(watcher->fd, resheader, strlen(resheader), 0);
+		send(io->fd, resheader, strlen(resheader), 0);
 		goto end;
 	}
 
@@ -293,58 +311,72 @@ static void read_cb(struct ev_loop *loop, struct ev_io *watcher, int revents)
 	sprintf(resheader, "%s", ws_str_responses[code]);
 	sprintf(resheader, "%s%s%d%s%s", resheader,
 		HTTP_HEADER_CONTENTLEN, bufsize, HTTP_LINE_END, HTTP_LINE_END);
-	send(watcher->fd, resheader, strlen(resheader), 0);
+	send(io->fd, resheader, strlen(resheader), 0);
 
 	if (buf_res != NULL)
-		send(watcher->fd, buf_res, bufsize, 0);
+		send(io->fd, buf_res, bufsize, 0);
 
+	syslog(LOG_DEBUG, "connection closed by server %s:%hu\n",
+	       inet_ntoa(cli->addr.sin_addr), ntohs(cli->addr.sin_port));
 end:
 	bzero(buffer, size);
 
 	if (buf_res != NULL)
 		free(buf_res);
 
-	ev_io_stop(loop, watcher);
-
-	if (watcher != NULL)
-		free(watcher);
+	ev_timer_stop(loop, &cli->timer);
+	nftlb_client_release(loop, cli);
 
 	free(uri);
 	syslog(LOG_DEBUG, "%d client(s) connected", --nftserver.clients);
 	return;
 }
 
-static void accept_cb(struct ev_loop *loop, struct ev_io *watcher, int revents)
+static void nftlb_timer_cb(struct ev_loop *loop, ev_timer *timer, int events)
 {
-	struct sockaddr_storage client_addr;
-	socklen_t addrlen = sizeof(client_addr);
-	int client_sd;
-	struct ev_io *w_client = (struct ev_io*) malloc(sizeof(struct ev_io));
+	struct nftlb_client *cli;
 
-	if (!w_client) {
+	cli = container_of(timer, struct nftlb_client, timer);
+
+	syslog(LOG_ERR, "timeout for client %s:%hu\n",
+	       inet_ntoa(cli->addr.sin_addr), ntohs(cli->addr.sin_port));
+
+	nftlb_client_release(loop, cli);
+}
+
+static void accept_cb(struct ev_loop *loop, struct ev_io *io, int revents)
+{
+	struct sockaddr_in client_addr;
+	socklen_t addrlen = sizeof(client_addr);
+	struct nftlb_client *cli;
+	int client_sd;
+
+	if (EV_ERROR & revents) {
+		syslog(LOG_ERR, "Server got an invalid event from client");
+		return;
+	}
+
+	client_sd = accept(io->fd, (struct sockaddr *)&client_addr, &addrlen);
+	if (client_sd < 0) {
+		syslog(LOG_ERR, "Server accept error");
+		return;
+	}
+
+	cli = malloc(sizeof(struct nftlb_client));
+	if (!cli) {
 		syslog(LOG_ERR, "No memory available to allocate new client");
 		return;
 	}
+	memcpy(&cli->addr, &client_addr, sizeof(cli->addr));
 
-	if(EV_ERROR & revents) {
-		syslog(LOG_ERR, "Server got an invalid event from client");
-		free(w_client);
-		return;
-	}
+	ev_io_init(&cli->io, nftlb_read_cb, client_sd, EV_READ);
+	ev_io_start(loop, &cli->io);
+	ev_timer_init(&cli->timer, nftlb_timer_cb, NFTLB_CLIENT_TIMEOUT, 0.);
+	ev_timer_start(loop, &cli->timer);
 
-	client_sd = accept(watcher->fd, (struct sockaddr *)&client_addr,
-			   &addrlen);
-
-	if (client_sd < 0) {
-		syslog(LOG_ERR, "Server accept error");
-		free(w_client);
-		return;
-	}
-
+	syslog(LOG_DEBUG, "connection from %s:%hu",
+	       inet_ntoa(cli->addr.sin_addr), ntohs(cli->addr.sin_port));
 	syslog(LOG_DEBUG, "%d client(s) connected", ++nftserver.clients);
-
-	ev_io_init(w_client, read_cb, client_sd, EV_READ);
-	ev_io_start(loop, w_client);
 }
 
 int server_init(void)
