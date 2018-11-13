@@ -285,15 +285,24 @@ static void nftlb_client_release(struct ev_loop *loop, struct nftlb_client *cli)
 	free(cli);
 }
 
+static void nftlb_http_send_response(struct ev_io *io,
+				     struct nftlb_http_state *state, int size)
+{
+	char response[SRV_MAX_HEADER];
+
+	sprintf(response, "%s%s%d%s%s", ws_str_responses[state->status_code],
+		HTTP_HEADER_CONTENTLEN, size,
+		HTTP_LINE_END, HTTP_LINE_END);
+	send(io->fd, response, strlen(response), 0);
+}
+
 static void nftlb_read_cb(struct ev_loop *loop, struct ev_io *io, int revents)
 {
 	char buffer[SRV_MAX_BUF] = {0};
-	char resheader[SRV_MAX_HEADER];
 	struct nftlb_http_state state;
 	struct nftlb_client *cli;
 	char *buf_res = NULL;
 	ssize_t size;
-	int bufsize = 0;
 
 	if (EV_ERROR & revents) {
 		syslog(LOG_ERR, "Server got invalid event from client read");
@@ -311,27 +320,17 @@ static void nftlb_read_cb(struct ev_loop *loop, struct ev_io *io, int revents)
 	}
 
 	if (get_request(buffer, &state) < 0) {
-		sprintf(resheader, "%s%s%d%s%s", ws_str_responses[state.status_code], HTTP_HEADER_CONTENTLEN, 0, HTTP_LINE_END, HTTP_LINE_END);
-		send(io->fd, resheader, strlen(resheader), 0);
+		nftlb_http_send_response(io, &state, 0);
 		goto end;
 	}
 
 	if (send_response(&buf_res, &state) < 0) {
-		sprintf(resheader, "%s%s%d%s%s", ws_str_responses[state.status_code], HTTP_HEADER_CONTENTLEN, 0, HTTP_LINE_END, HTTP_LINE_END);
-		send(io->fd, resheader, strlen(resheader), 0);
+		nftlb_http_send_response(io, &state, 0);
 		goto end;
 	}
 
-	if (buf_res != NULL)
-		bufsize = strlen(buf_res);
-
-	sprintf(resheader, "%s", ws_str_responses[state.status_code]);
-	sprintf(resheader, "%s%s%d%s%s", resheader,
-		HTTP_HEADER_CONTENTLEN, bufsize, HTTP_LINE_END, HTTP_LINE_END);
-	send(io->fd, resheader, strlen(resheader), 0);
-
-	if (buf_res != NULL)
-		send(io->fd, buf_res, bufsize, 0);
+	nftlb_http_send_response(io, &state, strlen(buf_res));
+	send(io->fd, buf_res, strlen(buf_res), 0);
 
 	syslog(LOG_DEBUG, "connection closed by server %s:%hu\n",
 	       inet_ntoa(cli->addr.sin_addr), ntohs(cli->addr.sin_port));
