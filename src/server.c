@@ -76,6 +76,7 @@ struct nftlb_http_state {
 	char			uri[SRV_MAX_IDENT];
 	char			*body;
 	enum ws_responses	status_code;
+	char			*body_response;
 };
 
 const char * ws_str_responses[] = {
@@ -148,7 +149,7 @@ static int get_request(char *buf, struct nftlb_http_state *state)
 	return 0;
 }
 
-static int send_get_response(char **buf, struct nftlb_http_state *state)
+static int send_get_response(struct nftlb_http_state *state)
 {
 	char farm[SRV_MAX_IDENT] = {0};
 	char farms[SRV_MAX_IDENT] = {0};
@@ -160,7 +161,7 @@ static int send_get_response(char **buf, struct nftlb_http_state *state)
 		return -1;
 	}
 
-	if (config_print_farms(buf, farm) == EXIT_SUCCESS) {
+	if (config_print_farms(&state->body_response, farm) == EXIT_SUCCESS) {
 		state->status_code = WS_HTTP_200;
 		return 0;
 	}
@@ -169,7 +170,7 @@ static int send_get_response(char **buf, struct nftlb_http_state *state)
 	return -1;
 }
 
-static int send_delete_response(char **buf, struct nftlb_http_state *state)
+static int send_delete_response(struct nftlb_http_state *state)
 {
 	char farm[SRV_MAX_IDENT] = {0};
 	char bck[SRV_MAX_IDENT] = {0};
@@ -185,85 +186,101 @@ static int send_delete_response(char **buf, struct nftlb_http_state *state)
 		return -1;
 	}
 
-	*buf = (char *)malloc(SRV_MAX_IDENT);
+	state->body_response = malloc(SRV_MAX_IDENT);
+	if (!state->body_response) {
+		state->status_code = WS_HTTP_500;
+		return -1;
+	}
 
 	if (strcmp(bcks,CONFIG_KEY_BCKS) == 0) {
 		ret = config_set_backend_action(farm, bck, CONFIG_VALUE_ACTION_DELETE);
 		if (ret != EXIT_SUCCESS) {
-			config_print_response(buf, "error deleting backend");
+			config_print_response(&state->body_response,
+					      "error deleting backend");
 			goto delete_end;
 		}
 		ret = config_set_farm_action(farm, CONFIG_VALUE_ACTION_RELOAD);
 		if (ret != EXIT_SUCCESS) {
-			config_print_response(buf, "error reloading farm");
+			config_print_response(&state->body_response,
+					      "error reloading farm");
 			goto delete_end;
 		}
 		ret = farm_s_rulerize();
 		if (ret != EXIT_SUCCESS) {
-			config_print_response(buf, "error generating rules");
+			config_print_response(&state->body_response,
+					      "error generating rules");
 			goto delete_end;
 		}
 	} else {
 		ret = config_set_farm_action(farm, CONFIG_VALUE_ACTION_STOP);
 		if (ret != EXIT_SUCCESS) {
-			config_print_response(buf, "error stopping farm");
+			config_print_response(&state->body_response,
+					      "error stopping farm");
 			goto delete_end;
 		}
 		ret = farm_s_rulerize();
 		if (ret != EXIT_SUCCESS) {
-			config_print_response(buf, "error generating rules");
+			config_print_response(&state->body_response,
+					      "error generating rules");
 			goto delete_end;
 		}
 		config_set_farm_action(farm, CONFIG_VALUE_ACTION_DELETE);
 		if (ret != EXIT_SUCCESS) {
-			config_print_response(buf, "error deleting farm");
+			config_print_response(&state->body_response,
+					      "error deleting farm");
 			goto delete_end;
 		}
 	}
 
-	config_print_response(buf, "success");
+	config_print_response(&state->body_response, "success");
 
 delete_end:
 	state->status_code = WS_HTTP_200;
 	return 0;
 }
 
-static int send_post_response(char **buf, struct nftlb_http_state *state)
+static int send_post_response(struct nftlb_http_state *state)
 {
 	if (strncmp(state->uri, "/farms", 6) != 0) {
 		state->status_code = WS_HTTP_500;
 		return -1;
 	}
 
-	*buf = (char *)malloc(SRV_MAX_IDENT);
+	state->body_response = malloc(SRV_MAX_IDENT);
+	if (!state->body_response) {
+		state->status_code = WS_HTTP_500;
+		return -1;
+	}
 
-	if (config_buffer(state->body) != EXIT_SUCCESS) {
-		config_print_response(buf, "error parsing buffer");
+	if (config_buffer(state->body_response) != EXIT_SUCCESS) {
+		config_print_response(&state->body_response,
+				      "error parsing buffer");
 		goto post_end;
 	}
 
 	if (farm_s_rulerize() != EXIT_SUCCESS) {
-		config_print_response(buf, "error generating rules");
+		config_print_response(&state->body_response,
+				      "error generating rules");
 		goto post_end;
 	}
 
-	config_print_response(buf, "success");
+	config_print_response(&state->body, "success");
 
 post_end:
 	state->status_code = WS_HTTP_200;
 	return 0;
 }
 
-static int send_response(char **buf, struct nftlb_http_state *state)
+static int send_response(struct nftlb_http_state *state)
 {
 	switch (state->method) {
 	case WS_GET_ACTION:
-		return send_get_response(buf, state);
+		return send_get_response(state);
 	case WS_POST_ACTION:
 	case WS_PUT_ACTION:
-		return send_post_response(buf, state);
+		return send_post_response(state);
 	case WS_DELETE_ACTION:
-		return send_delete_response(buf, state);
+		return send_delete_response(state);
 	default:
 		return -1;
 	}
@@ -301,7 +318,6 @@ static void nftlb_read_cb(struct ev_loop *loop, struct ev_io *io, int revents)
 	char buffer[SRV_MAX_BUF] = {0};
 	struct nftlb_http_state state;
 	struct nftlb_client *cli;
-	char *buf_res = NULL;
 	ssize_t size;
 
 	if (EV_ERROR & revents) {
@@ -324,21 +340,19 @@ static void nftlb_read_cb(struct ev_loop *loop, struct ev_io *io, int revents)
 		goto end;
 	}
 
-	if (send_response(&buf_res, &state) < 0) {
+	if (send_response(&state) < 0) {
 		nftlb_http_send_response(io, &state, 0);
 		goto end;
 	}
 
-	nftlb_http_send_response(io, &state, strlen(buf_res));
-	send(io->fd, buf_res, strlen(buf_res), 0);
+	nftlb_http_send_response(io, &state, strlen(state.body_response));
+	send(io->fd, state.body_response, strlen(state.body_response), 0);
 
 	syslog(LOG_DEBUG, "connection closed by server %s:%hu\n",
 	       inet_ntoa(cli->addr.sin_addr), ntohs(cli->addr.sin_port));
 end:
 	bzero(buffer, size);
-
-	if (buf_res != NULL)
-		free(buf_res);
+	free(state.body_response);
 
 	ev_timer_stop(loop, &cli->timer);
 	nftlb_client_release(loop, cli);
