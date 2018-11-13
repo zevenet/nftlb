@@ -55,11 +55,10 @@
 #define HTTP_LINE_END			"\r\n"
 #define HTTP_HEADER_CONTENTLEN		"Content-Length: "
 #define HTTP_HEADER_KEY			"Key: "
-#define HTTP_MIN_CONTINUE		2
 
 extern struct ev_io *srv_accept;
 
-enum ws_actions {
+enum ws_methods {
 	WS_GET_ACTION,
 	WS_POST_ACTION,
 	WS_PUT_ACTION,
@@ -70,6 +69,13 @@ enum ws_responses {
 	WS_HTTP_500,
 	WS_HTTP_401,
 	WS_HTTP_200,
+};
+
+struct nftlb_http_state {
+	enum ws_methods		method;
+	char			uri[SRV_MAX_IDENT];
+	char			*body;
+	enum ws_responses	status_code;
 };
 
 const char * ws_str_responses[] = {
@@ -98,60 +104,72 @@ static int auth_key(const char *recvkey)
 	return (strcmp(nftserver.key, recvkey) == 0);
 }
 
-static int get_request(char *buf, int *action, char **uri, char **content)
+static int get_request(char *buf, struct nftlb_http_state *state)
 {
-	char straction[SRV_MAX_IDENT] = {0};
+	char method[SRV_MAX_IDENT] = {0};
 	char strkey[SRV_MAX_IDENT] = {0};
 	char *ptr;
 
-	if ((ptr = strstr(buf, "Key: ")) == NULL)
-		return WS_HTTP_401;
+	if ((ptr = strstr(buf, "Key: ")) == NULL) {
+		state->status_code = WS_HTTP_401;
+		return -1;
+	}
 
 	sscanf(ptr, "Key: %199[^\r\n]", strkey);
 
-	if (!auth_key(strkey))
-		return WS_HTTP_401;
-
-	sscanf(buf, "%199[^ ] %199[^ ] ", straction, *uri);
-
-	if (strncmp(straction, STR_GET_ACTION, 3) == 0) {
-		*action = WS_GET_ACTION;
-	} else if (strncmp(straction, STR_POST_ACTION, 4) == 0) {
-		*action = WS_POST_ACTION;
-	} else if (strncmp(straction, STR_PUT_ACTION, 5) == 0) {
-		*action = WS_PUT_ACTION;
-	} else if (strncmp(straction, STR_DELETE_ACTION, 6) == 0) {
-		*action = WS_DELETE_ACTION;
-	} else {
-		return WS_HTTP_500;
+	if (!auth_key(strkey)) {
+		state->status_code = WS_HTTP_401;
+		return -1;
 	}
 
-	if ((*action != WS_POST_ACTION) && (*action != WS_PUT_ACTION))
-		return HTTP_MIN_CONTINUE;
+	sscanf(buf, "%199[^ ] %199[^ ] ", method, state->uri);
 
-	if ((*content = strstr(buf, "\r\n\r\n")))
-		*content += 4;
+	if (strncmp(method, STR_GET_ACTION, 3) == 0) {
+		state->method = WS_GET_ACTION;
+	} else if (strncmp(method, STR_POST_ACTION, 4) == 0) {
+		state->method = WS_POST_ACTION;
+	} else if (strncmp(method, STR_PUT_ACTION, 5) == 0) {
+		state->method = WS_PUT_ACTION;
+	} else if (strncmp(method, STR_DELETE_ACTION, 6) == 0) {
+		state->method = WS_DELETE_ACTION;
+	} else {
+		state->status_code = WS_HTTP_500;
+		return -1;
+	}
 
-	return HTTP_MIN_CONTINUE;
+	if (state->method != WS_POST_ACTION &&
+	    state->method != WS_PUT_ACTION)
+		return 0;
+
+	state->body = strstr(buf, "\r\n\r\n");
+	if (state->body)
+		state->body += 4;
+
+	return 0;
 }
 
-static int send_get_response(char **buf, char *uri)
+static int send_get_response(char **buf, struct nftlb_http_state *state)
 {
 	char farm[SRV_MAX_IDENT] = {0};
 	char farms[SRV_MAX_IDENT] = {0};
 
-	sscanf(uri, "/%199[^/]/%199[^/\n]", farms, farm);
+	sscanf(state->uri, "/%199[^/]/%199[^/\n]", farms, farm);
 
-	if (strcmp(farms, CONFIG_KEY_FARMS) != 0)
-		return WS_HTTP_500;
+	if (strcmp(farms, CONFIG_KEY_FARMS) != 0) {
+		state->status_code = WS_HTTP_500;
+		return -1;
+	}
 
-	if (config_print_farms(buf, farm) == EXIT_SUCCESS)
-		return WS_HTTP_200;
-	else
-		return WS_HTTP_500;
+	if (config_print_farms(buf, farm) == EXIT_SUCCESS) {
+		state->status_code = WS_HTTP_200;
+		return 0;
+	}
+
+	state->status_code = WS_HTTP_500;
+	return -1;
 }
 
-static int send_delete_response(char **buf, char *uri, char *content)
+static int send_delete_response(char **buf, struct nftlb_http_state *state)
 {
 	char farm[SRV_MAX_IDENT] = {0};
 	char bck[SRV_MAX_IDENT] = {0};
@@ -159,10 +177,13 @@ static int send_delete_response(char **buf, char *uri, char *content)
 	char bcks[SRV_MAX_IDENT] = {0};
 	int ret;
 
-	sscanf(uri, "/%199[^/]/%199[^/]/%199[^/]/%199[^\n]", farms, farm, bcks, bck);
+	sscanf(state->uri, "/%199[^/]/%199[^/]/%199[^/]/%199[^\n]",
+	       farms, farm, bcks, bck);
 
-	if (strcmp(farms, CONFIG_KEY_FARMS) != 0)
-		return WS_HTTP_500;
+	if (strcmp(farms, CONFIG_KEY_FARMS) != 0) {
+		state->status_code = WS_HTTP_500;
+		return -1;
+	}
 
 	*buf = (char *)malloc(SRV_MAX_IDENT);
 
@@ -203,17 +224,20 @@ static int send_delete_response(char **buf, char *uri, char *content)
 	config_print_response(buf, "success");
 
 delete_end:
-	return WS_HTTP_200;
+	state->status_code = WS_HTTP_200;
+	return 0;
 }
 
-static int send_post_response(char **buf, char *uri, char *content)
+static int send_post_response(char **buf, struct nftlb_http_state *state)
 {
-	if (strncmp(uri, "/farms", 6) != 0)
-		return WS_HTTP_500;
+	if (strncmp(state->uri, "/farms", 6) != 0) {
+		state->status_code = WS_HTTP_500;
+		return -1;
+	}
 
 	*buf = (char *)malloc(SRV_MAX_IDENT);
 
-	if (config_buffer(content) != EXIT_SUCCESS) {
+	if (config_buffer(state->body) != EXIT_SUCCESS) {
 		config_print_response(buf, "error parsing buffer");
 		goto post_end;
 	}
@@ -226,19 +250,20 @@ static int send_post_response(char **buf, char *uri, char *content)
 	config_print_response(buf, "success");
 
 post_end:
-	return WS_HTTP_200;
+	state->status_code = WS_HTTP_200;
+	return 0;
 }
 
-static int send_response(char **buf, int action, char *uri, char *content)
+static int send_response(char **buf, struct nftlb_http_state *state)
 {
-	switch (action) {
+	switch (state->method) {
 	case WS_GET_ACTION:
-		return send_get_response(buf, uri);
+		return send_get_response(buf, state);
 	case WS_POST_ACTION:
 	case WS_PUT_ACTION:
-		return send_post_response(buf, uri, content);
+		return send_post_response(buf, state);
 	case WS_DELETE_ACTION:
-		return send_delete_response(buf, uri, content);
+		return send_delete_response(buf, state);
 	default:
 		return -1;
 	}
@@ -264,43 +289,35 @@ static void nftlb_read_cb(struct ev_loop *loop, struct ev_io *io, int revents)
 {
 	char buffer[SRV_MAX_BUF] = {0};
 	char resheader[SRV_MAX_HEADER];
+	struct nftlb_http_state state;
 	struct nftlb_client *cli;
 	char *buf_res = NULL;
-	char *uri = (char *)malloc(SRV_MAX_IDENT);
-	char *content;
-	int action;
 	ssize_t size;
 	int bufsize = 0;
-	int code;
 
 	if (EV_ERROR & revents) {
 		syslog(LOG_ERR, "Server got invalid event from client read");
-		free(uri);
 		return;
 	}
 	cli = container_of(io, struct nftlb_client, io);
 
 	size = recv(io->fd, buffer, SRV_MAX_BUF, 0);
-	if (size < 0) {
-		free(uri);
+	if (size < 0)
 		return;
-	}
 	if (size == 0) {
 		syslog(LOG_DEBUG, "connection closed by client %s:%hu\n",
 		       inet_ntoa(cli->addr.sin_addr), ntohs(cli->addr.sin_port));
 		goto end;
 	}
 
-	code = get_request(buffer, &action, &uri, &content);
-	if (code < HTTP_MIN_CONTINUE) {
-		sprintf(resheader, "%s%s%d%s%s", ws_str_responses[code], HTTP_HEADER_CONTENTLEN, 0, HTTP_LINE_END, HTTP_LINE_END);
+	if (get_request(buffer, &state) < 0) {
+		sprintf(resheader, "%s%s%d%s%s", ws_str_responses[state.status_code], HTTP_HEADER_CONTENTLEN, 0, HTTP_LINE_END, HTTP_LINE_END);
 		send(io->fd, resheader, strlen(resheader), 0);
 		goto end;
 	}
 
-	code = send_response(&buf_res, action, uri, content);
-	if (code < HTTP_MIN_CONTINUE) {
-		sprintf(resheader, "%s%s%d%s%s", ws_str_responses[code], HTTP_HEADER_CONTENTLEN, 0, HTTP_LINE_END, HTTP_LINE_END);
+	if (send_response(&buf_res, &state) < 0) {
+		sprintf(resheader, "%s%s%d%s%s", ws_str_responses[state.status_code], HTTP_HEADER_CONTENTLEN, 0, HTTP_LINE_END, HTTP_LINE_END);
 		send(io->fd, resheader, strlen(resheader), 0);
 		goto end;
 	}
@@ -308,7 +325,7 @@ static void nftlb_read_cb(struct ev_loop *loop, struct ev_io *io, int revents)
 	if (buf_res != NULL)
 		bufsize = strlen(buf_res);
 
-	sprintf(resheader, "%s", ws_str_responses[code]);
+	sprintf(resheader, "%s", ws_str_responses[state.status_code]);
 	sprintf(resheader, "%s%s%d%s%s", resheader,
 		HTTP_HEADER_CONTENTLEN, bufsize, HTTP_LINE_END, HTTP_LINE_END);
 	send(io->fd, resheader, strlen(resheader), 0);
@@ -327,7 +344,6 @@ end:
 	ev_timer_stop(loop, &cli->timer);
 	nftlb_client_release(loop, cli);
 
-	free(uri);
 	syslog(LOG_DEBUG, "%d client(s) connected", --nftserver.clients);
 	return;
 }
