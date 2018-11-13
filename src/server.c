@@ -353,6 +353,7 @@ int server_init(void)
 	socklen_t addrlen = sizeof(addr);
 	struct ev_loop *st_ev_loop = get_loop();
 	struct ev_io *st_ev_accept = events_create_srv();
+	int yes = 1;
 
 	if (!nftserver.key)
 		server_set_key(NULL);
@@ -364,6 +365,7 @@ int server_init(void)
 		syslog(LOG_ERR, "Server socket error");
 		return EXIT_FAILURE;
 	}
+	setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int));
 
 	bzero(&addr, addrlen);
 	addr.ss_family = nftserver.family;
