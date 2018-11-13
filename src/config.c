@@ -59,7 +59,7 @@ static int config_value_family(const char *value)
 	if (strcmp(value, CONFIG_VALUE_FAMILY_INET) == 0)
 		return VALUE_FAMILY_INET;
 
-	return EXIT_FAILURE;
+	return -1;
 }
 
 static int config_value_mode(const char *value)
@@ -73,7 +73,7 @@ static int config_value_mode(const char *value)
 	if (strcmp(value, CONFIG_VALUE_MODE_STLSDNAT) == 0)
 		return VALUE_MODE_STLSDNAT;
 
-	return EXIT_FAILURE;
+	return -1;
 }
 
 static int config_value_proto(const char *value)
@@ -87,7 +87,7 @@ static int config_value_proto(const char *value)
 	if (strcmp(value, CONFIG_VALUE_PROTO_ALL) == 0)
 		return VALUE_PROTO_ALL;
 
-	return EXIT_FAILURE;
+	return -1;
 }
 
 static int config_value_sched(const char *value)
@@ -101,7 +101,7 @@ static int config_value_sched(const char *value)
 	if (strcmp(value, CONFIG_VALUE_SCHED_SYMHASH) == 0)
 		return VALUE_SCHED_SYMHASH;
 
-	return EXIT_FAILURE;
+	return -1;
 }
 
 static int config_value_helper(const char *value)
@@ -129,7 +129,7 @@ static int config_value_helper(const char *value)
 	if (strcmp(value, CONFIG_VALUE_HELPER_TFTP) == 0)
 		return VALUE_HELPER_TFTP;
 
-	return EXIT_FAILURE;
+	return -1;
 }
 
 static int config_value_log(const char *value)
@@ -162,7 +162,7 @@ static int config_value_state(const char *value)
 	if (strcmp(value, CONFIG_VALUE_STATE_CONFERR) == 0)
 		return VALUE_STATE_CONFERR;
 
-	return EXIT_FAILURE;
+	return -1;
 }
 
 static int config_value_action(const char *value)
@@ -268,16 +268,16 @@ static int config_key(const char *key)
 	if (strcmp(key, CONFIG_KEY_ACTION) == 0)
 		return KEY_ACTION;
 
-	return EXIT_FAILURE;
+	return -1;
 }
 
 static int jump_config_value(int level, int key)
 {
 	if ((level == LEVEL_INIT && key != KEY_FARMS) ||
 	    (key == KEY_BCKS && level != LEVEL_FARMS))
-		return EXIT_FAILURE;
+		return -1;
 
-	return EXIT_SUCCESS;
+	return 0;
 }
 
 static void config_json_object(json_t *element, int level, int source)
@@ -289,7 +289,7 @@ static void config_json_object(json_t *element, int level, int source)
 		c.level = level;
 		c.key = config_key(key);
 
-		if (jump_config_value(level, c.key) == EXIT_SUCCESS)
+		if (jump_config_value(level, c.key) == 0)
 			config_json(value, level, source);
 	}
 }
@@ -337,13 +337,13 @@ int config_file(const char *file)
 	FILE		*fd;
 	json_error_t	error;
 	json_t		*root;
-	int		ret = EXIT_SUCCESS;
+	int		ret = 0;
 
 	fd = fopen(file, "r");
 	if (fd == NULL) {
 		fprintf(stderr, "Error open configuration file %s\n", file);
 		syslog(LOG_ERR, "Error open configuration file %s", file);
-		return EXIT_FAILURE;
+		return -1;
 	}
 
 	root = json_loadf(fd, JSON_ALLOW_NUL, &error);
@@ -354,7 +354,7 @@ int config_file(const char *file)
 	} else {
 		fprintf(stderr, "Configuration file error '%s' on line %d: %s", file, error.line, error.text);
 		syslog(LOG_ERR, "Configuration file error '%s' on line %d: %s", file, error.line, error.text);
-		ret = EXIT_FAILURE;
+		ret = -1;
 	}
 
 	fclose(fd);
@@ -365,7 +365,7 @@ int config_buffer(const char *buf)
 {
 	json_error_t	error;
 	json_t		*root;
-	int		ret = EXIT_SUCCESS;
+	int		ret = 0;
 
 	syslog(LOG_DEBUG, "%s():%d: received buffer %d : %s", __FUNCTION__, __LINE__, (int)strlen(buf), buf);
 	//syslog(LOG_ERR, "Configuration error on line %d: %s", error.line, error.text);
@@ -377,7 +377,7 @@ int config_buffer(const char *buf)
 		json_decref(root);
 	} else {
 		syslog(LOG_ERR, "Configuration error on line %d: %s", error.line, error.text);
-		ret = EXIT_FAILURE;
+		ret = -1;
 	}
 
 	return ret;
@@ -461,9 +461,9 @@ int config_print_farms(char **buf, char *name)
 	json_decref(jdata);
 
 	if (*buf == NULL)
-		return EXIT_FAILURE;
+		return -1;
 
-	return EXIT_SUCCESS;
+	return 0;
 }
 
 int config_set_farm_action(const char *name, const char *value)
@@ -474,9 +474,8 @@ int config_set_farm_action(const char *name, const char *value)
 		return farm_s_set_action(config_value_action(value));
 
 	f = farm_lookup_by_name(name);
-
 	if (!f)
-		return EXIT_FAILURE;
+		return -1;
 
 	farm_set_action(f, config_value_action(value));
 
@@ -489,20 +488,18 @@ int config_set_backend_action(const char *fname, const char *bname, const char *
 	struct backend *b;
 
 	if (!fname || strcmp(fname, "") == 0)
-		return EXIT_FAILURE;
+		return -1;
 
 	f = farm_lookup_by_name(fname);
-
 	if (!f)
-		return EXIT_FAILURE;
+		return -1;
 
 	if (!bname || strcmp(bname, "") == 0)
 		return backend_s_set_action(f, config_value_action(value));
 
 	b = backend_lookup_by_name(f, bname);
-
 	if (!b)
-		return EXIT_FAILURE;
+		return -1;
 
 	backend_set_action(b, config_value_action(value));
 

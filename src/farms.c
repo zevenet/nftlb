@@ -103,7 +103,7 @@ static int farm_delete(struct farm *pfarm)
 	free(pfarm);
 	obj_set_total_farms(obj_get_total_farms() - 1);
 
-	return EXIT_SUCCESS;
+	return 0;
 }
 
 static int farm_is_ingress_mode(struct farm *f)
@@ -182,18 +182,18 @@ static int farm_set_netinfo(struct farm *f)
 
 	if (f->state != VALUE_STATE_UP) {
 		syslog(LOG_INFO, "%s():%d: farm %s doesn't require low level network info", __FUNCTION__, __LINE__, f->name);
-		return EXIT_FAILURE;
+		return -1;
 	}
 
-	if (farm_set_ifinfo(f, KEY_IFACE) == EXIT_SUCCESS &&
-		farm_set_ifinfo(f, KEY_OFACE) == EXIT_SUCCESS &&
+	if (farm_set_ifinfo(f, KEY_IFACE) == 0 &&
+		farm_set_ifinfo(f, KEY_OFACE) == 0 &&
 		f->mode == VALUE_MODE_DSR) {
 
 		farm_manage_eventd();
 		backend_s_find_ethers(f);
 	}
 
-	return EXIT_SUCCESS;
+	return 0;
 }
 
 static int farm_set_mark(struct farm *f, int new_value)
@@ -204,17 +204,17 @@ static int farm_set_mark(struct farm *f, int new_value)
 
 	if (f->mode != VALUE_MODE_DNAT && f->mode != VALUE_MODE_SNAT) {
 		syslog(LOG_ERR, "%s():%d: mark for farm %s not available for the current mode %d", __FUNCTION__, __LINE__, f->name, f->mode);
-		return EXIT_FAILURE;
+		return -1;
 	}
 
 	if (new_value & NFTLB_POSTROUTING_MARK) {
 		syslog(LOG_ERR, "%s():%d: mark 0x%x for farm %s conflicts with the POSTROUTING mark 0x%x", __FUNCTION__, __LINE__, f->mark, f->name, NFTLB_POSTROUTING_MARK);
-		return EXIT_FAILURE;
+		return -1;
 	}
 
 	f->mark = new_value;
 
-	return EXIT_SUCCESS;
+	return 0;
 }
 
 static int farm_set_state(struct farm *f, int new_value)
@@ -239,7 +239,7 @@ static int farm_set_state(struct farm *f, int new_value)
 
 	f->state = new_value;
 
-	return EXIT_SUCCESS;
+	return 0;
 }
 
 static int farm_set_mode(struct farm *f, int new_value)
@@ -253,7 +253,7 @@ static int farm_set_mode(struct farm *f, int new_value)
 		farm_set_netinfo(f);
 	}
 
-	return EXIT_SUCCESS;
+	return 0;
 }
 
 static void farm_print(struct farm *f)
@@ -339,13 +339,13 @@ int farm_set_ifinfo(struct farm *f, int key)
 	struct backend *b;
 	char **ether_addr;
 	int if_index;
-	int ret = EXIT_SUCCESS;
+	int ret = 0;
 
 	syslog(LOG_DEBUG, "%s():%d: farm %s set interface info for interface key %d", __FUNCTION__, __LINE__, f->name, key);
 
 	if (!farm_is_ingress_mode(f)) {
 		syslog(LOG_DEBUG, "%s():%d: farm %s is not in ingress mode", __FUNCTION__, __LINE__, f->name);
-		return EXIT_FAILURE;
+		return -1;
 	}
 
 	switch (key) {
@@ -354,9 +354,9 @@ int farm_set_ifinfo(struct farm *f, int key)
 		if (f->iface == DEFAULT_IFNAME) {
 			ret = net_get_local_ifname_per_vip(f->virtaddr, if_str);
 
-			if (ret != EXIT_SUCCESS) {
+			if (ret != 0) {
 				syslog(LOG_ERR, "%s():%d: inbound interface not found with VIP %s by farm %s", __FUNCTION__, __LINE__, f->virtaddr, f->name);
-				return EXIT_FAILURE;
+				return -1;
 			}
 
 			obj_set_attribute_string(if_str, &f->iface);
@@ -367,7 +367,7 @@ int farm_set_ifinfo(struct farm *f, int key)
 
 			if (if_index == 0) {
 				syslog(LOG_ERR, "%s():%d: index of the inbound interface %s in farm %s not found", __FUNCTION__, __LINE__, f->iface, f->name);
-				return EXIT_FAILURE;
+				return -1;
 			}
 
 			f->ifidx = if_index;
@@ -391,20 +391,20 @@ int farm_set_ifinfo(struct farm *f, int key)
 			b = backend_get_first(f);
 			if (!b || b->ipaddr == DEFAULT_IPADDR) {
 				syslog(LOG_ERR, "%s():%d: there is no backend yet in the farm %s", __FUNCTION__, __LINE__, f->name);
-				return EXIT_SUCCESS;
+				return 0;
 			}
 
 			ret = net_get_local_ifidx_per_remote_host(b->ipaddr, &if_index);
-			if (ret == EXIT_FAILURE) {
+			if (ret == -1) {
 				syslog(LOG_ERR, "%s():%d: unable to get the outbound interface to %s for the farm %s", __FUNCTION__, __LINE__, b->ipaddr, f->name);
-				return EXIT_FAILURE;
+				return -1;
 			}
 
 			f->ofidx = if_index;
 
 			if (if_indextoname(if_index, if_str) == NULL) {
 				syslog(LOG_ERR, "%s():%d: unable to get the outbound interface name with index %d required by the farm %s", __FUNCTION__, __LINE__, if_index, f->name);
-				return EXIT_FAILURE;
+				return -1;
 			}
 
 			obj_set_attribute_string(if_str, &f->oface);
@@ -413,7 +413,7 @@ int farm_set_ifinfo(struct farm *f, int key)
 
 			if (if_index == 0) {
 				syslog(LOG_ERR, "%s():%d: index of outbound interface %s in farm %s is not found", __FUNCTION__, __LINE__, f->oface, f->name);
-				return EXIT_FAILURE;
+				return -1;
 			}
 
 			f->ofidx = if_index;
@@ -421,7 +421,7 @@ int farm_set_ifinfo(struct farm *f, int key)
 		break;
 	}
 
-	return EXIT_SUCCESS;
+	return 0;
 }
 
 int farm_pre_actionable(struct config_pair *c)
@@ -430,7 +430,7 @@ int farm_pre_actionable(struct config_pair *c)
 	struct farm *f;
 
 	if (!cur->fptr)
-		return EXIT_FAILURE;
+		return -1;
 
 	f = cur->fptr;
 
@@ -449,10 +449,10 @@ int farm_pre_actionable(struct config_pair *c)
 			farm_rulerize(f);
 		break;
 	default:
-		return EXIT_SUCCESS;
+		return 0;
 	}
 
-	return EXIT_SUCCESS;
+	return 0;
 }
 
 int farm_pos_actionable(struct config_pair *c)
@@ -461,7 +461,7 @@ int farm_pos_actionable(struct config_pair *c)
 	struct farm *f;
 
 	if (!cur->fptr)
-		return EXIT_FAILURE;
+		return -1;
 
 	f = cur->fptr;
 
@@ -482,10 +482,10 @@ int farm_pos_actionable(struct config_pair *c)
 		break;
 	default:
 		farm_set_action(f, ACTION_RELOAD);
-		return EXIT_SUCCESS;
+		return 0;
 	}
 
-	return EXIT_SUCCESS;
+	return 0;
 }
 
 int farm_set_attribute(struct config_pair *c)
@@ -500,7 +500,7 @@ int farm_set_attribute(struct config_pair *c)
 		if (!f) {
 			f = farm_create(c->str_value);
 			if (!f)
-				return EXIT_FAILURE;
+				return -1;
 		}
 		cur->fptr = f;
 		break;
@@ -557,10 +557,10 @@ int farm_set_attribute(struct config_pair *c)
 		farm_set_action(f, c->int_value);
 		break;
 	default:
-		return EXIT_FAILURE;
+		return -1;
 	}
 
-	return EXIT_SUCCESS;
+	return 0;
 }
 
 int farm_set_action(struct farm *f, int action)
@@ -591,7 +591,7 @@ int farm_s_set_action(int action)
 	list_for_each_entry_safe(f, next, farms, list)
 		farm_set_action(f, action);
 
-	return EXIT_SUCCESS;
+	return 0;
 }
 
 void farm_s_set_backend_ether_by_oifidx(int interface_idx, const char * ip_bck, char * ether_bck)
@@ -630,7 +630,7 @@ int farm_rulerize(struct farm *f)
 		syslog(LOG_INFO, "%s():%d: farm %s won't be rulerized", __FUNCTION__, __LINE__, f->name);
 		if (f->state == VALUE_STATE_UP)
 			farm_set_state(f, VALUE_STATE_CONFERR);
-		return EXIT_FAILURE;
+		return -1;
 	}
 
 	farm_print(f);
@@ -640,7 +640,7 @@ int farm_rulerize(struct farm *f)
 int farm_s_rulerize(void)
 {
 	struct farm *f;
-	int ret = EXIT_SUCCESS;
+	int ret = 0;
 
 	syslog(LOG_DEBUG, "%s():%d: rulerize everything", __FUNCTION__, __LINE__);
 

@@ -161,7 +161,7 @@ static int send_get_response(struct nftlb_http_state *state)
 		return -1;
 	}
 
-	if (config_print_farms(&state->body_response, farm) == EXIT_SUCCESS) {
+	if (config_print_farms(&state->body_response, farm) == 0) {
 		state->status_code = WS_HTTP_200;
 		return 0;
 	}
@@ -194,38 +194,38 @@ static int send_delete_response(struct nftlb_http_state *state)
 
 	if (strcmp(bcks,CONFIG_KEY_BCKS) == 0) {
 		ret = config_set_backend_action(farm, bck, CONFIG_VALUE_ACTION_DELETE);
-		if (ret != EXIT_SUCCESS) {
+		if (ret != 0) {
 			config_print_response(&state->body_response,
 					      "error deleting backend");
 			goto delete_end;
 		}
 		ret = config_set_farm_action(farm, CONFIG_VALUE_ACTION_RELOAD);
-		if (ret != EXIT_SUCCESS) {
+		if (ret != 0) {
 			config_print_response(&state->body_response,
 					      "error reloading farm");
 			goto delete_end;
 		}
 		ret = farm_s_rulerize();
-		if (ret != EXIT_SUCCESS) {
+		if (ret != 0) {
 			config_print_response(&state->body_response,
 					      "error generating rules");
 			goto delete_end;
 		}
 	} else {
 		ret = config_set_farm_action(farm, CONFIG_VALUE_ACTION_STOP);
-		if (ret != EXIT_SUCCESS) {
+		if (ret != 0) {
 			config_print_response(&state->body_response,
 					      "error stopping farm");
 			goto delete_end;
 		}
 		ret = farm_s_rulerize();
-		if (ret != EXIT_SUCCESS) {
+		if (ret != 0) {
 			config_print_response(&state->body_response,
 					      "error generating rules");
 			goto delete_end;
 		}
 		config_set_farm_action(farm, CONFIG_VALUE_ACTION_DELETE);
-		if (ret != EXIT_SUCCESS) {
+		if (ret != 0) {
 			config_print_response(&state->body_response,
 					      "error deleting farm");
 			goto delete_end;
@@ -252,13 +252,13 @@ static int send_post_response(struct nftlb_http_state *state)
 		return -1;
 	}
 
-	if (config_buffer(state->body_response) != EXIT_SUCCESS) {
+	if (config_buffer(state->body_response) != 0) {
 		config_print_response(&state->body_response,
 				      "error parsing buffer");
 		goto post_end;
 	}
 
-	if (farm_s_rulerize() != EXIT_SUCCESS) {
+	if (farm_s_rulerize() != 0) {
 		config_print_response(&state->body_response,
 				      "error generating rules");
 		goto post_end;
@@ -426,7 +426,7 @@ int server_init(void)
 	if (server_sd < 0) {
 		fprintf(stderr, "Server socket error\n");
 		syslog(LOG_ERR, "Server socket error");
-		return EXIT_FAILURE;
+		return -1;
 	}
 	setsockopt(server_sd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int));
 
@@ -440,20 +440,20 @@ int server_init(void)
 	if (bind(server_sd, (struct sockaddr *) &addr, addrlen) != 0) {
 		fprintf(stderr, "Server bind error\n");
 		syslog(LOG_ERR, "Server bind error");
-		return EXIT_FAILURE;
+		return -1;
 	}
 
 	if (listen(server_sd, 2) < 0) {
 		fprintf(stderr, "Server listen error\n");
 		syslog(LOG_ERR, "Server listen error");
-		return EXIT_FAILURE;
+		return -1;
 	}
 	nftserver.sd = server_sd;
 
 	ev_io_init(st_ev_accept, accept_cb, server_sd, EV_READ);
 	ev_io_start(st_ev_loop, st_ev_accept);
 
-	return EXIT_SUCCESS;
+	return 0;
 }
 
 void server_fini(void)

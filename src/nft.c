@@ -342,7 +342,7 @@ static int run_base_ndv(struct nft_ctx *ctx, struct farm *f, int key)
 	if (!isempty_buf(buf))
 		exec_cmd(ctx, buf);
 
-	return EXIT_SUCCESS;
+	return 0;
 }
 
 static int run_base_nat(struct nft_ctx *ctx, struct farm *f)
@@ -417,7 +417,7 @@ static int run_base_nat(struct nft_ctx *ctx, struct farm *f)
 	if (!isempty_buf(buf))
 		exec_cmd(ctx, buf);
 
-	return EXIT_SUCCESS;
+	return 0;
 }
 
 static void run_farm_rules_gen_chains(char *buf, struct farm *f, char *chain, int family, int action)
@@ -458,10 +458,10 @@ static int run_farm_rules_gen_sched(char *buf, struct farm *f, int family)
 		sprintf(buf, "%s symhash mod %d", buf, f->total_weight);
 		break;
 	default:
-		return EXIT_FAILURE;
+		return -1;
 	}
 
-	return EXIT_SUCCESS;
+	return 0;
 }
 
 static int run_farm_rules_gen_bck_map(char *buf, struct farm *f, enum map_modes key_mode, enum map_modes data_mode, int offset)
@@ -518,9 +518,9 @@ static int run_farm_rules_gen_bck_map(char *buf, struct farm *f, enum map_modes 
 	sprintf(buf, "%s }", buf);
 
 	if (i == 0)
-		return EXIT_FAILURE;
+		return -1;
 
-	return EXIT_SUCCESS;
+	return 0;
 }
 
 static int get_array_ports(int *port_list, struct farm *f)
@@ -577,18 +577,18 @@ static int run_farm_rules_gen_srv(char *buf, struct farm *f, int family, int act
 			sprintf(buf, "%s ; %s element %s %s %s { %s . %d %s}", buf, action_str, print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, print_nft_service(family, f->protocol, KEY_IFACE), f->virtaddr, port_list[i], data_str);
 		break;
 	default:
-		return EXIT_FAILURE;
+		return -1;
 		break;
 	}
 
-	return EXIT_SUCCESS;
+	return 0;
 }
 
 static int run_farm_rules(struct nft_ctx *ctx, struct farm *f, int family, int action)
 {
 	char buf[NFTLB_MAX_CMD] = { 0 };
 	char buf2[NFTLB_MAX_CMD] = { 0 };
-	int out = EXIT_SUCCESS;
+	int out = 0;
 	int mark;
 
 	run_farm_rules_gen_chains(buf, f, f->name, family, action);
@@ -620,8 +620,8 @@ static int run_farm_rules(struct nft_ctx *ctx, struct farm *f, int family, int a
 		sprintf(buf, "%s ct mark set", buf);
 
 	if (f->bcks_are_marked) {
-		if (run_farm_rules_gen_sched(buf, f, family) == EXIT_FAILURE)
-			return EXIT_FAILURE;
+		if (run_farm_rules_gen_sched(buf, f, family) == -1)
+			return -1;
 		run_farm_rules_gen_bck_map(buf, f, BCK_MAP_WEIGHT, BCK_MAP_MARK, mark);
 	} else if (mark != DEFAULT_MARK) {
 		sprintf(buf, "%s 0x%x", buf, mark);
@@ -638,8 +638,8 @@ static int run_farm_rules(struct nft_ctx *ctx, struct farm *f, int family, int a
 		sprintf(buf, "%s dnat to", buf);
 	}
 
-	if (!f->bcks_are_marked && run_farm_rules_gen_sched(buf, f, family) == EXIT_FAILURE)
-		return EXIT_FAILURE;
+	if (!f->bcks_are_marked && run_farm_rules_gen_sched(buf, f, family) == -1)
+		return -1;
 
 	if (f->mode == VALUE_MODE_DSR)
 		out = run_farm_rules_gen_bck_map(buf, f, BCK_MAP_WEIGHT, BCK_MAP_ETHADDR, 0);
@@ -652,8 +652,8 @@ static int run_farm_rules(struct nft_ctx *ctx, struct farm *f, int family, int a
 		}
 	}
 
-	if (out == EXIT_FAILURE)
-		return EXIT_FAILURE;
+	if (out == -1)
+		return -1;
 
 	if (f->mode == VALUE_MODE_DSR || f->mode == VALUE_MODE_STLSDNAT)
 		sprintf(buf, "%s fwd to %s", buf, f->oface);
@@ -661,7 +661,7 @@ static int run_farm_rules(struct nft_ctx *ctx, struct farm *f, int family, int a
 avoidrules:
 	if (action == ACTION_RELOAD) {
 		exec_cmd(ctx, buf);
-		return EXIT_SUCCESS;
+		return 0;
 	}
 
 	if (f->protocol == VALUE_PROTO_ALL)
@@ -671,12 +671,12 @@ avoidrules:
 
 	exec_cmd(ctx, buf);
 
-	return EXIT_SUCCESS;
+	return 0;
 }
 
 static int run_farm_snat(struct nft_ctx *ctx, struct farm *f, int family)
 {
-	return EXIT_SUCCESS;
+	return 0;
 }
 
 static int run_farm_stlsnat(struct nft_ctx *ctx, struct farm *f, int family, int action)
@@ -698,12 +698,12 @@ static int run_farm_stlsnat(struct nft_ctx *ctx, struct farm *f, int family, int
 
 	exec_cmd(ctx, buf);
 
-	return EXIT_SUCCESS;
+	return 0;
 }
 
 static int run_farm(struct nft_ctx *ctx, struct farm *f, int action)
 {
-	int ret = EXIT_SUCCESS;
+	int ret = 0;
 
 	switch (f->mode) {
 	case VALUE_MODE_STLSDNAT:
@@ -745,7 +745,7 @@ static int run_farm(struct nft_ctx *ctx, struct farm *f, int action)
 static int del_farm_rules(struct nft_ctx *ctx, struct farm *f, int family)
 {
 	char buf[NFTLB_MAX_CMD] = { 0 };
-	int ret = EXIT_SUCCESS;
+	int ret = 0;
 
 	if (f->protocol == VALUE_PROTO_ALL)
 		run_farm_rules_gen_srv(buf, f, family, ACTION_DELETE, BCK_MAP_IPADDR);
@@ -761,7 +761,7 @@ static int del_farm_rules(struct nft_ctx *ctx, struct farm *f, int family)
 
 static int del_farm(struct nft_ctx *ctx, struct farm *f)
 {
-	int ret = EXIT_SUCCESS;
+	int ret = 0;
 
 	if ((f->family == VALUE_FAMILY_IPV4) || (f->family == VALUE_FAMILY_INET))
 		del_farm_rules(ctx, f, VALUE_FAMILY_IPV4);
@@ -775,7 +775,7 @@ static int del_farm(struct nft_ctx *ctx, struct farm *f)
 int nft_rulerize(struct farm *f)
 {
 	struct nft_ctx *ctx = nft_ctx_new(0);
-	int ret = EXIT_SUCCESS;
+	int ret = 0;
 
 	switch (f->action) {
 	case ACTION_START:

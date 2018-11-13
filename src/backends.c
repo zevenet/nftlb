@@ -76,7 +76,7 @@ static int backend_delete_node(struct backend *b)
 
 	free(b);
 
-	return EXIT_SUCCESS;
+	return 0;
 }
 
 static int backend_delete(struct backend *b)
@@ -92,7 +92,7 @@ static int backend_delete(struct backend *b)
 
 	backend_delete_node(b);
 
-	return EXIT_SUCCESS;
+	return 0;
 }
 
 void backend_s_print(struct farm *f)
@@ -137,24 +137,24 @@ struct backend * backend_lookup_by_name(struct farm *f, const char *name)
 static int backend_set_ipaddr_from_ether(struct backend *b)
 {
 	struct farm *f = b->parent;
-	int ret = EXIT_FAILURE;
+	int ret = -1;
 	unsigned char dst_ethaddr[ETH_HW_ADDR_LEN];
 	unsigned char src_ethaddr[ETH_HW_ADDR_LEN];
 	char streth[ETH_HW_STR_LEN] = {};
 
 	if (f->mode != VALUE_MODE_DSR)
-		return EXIT_SUCCESS;
+		return 0;
 
 	if (f->iethaddr == DEFAULT_ETHADDR ||
 		b->ipaddr == DEFAULT_IPADDR ||
 		f->ofidx == DEFAULT_IFIDX)
-		return EXIT_FAILURE;
+		return -1;
 
 	sscanf(f->iethaddr, "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx", &src_ethaddr[0], &src_ethaddr[1], &src_ethaddr[2], &src_ethaddr[3], &src_ethaddr[4], &src_ethaddr[5]);
 
 	ret = net_get_neigh_ether((unsigned char **) &dst_ethaddr, src_ethaddr, f->family, f->virtaddr, b->ipaddr, f->ofidx);
 
-	if (ret == EXIT_SUCCESS) {
+	if (ret == 0) {
 		sprintf(streth, "%02x:%02x:%02x:%02x:%02x:%02x", dst_ethaddr[0],
 			dst_ethaddr[1], dst_ethaddr[2], dst_ethaddr[3], dst_ethaddr[4], dst_ethaddr[5]);
 
@@ -179,7 +179,7 @@ static int backend_set_weight(struct backend *b, int new_value)
 	if (backend_is_available(b))
 		f->total_weight += (b->weight-old_value);
 
-	return EXIT_SUCCESS;
+	return 0;
 }
 
 static int backend_set_priority(struct backend *b, int new_value)
@@ -204,7 +204,7 @@ static int backend_set_priority(struct backend *b, int new_value)
 
 	b->priority = new_value;
 
-	return EXIT_SUCCESS;
+	return 0;
 }
 
 static int backend_s_set_marked(struct farm *f)
@@ -238,7 +238,7 @@ static int backend_set_mark(struct backend *b, int new_value)
 
 	b->mark = new_value;
 
-	return EXIT_SUCCESS;
+	return 0;
 }
 
 int backend_is_available(struct backend *b)
@@ -273,7 +273,7 @@ int backend_s_set_action(struct farm *f, int action)
 	list_for_each_entry_safe(b, next, &f->backends, list)
 		backend_set_action(b, action);
 
-	return EXIT_SUCCESS;
+	return 0;
 }
 
 int backend_s_delete(struct farm *f)
@@ -287,7 +287,7 @@ int backend_s_delete(struct farm *f)
 	f->bcks_available = 0;
 	f->total_weight = 0;
 
-	return EXIT_SUCCESS;
+	return 0;
 }
 
 int backend_set_attribute(struct config_pair *c)
@@ -296,7 +296,7 @@ int backend_set_attribute(struct config_pair *c)
 	struct backend *b = cur->bptr;
 
 	if (!cur->fptr)
-		return EXIT_FAILURE;
+		return -1;
 
 	switch (c->key) {
 	case KEY_NAME:
@@ -304,7 +304,7 @@ int backend_set_attribute(struct config_pair *c)
 		if (!b) {
 			b = backend_create(cur->fptr, c->str_value);
 			if (!b)
-				return EXIT_FAILURE;
+				return -1;
 		}
 		cur->bptr = b;
 		break;
@@ -316,8 +316,8 @@ int backend_set_attribute(struct config_pair *c)
 		break;
 	case KEY_IPADDR:
 		obj_set_attribute_string(c->str_value, &b->ipaddr);
-		if (farm_set_ifinfo(b->parent, KEY_OFACE) == EXIT_FAILURE ||
-		    backend_set_ipaddr_from_ether(b) == EXIT_FAILURE) {
+		if (farm_set_ifinfo(b->parent, KEY_OFACE) == -1 ||
+		    backend_set_ipaddr_from_ether(b) == -1) {
 			syslog(LOG_DEBUG, "%s():%d: backend %s comes to OFF", __FUNCTION__, __LINE__, b->name);
 			backend_set_state(b, VALUE_STATE_CONFERR);
 		}
@@ -344,10 +344,10 @@ int backend_set_attribute(struct config_pair *c)
 		backend_set_action(b, c->int_value);
 		break;
 	default:
-		return EXIT_FAILURE;
+		return -1;
 	}
 
-	return EXIT_SUCCESS;
+	return 0;
 }
 
 static int backend_validate(struct backend *b)
@@ -383,7 +383,7 @@ static int backend_switch(struct backend *b, int new_state)
 		f->bcks_available--;
 	}
 
-	return EXIT_SUCCESS;
+	return 0;
 }
 
 int backend_set_state(struct backend *b, int new_value)
@@ -394,14 +394,14 @@ int backend_set_state(struct backend *b, int new_value)
 	       __FUNCTION__, __LINE__, b->name, obj_print_state(old_value), obj_print_state(new_value));
 
 	if (old_value == new_value)
-		return EXIT_SUCCESS;
+		return 0;
 
 	if (backend_is_available(b) &&
 	    new_value != VALUE_STATE_UP) {
 
 		b->state = new_value;
 		backend_switch(b, new_value);
-		return EXIT_SUCCESS;
+		return 0;
 	}
 
 	b->state = new_value;
@@ -415,7 +415,7 @@ int backend_set_state(struct backend *b, int new_value)
 			backend_switch(b, new_value);
 	}
 
-	return EXIT_SUCCESS;
+	return 0;
 }
 
 int backend_s_set_ether_by_ipaddr(struct farm *f, const char *ip_bck, char *ether_bck)
@@ -456,7 +456,7 @@ int backend_s_find_ethers(struct farm *f)
 		if (backend_validate(b))
 			continue;
 
-		if (backend_set_ipaddr_from_ether(b) == EXIT_FAILURE)
+		if (backend_set_ipaddr_from_ether(b) == -1)
 			backend_set_state(b, VALUE_STATE_CONFERR);
 		else
 			backend_set_state(b, VALUE_STATE_UP);

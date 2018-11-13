@@ -123,7 +123,7 @@ int main(int argc, char *argv[])
 
 	loop_init();
 
-	if (config && config_file(config) != EXIT_SUCCESS)
+	if (config && config_file(config) != 0)
 		return EXIT_FAILURE;
 
 	if (loglevel > NFTLB_LOGLEVEL_DEFAULT)
@@ -134,7 +134,7 @@ int main(int argc, char *argv[])
 	if (mode == NFTLB_EXIT_MODE)
 		return EXIT_SUCCESS;
 
-	if (server_init() != EXIT_SUCCESS) {
+	if (server_init() != 0) {
 		fprintf(stderr, "Cannot start server-ev: %s\n", strerror(errno));
 		return EXIT_FAILURE;
 	}

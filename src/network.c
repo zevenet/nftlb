@@ -89,7 +89,7 @@ static int send_ping(void *data)
 	struct ntl_data *sdata = data;
 	struct sockaddr_in remote_addr;
 	struct icmp_packet pckt;
-	ssize_t ret = EXIT_SUCCESS;
+	ssize_t ret = 0;
 	int sock;
 
 	syslog(LOG_DEBUG, "%s():%d: sending ping", __FUNCTION__, __LINE__);
@@ -102,7 +102,7 @@ static int send_ping(void *data)
 	sock = socket(PF_INET, SOCK_RAW, ICMP_PROTO);
 	if (sock < 0) {
 		syslog(LOG_ERR, "%s():%d: open socket error", __FUNCTION__, __LINE__);
-		ret = EXIT_FAILURE;
+		ret = -1;
 		goto out;
 	}
 
@@ -114,7 +114,7 @@ static int send_ping(void *data)
 
 	if (sendto(sock, &pckt, sizeof(pckt), 0, (struct sockaddr *) &remote_addr, sizeof(remote_addr)) <= 0) {
 		syslog(LOG_ERR, "%s():%d: sendto error", __FUNCTION__, __LINE__);
-		ret = EXIT_FAILURE;
+		ret = -1;
 	}
 
 out:
@@ -249,33 +249,33 @@ static int data_getdst_route_cb(const struct nlmsghdr *nlh, void *data)
 
 static int ntl_request(struct ntl_request *ntl)
 {
-	int ret, out = EXIT_SUCCESS;
+	int ret, out = 0;
 
 	ntl->nl = mnl_socket_open(NETLINK_ROUTE);
 	if (ntl->nl == NULL) {
 		syslog(LOG_ERR, "%s():%d: mnl_socket_open error", __FUNCTION__, __LINE__);
-		return EXIT_FAILURE;
+		return -1;
 	}
 
 	if (mnl_socket_bind(ntl->nl, 0, MNL_SOCKET_AUTOPID) < 0) {
 		syslog(LOG_ERR, "%s():%d: mnl_socket_bind error", __FUNCTION__, __LINE__);
-		return EXIT_FAILURE;
+		return -1;
 	}
 	ntl->portid = mnl_socket_get_portid(ntl->nl);
 
 	if (mnl_socket_sendto(ntl->nl, ntl->nlh, ntl->nlh->nlmsg_len) < 0) {
 		syslog(LOG_ERR, "%s():%d: mnl_socket_sendto error", __FUNCTION__, __LINE__);
-		return EXIT_FAILURE;
+		return -1;
 	}
 
 	ret = mnl_socket_recvfrom(ntl->nl, ntl->buf, MNL_SOCKET_BUFFER_SIZE);
 	while (ret > 0) {
 		ret = mnl_cb_run(ntl->buf, ret, ntl->nlh->nlmsg_seq, ntl->portid, ntl->cb, ntl->data);
 		if (ret <= MNL_CB_STOP) {
-			out = EXIT_SUCCESS | out;
+			out = 0 | out;
 			goto end;
 		} else {
-			out = EXIT_FAILURE;
+			out = -1;
 		}
 
 		ret = mnl_socket_recvfrom(ntl->nl, ntl->buf, MNL_SOCKET_BUFFER_SIZE);
@@ -283,7 +283,7 @@ static int ntl_request(struct ntl_request *ntl)
 
 	if (ret == -1) {
 		syslog(LOG_ERR, "%s():%d: mnl_socket_recvfrom error", __FUNCTION__, __LINE__);
-		ret = EXIT_FAILURE;
+		ret = -1;
 	}
 
 end:
@@ -297,7 +297,7 @@ int net_get_neigh_ether(unsigned char **dst_ethaddr, unsigned char *src_ethaddr,
 {
 	struct ntl_request ntl;
 	struct ntl_data *data;
-	int ret = EXIT_SUCCESS;
+	int ret = 0;
 
 	syslog(LOG_DEBUG, "%s():%d: source mac address %s source ip address %s destination ip address %s", __FUNCTION__, __LINE__, src_ethaddr, src_ipaddr, dst_ipaddr);
 
@@ -320,7 +320,7 @@ int net_get_neigh_ether(unsigned char **dst_ethaddr, unsigned char *src_ethaddr,
 	data = (struct ntl_data *)calloc(1, sizeof(struct ntl_data));
 	if (!data) {
 		syslog(LOG_ERR, "%s():%d: memory allocation error", __FUNCTION__, __LINE__);
-		return EXIT_FAILURE;
+		return -1;
 	}
 
 	ntl.data = (void *)data;
@@ -328,7 +328,7 @@ int net_get_neigh_ether(unsigned char **dst_ethaddr, unsigned char *src_ethaddr,
 	data->dst_ipaddr = (struct in6_addr *)calloc(1, sizeof(struct in6_addr));
 	if (!data->dst_ipaddr){
 		syslog(LOG_ERR, "%s():%d: memory allocation error", __FUNCTION__, __LINE__);
-		return EXIT_FAILURE;
+		return -1;
 	}
 
 	if (family != 0)
@@ -338,15 +338,15 @@ int net_get_neigh_ether(unsigned char **dst_ethaddr, unsigned char *src_ethaddr,
 
 	if (inet_pton(data->family, dst_ipaddr, data->dst_ipaddr) <= 0) {
 		syslog(LOG_ERR, "%s():%d: network translation error for %s", __FUNCTION__, __LINE__, dst_ipaddr);
-		return EXIT_FAILURE;
+		return -1;
 	}
 
 	data->oifidx = outdev;
 
 	ret = ntl_request(&ntl);
 
-	if (ret != EXIT_SUCCESS) {
-		ret = EXIT_FAILURE;
+	if (ret != 0) {
+		ret = -1;
 		syslog(LOG_DEBUG, "%s():%d: not found, send ping for %s", __FUNCTION__, __LINE__, dst_ipaddr);
 
 		data->src_ipaddr = (struct in6_addr *)calloc(1, sizeof(struct in6_addr));
@@ -381,7 +381,7 @@ int net_get_local_ifidx_per_remote_host(char *dst_ipaddr, int *outdev)
 	struct ntl_request ntl;
 	struct ntl_data *data;
 	struct sockaddr_in addr;
-	int ret = EXIT_SUCCESS;
+	int ret = 0;
 
 	syslog(LOG_DEBUG, "%s():%d: dst ip address is %s", __FUNCTION__, __LINE__, dst_ipaddr);
 
@@ -406,13 +406,13 @@ int net_get_local_ifidx_per_remote_host(char *dst_ipaddr, int *outdev)
 	data = (struct ntl_data *)calloc(1, sizeof(struct ntl_data));
 	if (!data) {
 		syslog(LOG_ERR, "%s():%d: memory allocation error", __FUNCTION__, __LINE__);
-		return EXIT_FAILURE;
+		return -1;
 	}
 
 	data->dst_ipaddr = (struct in6_addr *)calloc(1, sizeof(struct in6_addr));
 	if (!data->dst_ipaddr){
 		syslog(LOG_ERR, "%s():%d: memory allocation error", __FUNCTION__, __LINE__);
-		return EXIT_FAILURE;
+		return -1;
 	}
 
 	ntl.cb = data_getdst_route_cb;
@@ -421,16 +421,16 @@ int net_get_local_ifidx_per_remote_host(char *dst_ipaddr, int *outdev)
 
 	if (!inet_pton(AF_INET, dst_ipaddr, &(addr.sin_addr))) {
 		syslog(LOG_ERR, "%s():%d: network translation error for %s", __FUNCTION__, __LINE__, dst_ipaddr);
-		return EXIT_FAILURE;
+		return -1;
 	}
 
 	mnl_attr_put(ntl.nlh, RTA_DST, sizeof(uint32_t), &addr.sin_addr.s_addr);
 
 	ret = ntl_request(&ntl);
 
-	if (ret != EXIT_SUCCESS) {
+	if (ret != 0) {
 		syslog(LOG_ERR, "%s():%d: not found route to %s", __FUNCTION__, __LINE__, dst_ipaddr);
-		return EXIT_FAILURE;
+		return -1;
 	}
 
 	syslog(LOG_DEBUG, "%s():%d: found route to %s via %d", __FUNCTION__, __LINE__, dst_ipaddr, data->oifidx);
@@ -447,7 +447,7 @@ int net_get_local_ifidx_per_remote_host(char *dst_ipaddr, int *outdev)
 
 int net_get_local_ifinfo(unsigned char **ether, const char *indev)
 {
-	int ret = EXIT_FAILURE;
+	int ret = -1;
 	struct ifreq ifr;
 	int sd;
 
@@ -469,7 +469,7 @@ int net_get_local_ifinfo(unsigned char **ether, const char *indev)
 
 	memcpy(ether, ifr.ifr_hwaddr.sa_data, ETH_HW_ADDR_LEN * sizeof(unsigned char));
 
-	ret = EXIT_SUCCESS;
+	ret = 0;
 out:
 	if (sd > 0)
 		close(sd);
@@ -479,7 +479,7 @@ out:
 
 int net_get_local_ifname_per_vip(char *strvip, char *outdev)
 {
-	int ret = EXIT_FAILURE;
+	int ret = -1;
 	struct sockaddr_storage addr;
 	struct ifconf ifc;
 	struct ifreq *ifr;
@@ -522,7 +522,7 @@ int net_get_local_ifname_per_vip(char *strvip, char *outdev)
 		if (ipaddr->sin_addr.s_addr == ((struct sockaddr_in *) &addr)->sin_addr.s_addr) {
 			found = 1;
 			strcpy(outdev, ifr->ifr_name);
-			ret = EXIT_SUCCESS;
+			ret = 0;
 		}
 
 		ifr = (struct ifreq*)((char*)ifr+len);
@@ -590,17 +590,17 @@ static void ntlk_cb(struct ev_loop *loop, struct ev_io *watcher, int revents)
 	while (ret > 0) {
 		ret = mnl_cb_run(buf, ret, 0, 0, data_getev_cb, NULL);
 		if (ret <= MNL_CB_STOP) {
-			out = EXIT_SUCCESS | out;
+			out = 0 | out;
 			return;
 		} else {
-			out = EXIT_FAILURE;
+			out = -1;
 		}
 		ret = mnl_socket_recvfrom(nl, buf, sizeof(buf));
 	}
 
 	if (ret == -1) {
 		syslog(LOG_ERR, "%s():%d: netlink error", __FUNCTION__, __LINE__);
-		ret = EXIT_FAILURE;
+		ret = -1;
 	}
 }
 
@@ -625,14 +625,14 @@ int net_eventd_init(void)
 	nl = mnl_socket_open(NETLINK_ROUTE);
 	if (nl == NULL) {
 		syslog(LOG_ERR, "%s():%d: mnl_socket_open error", __FUNCTION__, __LINE__);
-		return EXIT_FAILURE;
+		return -1;
 	}
 
 	sock = mnl_socket_get_fd(nl);
 
 	if (mnl_socket_bind(nl, RTM_GETNEIGH, MNL_SOCKET_AUTOPID) < 0) {
 		syslog(LOG_ERR, "%s():%d: mnl_socket_bind error", __FUNCTION__, __LINE__);
-		return EXIT_FAILURE;
+		return -1;
 	}
 
 	ev_io_init(io_handle.io, ntlk_cb, sock, EV_READ);

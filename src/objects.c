@@ -225,10 +225,10 @@ int obj_set_attribute(struct config_pair *c, int actionable)
 			farm_pos_actionable(c);
 		break;
 	default:
-		return EXIT_FAILURE;
+		return -1;
 	}
 
-	return EXIT_SUCCESS;
+	return 0;
 }
 
 int obj_set_attribute_string(char *src, char **dst)
@@ -237,12 +237,12 @@ int obj_set_attribute_string(char *src, char **dst)
 
 	if (!*dst) {
 		syslog(LOG_ERR, "Attribute memory allocation error");
-		return EXIT_FAILURE;
+		return -1;
 	}
 
 	sprintf(*dst, "%s", src);
 
-	return EXIT_SUCCESS;
+	return 0;
 }
 
 void obj_print(void)
