@@ -733,7 +733,7 @@ static int run_farm_snat(struct nft_ctx *ctx, struct farm *f, int family)
 	char name[255] = { 0 };
 
 	if (farm_get_masquerade(f))
-		return EXIT_SUCCESS;
+		return 0;
 
 	sprintf(name, "%s-back", print_nft_service(family, f->protocol, KEY_IFACE));
 

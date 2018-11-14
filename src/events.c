@@ -37,7 +37,7 @@ int loop_init(void)
 {
 	st_ev.loop = ev_default_loop(0);
 
-	return EXIT_SUCCESS;
+	return 0;
 }
 
 int loop_run(void)
@@ -45,7 +45,7 @@ int loop_run(void)
 	while (1)
 		ev_loop(st_ev.loop, 0);
 
-	return EXIT_SUCCESS;
+	return 0;
 }
 
 struct ev_loop *get_loop(void)
@@ -86,4 +86,3 @@ void events_delete_srv(void)
 	if (st_ev.srv_accept)
 		free(st_ev.srv_accept);
 }
-
