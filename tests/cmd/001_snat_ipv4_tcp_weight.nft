@@ -4,6 +4,10 @@ table ip nftlb {
 		elements = { 192.168.0.100 . 80 : goto lb01 }
 	}
 
+	map tcp-services-back {
+		type ipv4_addr . inet_service : ipv4_addr
+	}
+
 	chain prerouting {
 		type nat hook prerouting priority filter; policy accept;
 		ip daddr . tcp dport vmap @tcp-services
@@ -12,6 +16,7 @@ table ip nftlb {
 	chain postrouting {
 		type nat hook postrouting priority srcnat; policy accept;
 		ct mark 0x80000000/1 masquerade
+		snat to ip daddr . tcp dport map @tcp-services-back
 	}
 
 	chain lb01 {

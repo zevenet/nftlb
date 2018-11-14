@@ -57,6 +57,7 @@ static struct farm * farm_create(char *name)
 	pfarm->ofidx = DEFAULT_IFIDX;
 	pfarm->virtaddr = DEFAULT_VIRTADDR;
 	pfarm->virtports = DEFAULT_VIRTPORTS;
+	pfarm->srcaddr = DEFAULT_SRCADDR;
 	pfarm->family = DEFAULT_FAMILY;
 	pfarm->mode = DEFAULT_MODE;
 	pfarm->protocol = DEFAULT_PROTO;
@@ -287,6 +288,9 @@ static void farm_print(struct farm *f)
 
 	if (f->virtports)
 		syslog(LOG_DEBUG,"    [virtports] %s", f->virtports);
+
+	if (f->srcaddr)
+		syslog(LOG_DEBUG,"    [srcaddr] %s", f->srcaddr);
 
 	syslog(LOG_DEBUG,"    [family] %s", obj_print_family(f->family));
 	syslog(LOG_DEBUG,"    [mode] %s", obj_print_mode(f->mode));
@@ -532,6 +536,9 @@ int farm_set_attribute(struct config_pair *c)
 	case KEY_VIRTPORTS:
 		obj_set_attribute_string(c->str_value, &f->virtports);
 		break;
+	case KEY_SRCADDR:
+		obj_set_attribute_string(c->str_value, &f->srcaddr);
+		break;
 	case KEY_MODE:
 		farm_set_mode(f, c->int_value);
 		break;
@@ -592,6 +599,15 @@ int farm_s_set_action(int action)
 		farm_set_action(f, action);
 
 	return 0;
+}
+
+int farm_get_masquerade(struct farm *f)
+{
+	int masq = f->srcaddr == DEFAULT_SRCADDR;
+
+	syslog(LOG_DEBUG, "%s():%d: farm %s masquerade %d", __FUNCTION__, __LINE__, f->name, masq);
+
+	return masq;
 }
 
 void farm_s_set_backend_ether_by_oifidx(int interface_idx, const char * ip_bck, char * ether_bck)

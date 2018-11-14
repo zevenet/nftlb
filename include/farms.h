@@ -99,6 +99,7 @@ struct farm {
 	int			ofidx;
 	char			*virtaddr;
 	char			*virtports;
+	char			*srcaddr;
 	int			family;
 	int			mode;
 	int			protocol;
@@ -127,6 +128,7 @@ int farm_pos_actionable(struct config_pair *c);
 int farm_set_attribute(struct config_pair *c);
 int farm_set_action(struct farm *f, int action);
 int farm_s_set_action(int action);
+int farm_get_masquerade(struct farm *f);
 void farm_s_set_backend_ether_by_oifidx(int interface_idx, const char * ip_bck, char * ether_bck);
 
 int farm_rulerize(struct farm *f);

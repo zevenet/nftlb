@@ -9,6 +9,10 @@ table ip6 nftlb {
 		elements = { 2001:db8:0:1:1:1:1:1 . 69 : goto lb01 }
 	}
 
+	map udp-services6-back {
+		type ipv6_addr . inet_service : ipv6_addr
+	}
+
 	chain prerouting {
 		type nat hook prerouting priority filter; policy accept;
 		ip6 daddr . udp dport vmap @udp-services6
@@ -17,6 +21,7 @@ table ip6 nftlb {
 	chain postrouting {
 		type nat hook postrouting priority srcnat; policy accept;
 		ct mark 0x80000000/1 masquerade
+		snat to ip6 daddr . udp dport map @udp-services6-back
 	}
 
 	chain lb01 {

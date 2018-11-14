@@ -6,6 +6,7 @@ table ip nftlb {
 
 	map services-back {
 		type ipv4_addr : ipv4_addr
+		elements = { 192.168.0.10 : 192.168.0.101, 192.168.0.11 : 192.168.0.101 }
 	}
 
 	chain prerouting {
@@ -20,6 +21,6 @@ table ip nftlb {
 	}
 
 	chain lb01 {
-		ct mark set 0x80000000 dnat to numgen inc mod 20 map { 0-4 : 192.168.0.10, 5-9 : 192.168.0.11, 10-14 : 192.168.0.13, 15-19 : 192.168.0.15 }
+		dnat to numgen random mod 10 map { 0-4 : 192.168.0.10, 5-9 : 192.168.0.11 }
 	}
 }

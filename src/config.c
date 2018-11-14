@@ -243,6 +243,8 @@ static int config_key(const char *key)
 		return KEY_VIRTPORTS;
 	if (strcmp(key, CONFIG_KEY_IPADDR) == 0)
 		return KEY_IPADDR;
+	if (strcmp(key, CONFIG_KEY_SRCADDR) == 0)
+		return KEY_SRCADDR;
 	if (strcmp(key, CONFIG_KEY_PORTS) == 0)
 		return KEY_PORTS;
 	if (strcmp(key, CONFIG_KEY_MODE) == 0)
@@ -368,7 +370,6 @@ int config_buffer(const char *buf)
 	int		ret = 0;
 
 	syslog(LOG_DEBUG, "%s():%d: received buffer %d : %s", __FUNCTION__, __LINE__, (int)strlen(buf), buf);
-	//syslog(LOG_ERR, "Configuration error on line %d: %s", error.line, error.text);
 
 	root = json_loadb(buf, strlen(buf), JSON_ALLOW_NUL, &error);
 
@@ -412,6 +413,8 @@ static void add_dump_list(json_t *obj, const char *objname, int object,
 			add_dump_obj(item, "family", obj_print_family(f->family));
 			add_dump_obj(item, "virtual-addr", f->virtaddr);
 			add_dump_obj(item, "virtual-ports", f->virtports);
+			if (f->srcaddr)
+				add_dump_obj(item, "source-addr", f->srcaddr);
 			add_dump_obj(item, "mode", obj_print_mode(f->mode));
 			add_dump_obj(item, "protocol", obj_print_proto(f->protocol));
 			add_dump_obj(item, "scheduler", obj_print_sched(f->scheduler));
@@ -511,4 +514,3 @@ void config_print_response(char **buf, const char *message)
 	if (buf != NULL && *buf != NULL)
 		sprintf(*buf, "{\"response\": \"%s\"}", message);
 }
-
