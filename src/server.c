@@ -39,12 +39,6 @@
 #define SRV_KEY_LENGTH			16
 
 #define SRV_PORT_DEF			5555
-#define SRV_HOST_DEF			INADDR_ANY
-#define SRV_DUAL_DEF			0
-
-#define SRV_FAMILY_DEF			SRV_IPV4
-#define SRV_IPV4			AF_INET
-#define SRV_IPV6			AF_INET6
 
 #define STR_GET_ACTION			"GET"
 #define STR_POST_ACTION			"POST"
@@ -95,7 +89,7 @@ struct nftlb_server {
 };
 
 static struct nftlb_server nftserver = {
-	.family	= SRV_FAMILY_DEF,
+	.family	= AF_INET,
 	.host	= NULL,
 	.port	= SRV_PORT_DEF,
 };
@@ -433,7 +427,7 @@ int server_init(void)
 	addr.sin_family = nftserver.family;
 	addr.sin_port = htons(nftserver.port);
 	if (nftserver.host == NULL)
-		addr.sin_addr.s_addr = SRV_HOST_DEF;
+		addr.sin_addr.s_addr = INADDR_ANY;
 	else
 		inet_aton(nftserver.host, &addr.sin_addr);
 
