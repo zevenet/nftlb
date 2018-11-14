@@ -79,7 +79,7 @@ struct nftlb_http_state {
 	char			*body_response;
 };
 
-const char * ws_str_responses[] = {
+static const char *ws_str_responses[] = {
 	HTTP_PROTO "500 Internal Server Error" HTTP_LINE_END,
 	HTTP_PROTO "401 Unauthorized" HTTP_LINE_END,
 	HTTP_PROTO "200 OK" HTTP_LINE_END,
@@ -94,7 +94,7 @@ struct nftlb_server {
 	int			sd;
 };
 
-struct nftlb_server nftserver = {
+static struct nftlb_server nftserver = {
 	.family	= SRV_FAMILY_DEF,
 	.host	= NULL,
 	.port	= SRV_PORT_DEF,
