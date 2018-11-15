@@ -11,4 +11,4 @@ nftlb_SOURCES = config.c	\
 		events.c	\
 		network.c	\
 		server.c
-nftlb_LDADD = ${LIBNFTABLES_LIBS} ${LIBJSON_LIBS} ${LIBMNL_LIBS}
+nftlb_LDADD = ${LIBNFTABLES_LIBS} ${LIBJSON_LIBS} ${LIBMNL_LIBS} -lev
