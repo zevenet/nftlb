@@ -1,18 +1,42 @@
 #!/bin/bash
 
 ARG="$1"
+ARG2="$2"
 NFTBIN="nft"
 NFTLBIN="../src/nftlb"
+APISERVER=0
+APISRV_PORT=5555
+APISRV_KEY="hola"
+CURL=`which curl`
 
-if [ "${ARG}" = "" ]; then
-	ARG="*.json"
+
+if [ "${ARG}" = "-s" -a -e "$CURL" ]; then
+	APISERVER=1
+elif [ "${ARG}" = "" ]; then
+	ARG2="*.json"
 fi
 
-for file in `ls ${ARG}`; do
-	echo -n "Executing test: ${file}... "
+if [ "${ARG2}" = "" ]; then
+	ARG2="*.json"
+fi
+
+if [ $APISERVER -eq 1 ]; then
 	$NFTBIN flush ruleset
-	$NFTLBIN -e -l 7 -c ${file}
-	statusexec=$?
+	$NFTLBIN -k "$APISRV_KEY" -l 7 > /dev/null &
+fi
+
+for file in `ls ${ARG2}`; do
+	echo -n "Executing test: ${file}... "
+
+	if [ $APISERVER -eq 1 ]; then
+		$CURL -H "Expect:" -H "Key: $APISRV_KEY" -X DELETE http://localhost:$APISRV_PORT/farms
+		$CURL -H "Expect:" -H "Key: $APISRV_KEY" -X POST http://localhost:$APISRV_PORT/farms -d "@$file"
+		statusexec=$?
+	else
+		$NFTBIN flush ruleset
+		$NFTLBIN -e -l 7 -c ${file}
+		statusexec=$?
+	fi
 
 	if [ $statusexec -ne 0 ]; then
 		echo -e "\e[31mNFT EXEC ERROR\e[0m"
@@ -34,5 +58,8 @@ for file in `ls ${ARG}`; do
 	else
 		echo -e "\e[31mNFT DUMP ERROR\e[0m"
 	fi
-
 done
+
+if [ $APISERVER -eq 1 ]; then
+	kill `pidof nftlb`
+fi
