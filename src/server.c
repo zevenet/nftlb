@@ -180,7 +180,7 @@ static int send_delete_response(struct nftlb_http_state *state)
 		return -1;
 	}
 
-	state->body_response = malloc(SRV_MAX_IDENT);
+	state->body_response = malloc(SRV_MAX_BUF);
 	if (!state->body_response) {
 		state->status_code = WS_HTTP_500;
 		return -1;
@@ -246,7 +246,7 @@ static int send_post_response(struct nftlb_http_state *state)
 		return -1;
 	}
 
-	if (config_buffer(state->body_response) != 0) {
+	if (config_buffer(state->body) != 0) {
 		config_print_response(&state->body_response,
 				      "error parsing buffer");
 		goto post_end;
@@ -258,7 +258,7 @@ static int send_post_response(struct nftlb_http_state *state)
 		goto post_end;
 	}
 
-	config_print_response(&state->body, "success");
+	config_print_response(&state->body_response, "success");
 
 post_end:
 	state->status_code = WS_HTTP_200;
