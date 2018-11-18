@@ -220,6 +220,20 @@ static struct if_base_rule * add_ndv_base(char *ifname)
 	return ifentry;
 }
 
+static int reset_ndv_base(void)
+{
+	unsigned int i;
+
+	for (i = 0; i < n_ndv_base_rules; i++) {
+		if (ndv_base_rules[i]->ifname)
+			free(ndv_base_rules[i]->ifname);
+		if (ndv_base_rules[i])
+			free(ndv_base_rules[i]);
+	}
+
+	return 0;
+}
+
 static unsigned int get_rules_needed(int family, int protocol, int key)
 {
 	unsigned int ret = 0;
@@ -810,9 +824,9 @@ static int del_farm_rules(struct nft_ctx *ctx, struct farm *f, int family)
 	int ret = 0;
 
 	if (f->protocol == VALUE_PROTO_ALL)
-		run_farm_rules_gen_srv(buf, f, family, f->name, ACTION_DELETE, BCK_MAP_IPADDR, BCK_MAP_NONE);
+		run_farm_rules_gen_srv(buf, f, family, print_nft_service(family, f->protocol, KEY_IFACE), ACTION_DELETE, BCK_MAP_IPADDR, BCK_MAP_NONE);
 	else
-		run_farm_rules_gen_srv(buf, f, family, f->name, ACTION_DELETE, BCK_MAP_IPADDR_PORT, BCK_MAP_NONE);
+		run_farm_rules_gen_srv(buf, f, family, print_nft_service(family, f->protocol, KEY_IFACE), ACTION_DELETE, BCK_MAP_IPADDR_PORT, BCK_MAP_NONE);
 
 	run_farm_rules_gen_chains(buf, f, f->name, family, ACTION_DELETE);
 
@@ -833,6 +847,23 @@ static int del_farm(struct nft_ctx *ctx, struct farm *f)
 	return ret;
 }
 
+int nft_reset(void)
+{
+	struct nft_ctx *ctx = nft_ctx_new(0);
+	char buf[NFTLB_MAX_CMD] = { 0 };
+	int ret = 0;
+
+	sprintf(buf, "flush ruleset");
+	exec_cmd(ctx, buf);
+
+	nft_ctx_free(ctx);
+
+	reset_ndv_base();
+	n_ndv_base_rules = 0;
+	nat_base_rules = 0;
+
+	return ret;
+}
 
 int nft_rulerize(struct farm *f)
 {

@@ -598,6 +598,9 @@ int farm_s_set_action(int action)
 	list_for_each_entry_safe(f, next, farms, list)
 		farm_set_action(f, action);
 
+	if (action == ACTION_DELETE)
+		nft_reset();
+
 	return 0;
 }
 
