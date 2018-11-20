@@ -50,6 +50,11 @@ static void config_dump_int(char *buf, int value)
 	sprintf(buf, "%d", value);
 }
 
+static void config_dump_hex(char *buf, int value)
+{
+	sprintf(buf, "0x%x", value);
+}
+
 static int config_value_family(const char *value)
 {
 	if (strcmp(value, CONFIG_VALUE_FAMILY_IPV4) == 0)
@@ -421,7 +426,7 @@ static void add_dump_list(json_t *obj, const char *objname, int object,
 			add_dump_obj(item, "helper", obj_print_helper(f->helper));
 			obj_print_log(f->log, (char *)buf);
 			add_dump_obj(item, "log", buf);
-			config_dump_int(value, f->mark);
+			config_dump_hex(value, f->mark);
 			add_dump_obj(item, "mark", value);
 			config_dump_int(value, f->priority);
 			add_dump_obj(item, "priority", value);
@@ -439,7 +444,7 @@ static void add_dump_list(json_t *obj, const char *objname, int object,
 			add_dump_obj(item, "weight", value);
 			config_dump_int(value, b->priority);
 			add_dump_obj(item, "priority", value);
-			config_dump_int(value, b->mark);
+			config_dump_hex(value, b->mark);
 			add_dump_obj(item, "mark", value);
 			add_dump_obj(item, "state", obj_print_state(b->state));
 			json_array_append_new(jarray, item);
