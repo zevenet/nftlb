@@ -422,7 +422,7 @@ static void add_dump_list(json_t *obj, const char *objname, int object,
 			obj_print_log(f->log, (char *)buf);
 			add_dump_obj(item, "log", buf);
 			config_dump_int(value, f->mark);
-			add_dump_obj(item, "mark", buf);
+			add_dump_obj(item, "mark", value);
 			config_dump_int(value, f->priority);
 			add_dump_obj(item, "priority", value);
 			add_dump_obj(item, "state", obj_print_state(f->state));
