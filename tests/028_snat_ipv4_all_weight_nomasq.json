@@ -4,7 +4,7 @@
 			"name" : "lb01",
 			"family" : "ipv4",
 			"virtual-addr" : "192.168.0.100",
-			"src-addr" : "192.168.0.101",
+			"source-addr" : "192.168.0.101",
 			"mode" : "snat",
 			"protocol" : "all",
 			"scheduler" : "weight",

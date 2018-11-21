@@ -5,7 +5,7 @@
 			"family" : "ipv4",
 			"virtual-addr" : "192.168.0.100",
 			"virtual-ports" : "80-82",
-			"src-addr" : "192.168.0.101",
+			"source-addr" : "192.168.0.101",
 			"mode" : "snat",
 			"protocol" : "udp",
 			"scheduler" : "weight",

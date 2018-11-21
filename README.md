@@ -71,6 +71,7 @@ Where every farm object has the following attributes:
 	"ether-addr": "<mac address>",			*Physical address of the virtual service (only required for DSR)*
 	"virtual-addr": "<ip address>",			*IP address for the virtual service (required)*
 	"virtual-ports": "<port list>",			*Port list separated by commas or ranges separated by a hyphen*
+	"source-addr": "<ip address>",			*Source IP address instead of masquerading*
 	"mode": "<snat | dnat | dsr>",			*Topology to be implemented (required)*
 	"protocol": "<tcp | udp | sctp | all>",		*Protocol to be used by the virtual service (tcp by default)*
 	"scheduler": "<weight | rr | hash | symhash>",	*Scheduler to be used (round robin by default)*
