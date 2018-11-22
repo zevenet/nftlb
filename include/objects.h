@@ -108,6 +108,6 @@ char * obj_print_state(int state);
 int obj_set_attribute(struct config_pair *c, int actionable);
 int obj_set_attribute_string(char *src, char **dst);
 void obj_print(void);
-void obj_rulerize(void);
+int obj_rulerize(void);
 
 #endif /* _OBJECTS_H_ */

@@ -101,6 +101,7 @@ struct config_pair {
 	int		int_value;
 };
 
+void config_pair_init(struct config_pair *c);
 int config_file(const char *file);
 int config_buffer(const char *buf);
 int config_print_farms(char **buf, char *name);

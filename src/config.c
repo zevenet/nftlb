@@ -339,6 +339,17 @@ static void config_json(json_t *element, int level, int source)
 	}
 }
 
+void config_pair_init(struct config_pair *c)
+{
+	if (!c)
+		return;
+
+	c->level = -1;
+	c->key = -1;
+	c->str_value = NULL;
+	c->int_value = -1;
+}
+
 int config_file(const char *file)
 {
 	FILE		*fd;
