@@ -625,7 +625,7 @@ static int run_farm_rules_gen_srv(char *buf, struct farm *f, int family, char * 
 		list_for_each_entry(b, &f->backends, list) {
 			if(!backend_is_available(b))
 				continue;
-			sprintf(buf, "%s ; add element %s %s %s { %s %s}", buf, print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, name, b->ipaddr, data_str);
+			sprintf(buf, "%s ; %s element %s %s %s { %s %s}", buf, action_str, print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, name, b->ipaddr, data_str);
 		}
 		break;
 	case BCK_MAP_IPADDR_PORT:
@@ -639,7 +639,7 @@ static int run_farm_rules_gen_srv(char *buf, struct farm *f, int family, char * 
 			list_for_each_entry(b, &f->backends, list) {
 				if(!backend_is_available(b))
 					continue;
-				sprintf(buf, "%s ; add element %s %s %s { %s . %d %s}", buf, print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, name, b->ipaddr, port_list[i], data_str);
+				sprintf(buf, "%s ; %s element %s %s %s { %s . %d %s}", buf, action_str, print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, name, b->ipaddr, port_list[i], data_str);
 			}
 		}
 		break;
@@ -741,7 +741,7 @@ avoidrules:
 	return 0;
 }
 
-static int run_farm_snat(struct nft_ctx *ctx, struct farm *f, int family)
+static int run_farm_snat(struct nft_ctx *ctx, struct farm *f, int family, int action)
 {
 	char buf[NFTLB_MAX_CMD] = { 0 };
 	char name[255] = { 0 };
@@ -752,9 +752,9 @@ static int run_farm_snat(struct nft_ctx *ctx, struct farm *f, int family)
 	sprintf(name, "%s-back", print_nft_service(family, f->protocol, KEY_IFACE));
 
 	if (f->protocol == VALUE_PROTO_ALL)
-		run_farm_rules_gen_srv(buf, f, family, name, ACTION_START, BCK_MAP_BCK_IPADDR, BCK_MAP_SRCIPADDR);
+		run_farm_rules_gen_srv(buf, f, family, name, action, BCK_MAP_BCK_IPADDR, BCK_MAP_SRCIPADDR);
 	else
-		run_farm_rules_gen_srv(buf, f, family, name, ACTION_START, BCK_MAP_BCK_IPADDR_F_PORT, BCK_MAP_SRCIPADDR);
+		run_farm_rules_gen_srv(buf, f, family, name, action, BCK_MAP_BCK_IPADDR_F_PORT, BCK_MAP_SRCIPADDR);
 
 	exec_cmd(ctx, buf);
 
@@ -764,11 +764,21 @@ static int run_farm_snat(struct nft_ctx *ctx, struct farm *f, int family)
 static int run_farm_stlsnat(struct nft_ctx *ctx, struct farm *f, int family, int action)
 {
 	char buf[NFTLB_MAX_CMD] = { 0 };
+	char action_str[255] = { 0 };
 	char name[255] = { 0 };
+
+	switch (action) {
+	case ACTION_DELETE:
+		sprintf(action_str, "delete");
+		break;
+	default:
+		sprintf(action_str, "add");
+		break;
+	}
 
 	sprintf(name, "%s-back", f->name);
 	run_farm_rules_gen_chains(buf, f, name, family, action);
-	sprintf(buf, "%s ; add rule %s %s %s %s saddr set %s fwd to %s", buf, print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, name, print_nft_family(family), f->virtaddr, f->iface);
+	sprintf(buf, "%s ; %s rule %s %s %s %s saddr set %s fwd to %s", buf, action_str, print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, name, print_nft_family(family), f->virtaddr, f->iface);
 
 	run_farm_rules_gen_srv(buf, f, family, print_nft_service(family, f->protocol, KEY_OFACE), ACTION_START, BCK_MAP_BCK_IPADDR, BCK_MAP_NAME_BACK);
 
@@ -799,10 +809,10 @@ static int run_farm(struct nft_ctx *ctx, struct farm *f, int action)
 
 	if (f->mode == VALUE_MODE_SNAT) {
 		if ((f->family == VALUE_FAMILY_IPV4) || (f->family == VALUE_FAMILY_INET)) {
-			run_farm_snat(ctx, f, VALUE_FAMILY_IPV4);
+			run_farm_snat(ctx, f, VALUE_FAMILY_IPV4, action);
 		}
 		if ((f->family == VALUE_FAMILY_IPV6) || (f->family == VALUE_FAMILY_INET)) {
-			run_farm_snat(ctx, f, VALUE_FAMILY_IPV6);
+			run_farm_snat(ctx, f, VALUE_FAMILY_IPV6, action);
 		}
 	}
 
@@ -843,6 +853,24 @@ static int del_farm(struct nft_ctx *ctx, struct farm *f)
 		del_farm_rules(ctx, f, VALUE_FAMILY_IPV4);
 	if ((f->family == VALUE_FAMILY_IPV6) || (f->family == VALUE_FAMILY_INET))
 		del_farm_rules(ctx, f, VALUE_FAMILY_IPV6);
+
+	if (f->mode == VALUE_MODE_SNAT) {
+		if ((f->family == VALUE_FAMILY_IPV4) || (f->family == VALUE_FAMILY_INET)) {
+			run_farm_snat(ctx, f, VALUE_FAMILY_IPV4, ACTION_DELETE);
+		}
+		if ((f->family == VALUE_FAMILY_IPV6) || (f->family == VALUE_FAMILY_INET)) {
+			run_farm_snat(ctx, f, VALUE_FAMILY_IPV6, ACTION_DELETE);
+		}
+	}
+
+	if (f->mode == VALUE_MODE_STLSDNAT) {
+		if ((f->family == VALUE_FAMILY_IPV4) || (f->family == VALUE_FAMILY_INET)) {
+			run_farm_stlsnat(ctx, f, VALUE_FAMILY_IPV4, ACTION_DELETE);
+		}
+		if ((f->family == VALUE_FAMILY_IPV6) || (f->family == VALUE_FAMILY_INET)) {
+			run_farm_stlsnat(ctx, f, VALUE_FAMILY_IPV6, ACTION_DELETE);
+		}
+	}
 
 	return ret;
 }
