@@ -240,7 +240,7 @@ int obj_set_attribute(struct config_pair *c, int actionable)
 
 int obj_set_attribute_string(char *src, char **dst)
 {
-	*dst = (char *)malloc(strlen(src));
+	*dst = (char *)malloc(strlen(src)+1);
 
 	if (!*dst) {
 		syslog(LOG_ERR, "Attribute memory allocation error");

@@ -457,7 +457,7 @@ void server_fini(void)
 
 void server_set_host(char *host)
 {
-	nftserver.host = malloc(strlen(host));
+	nftserver.host = malloc(strlen(host)+1);
 
 	if (!nftserver.host) {
 		syslog(LOG_ERR, "No memory available to allocate the server host");
