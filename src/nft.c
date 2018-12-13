@@ -595,11 +595,14 @@ static int run_farm_rules_gen_srv(char *buf, struct farm *f, int family, char * 
 	int i;
 
 	switch (action) {
+	case ACTION_RELOAD:
+	case ACTION_START:
+		sprintf(action_str, "add");
+		break;
 	case ACTION_DELETE:
 		sprintf(action_str, "delete");
 		break;
 	default:
-		sprintf(action_str, "add");
 		break;
 	}
 
@@ -623,6 +626,8 @@ static int run_farm_rules_gen_srv(char *buf, struct farm *f, int family, char * 
 		break;
 	case BCK_MAP_BCK_IPADDR:
 		list_for_each_entry(b, &f->backends, list) {
+			if (b->action == ACTION_STOP || b->action == ACTION_DELETE)
+				sprintf(buf, "%s ; delete element %s %s %s { %s }", buf, print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, name, b->ipaddr);
 			if(!backend_is_available(b))
 				continue;
 			sprintf(buf, "%s ; %s element %s %s %s { %s %s}", buf, action_str, print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, name, b->ipaddr, data_str);
@@ -637,6 +642,8 @@ static int run_farm_rules_gen_srv(char *buf, struct farm *f, int family, char * 
 		nports = get_array_ports(port_list, f);
 		for (i = 0; i < nports; i++) {
 			list_for_each_entry(b, &f->backends, list) {
+				if (b->action == ACTION_STOP || b->action == ACTION_DELETE)
+					sprintf(buf, "%s ; delete element %s %s %s { %s . %d }", buf, print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, name, b->ipaddr, port_list[i]);
 				if(!backend_is_available(b))
 					continue;
 				sprintf(buf, "%s ; %s element %s %s %s { %s . %d %s}", buf, action_str, print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, name, b->ipaddr, port_list[i], data_str);

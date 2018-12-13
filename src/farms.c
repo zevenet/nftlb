@@ -483,7 +483,6 @@ int farm_pos_actionable(struct config_pair *c)
 		farm_set_action(f, ACTION_START);
 		break;
 	case KEY_STATE:
-		break;
 	default:
 		farm_set_action(f, ACTION_RELOAD);
 		return 0;

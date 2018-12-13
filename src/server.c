@@ -187,7 +187,7 @@ static int send_delete_response(struct nftlb_http_state *state)
 	}
 
 	if (strcmp(bcks,CONFIG_KEY_BCKS) == 0) {
-		ret = config_set_backend_action(farm, bck, CONFIG_VALUE_ACTION_DELETE);
+		ret = config_set_backend_action(farm, bck, CONFIG_VALUE_ACTION_STOP);
 		if (ret != 0) {
 			config_print_response(&state->body_response,
 					      "error deleting backend");
@@ -200,9 +200,10 @@ static int send_delete_response(struct nftlb_http_state *state)
 			goto delete_end;
 		}
 		ret = obj_rulerize();
+		ret = config_set_backend_action(farm, bck, CONFIG_VALUE_ACTION_DELETE);
 		if (ret != 0) {
 			config_print_response(&state->body_response,
-					      "error generating rules");
+					      "error deleting backend");
 			goto delete_end;
 		}
 	} else {
@@ -213,11 +214,6 @@ static int send_delete_response(struct nftlb_http_state *state)
 			goto delete_end;
 		}
 		ret = obj_rulerize();
-		if (ret != 0) {
-			config_print_response(&state->body_response,
-					      "error generating rules");
-			goto delete_end;
-		}
 		config_set_farm_action(farm, CONFIG_VALUE_ACTION_DELETE);
 		if (ret != 0) {
 			config_print_response(&state->body_response,

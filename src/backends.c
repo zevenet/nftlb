@@ -119,6 +119,7 @@ void backend_s_print(struct farm *f)
 		syslog(LOG_DEBUG,"       [weight] %d", b->weight);
 		syslog(LOG_DEBUG,"       [priority] %d", b->priority);
 		syslog(LOG_DEBUG,"       [state] %s", obj_print_state(b->state));
+		syslog(LOG_DEBUG,"      *[action] %d", b->action);
 	}
 }
 
@@ -231,12 +232,12 @@ static int backend_set_mark(struct backend *b, int new_value)
 	syslog(LOG_DEBUG, "%s():%d: current value is %d, but new value will be %d",
 	       __FUNCTION__, __LINE__, old_value, new_value);
 
+	b->mark = new_value;
+
 	if (b->mark != DEFAULT_MARK)
 		b->parent->bcks_are_marked = 1;
 	else
 		backend_s_set_marked(b->parent);
-
-	b->mark = new_value;
 
 	return 0;
 }
@@ -255,6 +256,12 @@ int backend_set_action(struct backend *b, int action)
 {
 	if (action == ACTION_DELETE) {
 		backend_delete(b);
+		return 1;
+	}
+
+	if (action == ACTION_STOP) {
+		b->action = action;
+		backend_set_state(b, VALUE_STATE_OFF);
 		return 1;
 	}
 
@@ -378,9 +385,11 @@ static int backend_switch(struct backend *b, int new_state)
 	if (b->state == VALUE_STATE_UP) {
 		f->total_weight += b->weight;
 		f->bcks_available++;
+		b->action = ACTION_START;
 	} else {
 		f->total_weight -= b->weight;
 		f->bcks_available--;
+		b->action = ACTION_STOP;
 	}
 
 	return 0;
