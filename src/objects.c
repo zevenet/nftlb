@@ -226,10 +226,13 @@ int obj_set_attribute(struct config_pair *c, int actionable)
 			farm_pos_actionable(c);
 		break;
 	case LEVEL_BCKS:
+		if (actionable)
+			bck_pre_actionable(c);
+
 		backend_set_attribute(c);
 
 		if (actionable)
-			farm_pos_actionable(c);
+			bck_pos_actionable(c);
 		break;
 	default:
 		return -1;

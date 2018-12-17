@@ -265,6 +265,13 @@ int backend_set_action(struct backend *b, int action)
 		return 1;
 	}
 
+	if (action == ACTION_START) {
+		b->action = action;
+		backend_set_state(b, VALUE_STATE_UP);
+		return 1;
+	}
+
+
 	if (b->action > action) {
 		b->action = action;
 		return 1;
@@ -482,3 +489,80 @@ struct backend * backend_get_first(struct farm *f)
 	return list_first_entry(&f->backends, struct backend, list);
 }
 
+int bck_pre_actionable(struct config_pair *c)
+{
+	struct obj_config *cur = obj_get_current_object();
+	struct farm *f;
+	struct backend *b;
+
+	if (!cur->fptr || !cur->bptr)
+		return -1;
+
+	f = cur->fptr;
+	b = cur->bptr;
+
+	syslog(LOG_DEBUG, "%s():%d: pre actionable backend %s of farm %s with param %d", __FUNCTION__, __LINE__, b->name, f->name, c->key);
+
+	switch (c->key) {
+	case KEY_NAME:
+		break;
+	case KEY_ETHADDR:
+	case KEY_IPADDR:
+	case KEY_PRIORITY:
+
+		if (backend_set_action(b, ACTION_STOP) &&
+			farm_set_action(f, ACTION_RELOAD)) {
+			farm_rulerize(f);
+		}
+
+		break;
+	case KEY_STATE:
+	case KEY_MARK:
+	case KEY_WEIGHT:
+	default:
+		break;
+	}
+
+	return 0;
+}
+
+int bck_pos_actionable(struct config_pair *c)
+{
+	struct obj_config *cur = obj_get_current_object();
+	struct farm *f;
+	struct backend *b;
+
+	if (!cur->fptr || !cur->bptr)
+		return -1;
+
+	f = cur->fptr;
+	b = cur->bptr;
+
+	syslog(LOG_DEBUG, "%s():%d: pre actionable backend %s of farm %s with param %d", __FUNCTION__, __LINE__, b->name, f->name, c->key);
+
+	switch (c->key) {
+	case KEY_NAME:
+		break;
+	case KEY_ETHADDR:
+	case KEY_IPADDR:
+	case KEY_PRIORITY:
+
+		if (backend_set_action(b, ACTION_START) &&
+			farm_set_action(f, ACTION_RELOAD)) {
+			farm_rulerize(f);
+		}
+
+		break;
+	case KEY_STATE:
+	case KEY_MARK:
+	case KEY_WEIGHT:
+
+		farm_set_action(f, ACTION_RELOAD);
+
+		break;
+	default:
+		break;
+	}
+
+	return 0;
+}
