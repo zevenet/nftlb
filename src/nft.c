@@ -599,6 +599,7 @@ static int run_farm_rules_gen_srv(char *buf, struct farm *f, int family, char * 
 	case ACTION_START:
 		sprintf(action_str, "add");
 		break;
+	case ACTION_STOP:
 	case ACTION_DELETE:
 		sprintf(action_str, "delete");
 		break;
@@ -882,6 +883,19 @@ static int del_farm(struct nft_ctx *ctx, struct farm *f)
 	return ret;
 }
 
+static int nft_actions_done(struct farm *f)
+{
+	struct backend *b;
+
+	list_for_each_entry(b, &f->backends, list) {
+		b->action = ACTION_NONE;
+	}
+
+	f->action = ACTION_NONE;
+
+	return 0;
+}
+
 int nft_reset(void)
 {
 	struct nft_ctx *ctx = nft_ctx_new(0);
@@ -919,7 +933,7 @@ int nft_rulerize(struct farm *f)
 		break;
 	}
 
-	f->action = ACTION_NONE;
+	nft_actions_done(f);
 
 	nft_ctx_free(ctx);
 
