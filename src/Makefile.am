@@ -4,6 +4,7 @@ sbin_PROGRAMS = nftlb
 
 nftlb_SOURCES = config.c	\
 		main.c		\
+		sbuffer.c	\
 		objects.c	\
 		farms.c		\
 		backends.c	\
