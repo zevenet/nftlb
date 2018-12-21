@@ -113,7 +113,7 @@ int concat_buf(struct sbuffer *buf, char *fmt, ...)
 		times = ((buf->next + len - buf->size) / EXTRA_SIZE) + 1;
 
 	if (resize_buf(buf, times)) {
-		syslog(LOG_ERR, "Error in resizing the buffer %d times from a size of %d!", __FUNCTION__, __LINE__, times, buf->size);
+		syslog(LOG_ERR, "Error resizing the buffer %d times from a size of %d!", times, buf->size);
 		return 1;
 	}
 
