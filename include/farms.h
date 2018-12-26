@@ -119,6 +119,7 @@ struct farm {
 
 struct list_head * farm_s_get_head(void);
 void farm_s_print(void);
+int farm_is_ingress_mode(struct farm *f);
 int farm_set_ifinfo(struct farm *f, int key);
 struct farm * farm_lookup_by_name(const char *name);
 

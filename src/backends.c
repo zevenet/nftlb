@@ -242,6 +242,23 @@ static int backend_set_mark(struct backend *b, int new_value)
 	return 0;
 }
 
+static int backend_validate(struct backend *b)
+{
+	struct farm *f = b->parent;
+
+	syslog(LOG_DEBUG, "%s():%d: validating backend %s of farm %s",
+	       __FUNCTION__, __LINE__, b->name, f->name);
+
+	if (!b->ipaddr || strcmp(b->ipaddr, "") == 0)
+		return 0;
+
+	if (farm_is_ingress_mode(f) &&
+		(!b->ethaddr || strcmp(b->ethaddr, "") == 0))
+		return 0;
+
+	return 1;
+}
+
 int backend_is_available(struct backend *b)
 {
 	struct farm *f = b->parent;
@@ -249,7 +266,9 @@ int backend_is_available(struct backend *b)
 	syslog(LOG_DEBUG, "%s():%d: backend %s state is %s and priority %d",
 	       __FUNCTION__, __LINE__, b->name, obj_print_state(b->state), b->priority);
 
-	return (b->state == VALUE_STATE_UP) && (b->priority <= f->priority);
+	return (b->state == VALUE_STATE_UP) &&
+			(b->priority <= f->priority) &&
+			(backend_validate(b));
 }
 
 int backend_set_action(struct backend *b, int action)
@@ -362,24 +381,6 @@ int backend_set_attribute(struct config_pair *c)
 	}
 
 	return 0;
-}
-
-static int backend_validate(struct backend *b)
-{
-	struct farm *f = b->parent;
-
-	syslog(LOG_DEBUG, "%s():%d: validating farm %s backend %s",
-	       __FUNCTION__, __LINE__, f->name, b->name);
-
-	if (!b->ipaddr || strcmp(b->ipaddr, "") == 0)
-		return 0;
-
-	if (f->mode == VALUE_MODE_DSR &&
-		(!b->ethaddr ||
-		strcmp(b->ethaddr, "") == 0))
-		return 0;
-
-	return 1;
 }
 
 static int backend_switch(struct backend *b, int new_state)
@@ -503,6 +504,9 @@ int bck_pre_actionable(struct config_pair *c)
 
 	syslog(LOG_DEBUG, "%s():%d: pre actionable backend %s of farm %s with param %d", __FUNCTION__, __LINE__, b->name, f->name, c->key);
 
+	if (!backend_is_available(b))
+		return 0;
+
 	switch (c->key) {
 	case KEY_NAME:
 		break;
@@ -539,6 +543,9 @@ int bck_pos_actionable(struct config_pair *c)
 	b = cur->bptr;
 
 	syslog(LOG_DEBUG, "%s():%d: pre actionable backend %s of farm %s with param %d", __FUNCTION__, __LINE__, b->name, f->name, c->key);
+
+	if (!backend_is_available(b))
+		return 0;
 
 	switch (c->key) {
 	case KEY_NAME:

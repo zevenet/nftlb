@@ -107,12 +107,6 @@ static int farm_delete(struct farm *pfarm)
 	return 0;
 }
 
-static int farm_is_ingress_mode(struct farm *f)
-{
-	syslog(LOG_DEBUG, "%s():%d: farm %s is in ingress mode?", __FUNCTION__, __LINE__, f->name);
-	return (f->mode == VALUE_MODE_DSR || f->mode == VALUE_MODE_STLSDNAT);
-}
-
 static int farm_validate(struct farm *f)
 {
 	syslog(LOG_DEBUG, "%s():%d: validating farm %s",
@@ -333,6 +327,12 @@ struct farm * farm_lookup_by_name(const char *name)
 	}
 
 	return NULL;
+}
+
+int farm_is_ingress_mode(struct farm *f)
+{
+	syslog(LOG_DEBUG, "%s():%d: farm %s is in ingress mode?", __FUNCTION__, __LINE__, f->name);
+	return (f->mode == VALUE_MODE_DSR || f->mode == VALUE_MODE_STLSDNAT);
 }
 
 int farm_set_ifinfo(struct farm *f, int key)
