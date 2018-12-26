@@ -184,13 +184,15 @@ void obj_print_log(int log, char* buf)
 	}
 
 	if (log & VALUE_LOG_INPUT)
-		sprintf(buf, "%s", CONFIG_VALUE_LOG_INPUT);
+		sprintf(buf, "%s ", CONFIG_VALUE_LOG_INPUT);
 
-	if (log & VALUE_LOG_FORWARD)
-		sprintf(buf, "%s %s", buf, CONFIG_VALUE_LOG_FORWARD);
+	if (log & VALUE_LOG_FORWARD) {
+		strcat(buf, CONFIG_VALUE_LOG_FORWARD);
+		strcat(buf, " ");
+	}
 
 	if (log & VALUE_LOG_OUTPUT)
-		sprintf(buf, "%s %s", buf, CONFIG_VALUE_LOG_OUTPUT);
+		strcat(buf, CONFIG_VALUE_LOG_OUTPUT);
 
 	return;
 }
