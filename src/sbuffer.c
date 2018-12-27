@@ -120,7 +120,7 @@ int concat_buf(struct sbuffer *buf, char *fmt, ...)
 	pnext = get_buf_next(buf);
 
 	va_start(args, fmt);
-    vsnprintf(pnext, len + 1, fmt, args);
+	vsnprintf(pnext, len + 1, fmt, args);
 	va_end(args);
 
 	buf->next += len;
