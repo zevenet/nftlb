@@ -9,15 +9,18 @@ APISRV_PORT=5555
 APISRV_KEY="hola"
 CURL=`which curl`
 
+FILES=""
 
 if [ "${ARG}" = "-s" -a -e "$CURL" ]; then
 	APISERVER=1
+elif [[ ${ARG} =~ '.json' ]]; then
+	FILES="${ARG}"
 elif [ "${ARG}" = "" ]; then
-	ARG2="*.json"
+	FILES="*.json"
 fi
 
-if [ "${ARG2}" = "" ]; then
-	ARG2="*.json"
+if [ "$FILES" = "" -a "${ARG2}" = "" ]; then
+	FILES="*.json"
 fi
 
 if [ $APISERVER -eq 1 ]; then
@@ -25,7 +28,7 @@ if [ $APISERVER -eq 1 ]; then
 	$NFTLBIN -k "$APISRV_KEY" -l 7 > /dev/null &
 fi
 
-for file in `ls ${ARG2}`; do
+for file in `ls ${FILES}`; do
 	echo -n "Executing test: ${file}... "
 
 	if [ $APISERVER -eq 1 ]; then
