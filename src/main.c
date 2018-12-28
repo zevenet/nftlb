@@ -119,6 +119,8 @@ int main(int argc, char *argv[])
 	    signal(SIGPIPE, SIG_IGN) == SIG_ERR)
 		return EXIT_FAILURE;
 
+	setlogmask(LOG_UPTO(loglevel));
+
 	objects_init();
 
 	loop_init();
