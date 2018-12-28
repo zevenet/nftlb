@@ -36,6 +36,7 @@
 #define DEFAULT_MODE		VALUE_MODE_SNAT
 #define DEFAULT_PROTO		VALUE_PROTO_TCP
 #define DEFAULT_SCHED		VALUE_SCHED_RR
+#define DEFAULT_SCHEDPARAM	VALUE_SCHEDPARAM_SRCIP
 #define DEFAULT_HELPER		VALUE_HELPER_NONE
 #define DEFAULT_LOG			VALUE_LOG_NONE
 #define DEFAULT_MARK		0x0
@@ -68,6 +69,7 @@ enum keys {
 	KEY_MODE,
 	KEY_PROTO,
 	KEY_SCHED,
+	KEY_SCHEDPARAM,
 	KEY_HELPER,
 	KEY_LOG,
 	KEY_MARK,
@@ -102,6 +104,7 @@ char * obj_print_family(int family);
 char * obj_print_mode(int mode);
 char * obj_print_proto(int protocol);
 char * obj_print_sched(int scheduler);
+void obj_print_schedparam(int param, char* buf);
 char * obj_print_helper(int helper);
 void obj_print_log(int log, char *buf);
 char * obj_print_state(int state);

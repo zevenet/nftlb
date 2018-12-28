@@ -109,6 +109,31 @@ static int config_value_sched(const char *value)
 	return -1;
 }
 
+static int config_value_schedparam(const char *value)
+{
+	int parmask = 0;
+
+	if (strstr(value, CONFIG_VALUE_SCHEDPARAM_NONE) != NULL) {
+		parmask = VALUE_SCHEDPARAM_NONE;
+		return parmask;
+	}
+
+	if (strstr(value, CONFIG_VALUE_SCHEDPARAM_SRCIP) != NULL)
+		parmask |= VALUE_SCHEDPARAM_SRCIP;
+	if (strstr(value, CONFIG_VALUE_SCHEDPARAM_DSTIP) != NULL)
+		parmask |= VALUE_SCHEDPARAM_DSTIP;
+	if (strstr(value, CONFIG_VALUE_SCHEDPARAM_SRCPORT) != NULL)
+		parmask |= VALUE_SCHEDPARAM_SRCPORT;
+	if (strstr(value, CONFIG_VALUE_SCHEDPARAM_DSTPORT) != NULL)
+		parmask |= VALUE_SCHEDPARAM_DSTPORT;
+	if (strstr(value, CONFIG_VALUE_SCHEDPARAM_SRCMAC) != NULL)
+		parmask |= VALUE_SCHEDPARAM_SRCMAC;
+	if (strstr(value, CONFIG_VALUE_SCHEDPARAM_DSTMAC) != NULL)
+		parmask |= VALUE_SCHEDPARAM_DSTMAC;
+
+	return parmask;
+}
+
 static int config_value_helper(const char *value)
 {
 	if (strcmp(value, CONFIG_VALUE_HELPER_NONE) == 0)
@@ -199,6 +224,9 @@ static void config_value(const char *value)
 	case KEY_SCHED:
 		c.int_value = config_value_sched(value);
 		break;
+	case KEY_SCHEDPARAM:
+		c.int_value = config_value_schedparam(value);
+		break;
 	case KEY_HELPER:
 		c.int_value = config_value_helper(value);
 		break;
@@ -258,6 +286,8 @@ static int config_key(const char *key)
 		return KEY_PROTO;
 	if (strcmp(key, CONFIG_KEY_SCHED) == 0)
 		return KEY_SCHED;
+	if (strcmp(key, CONFIG_KEY_SCHEDPARAM) == 0)
+		return KEY_SCHEDPARAM;
 	if (strcmp(key, CONFIG_KEY_HELPER) == 0)
 		return KEY_HELPER;
 	if (strcmp(key, CONFIG_KEY_LOG) == 0)
@@ -429,14 +459,23 @@ static void add_dump_list(json_t *obj, const char *objname, int object,
 			add_dump_obj(item, "family", obj_print_family(f->family));
 			add_dump_obj(item, "virtual-addr", f->virtaddr);
 			add_dump_obj(item, "virtual-ports", f->virtports);
+
 			if (f->srcaddr)
 				add_dump_obj(item, "source-addr", f->srcaddr);
+
 			add_dump_obj(item, "mode", obj_print_mode(f->mode));
 			add_dump_obj(item, "protocol", obj_print_proto(f->protocol));
 			add_dump_obj(item, "scheduler", obj_print_sched(f->scheduler));
+
+			obj_print_schedparam(f->schedparam, (char *)buf);
+			add_dump_obj(item, "sched-param", buf);
+			buf[0] = '\0';
+
 			add_dump_obj(item, "helper", obj_print_helper(f->helper));
+
 			obj_print_log(f->log, (char *)buf);
 			add_dump_obj(item, "log", buf);
+
 			config_dump_hex(value, f->mark);
 			add_dump_obj(item, "mark", value);
 			config_dump_int(value, f->priority);

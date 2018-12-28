@@ -62,6 +62,7 @@ static struct farm * farm_create(char *name)
 	pfarm->mode = DEFAULT_MODE;
 	pfarm->protocol = DEFAULT_PROTO;
 	pfarm->scheduler = DEFAULT_SCHED;
+	pfarm->schedparam = DEFAULT_SCHEDPARAM;
 	pfarm->helper = DEFAULT_HELPER;
 	pfarm->log = DEFAULT_LOG;
 	pfarm->mark = DEFAULT_MARK;
@@ -290,9 +291,16 @@ static void farm_print(struct farm *f)
 	syslog(LOG_DEBUG,"    [mode] %s", obj_print_mode(f->mode));
 	syslog(LOG_DEBUG,"    [protocol] %s", obj_print_proto(f->protocol));
 	syslog(LOG_DEBUG,"    [scheduler] %s", obj_print_sched(f->scheduler));
+
+	obj_print_schedparam(f->schedparam, (char *)buf);
+	syslog(LOG_DEBUG,"    [schedparam] %s", buf);
+	buf[0] = '\0';
+
 	syslog(LOG_DEBUG,"    [helper] %s", obj_print_helper(f->helper));
+
 	obj_print_log(f->log, (char *)buf);
 	syslog(LOG_DEBUG,"    [log] %s", buf);
+
 	syslog(LOG_DEBUG,"    [mark] 0x%x", f->mark);
 	syslog(LOG_DEBUG,"    [state] %s", obj_print_state(f->state));
 	syslog(LOG_DEBUG,"    [priority] %d", f->priority);
@@ -546,6 +554,9 @@ int farm_set_attribute(struct config_pair *c)
 		break;
 	case KEY_SCHED:
 		f->scheduler = c->int_value;
+		break;
+	case KEY_SCHEDPARAM:
+		f->schedparam = c->int_value;
 		break;
 	case KEY_HELPER:
 		f->helper = c->int_value;

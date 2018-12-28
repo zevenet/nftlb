@@ -478,6 +478,53 @@ static void run_farm_rules_gen_chains(struct sbuffer *buf, struct farm *f, char 
 	}
 }
 
+static int run_farm_rules_gen_sched_param(struct sbuffer *buf, struct farm *f, int family)
+{
+	int items = 0;
+
+	if ((f->schedparam & VALUE_SCHEDPARAM_NONE) ||
+		(f->schedparam & VALUE_SCHEDPARAM_SRCIP)) {
+		concat_buf(buf, " %s saddr", print_nft_family(family));
+		items++;
+	}
+
+	if (f->schedparam & VALUE_SCHEDPARAM_DSTIP) {
+		if (items)
+			concat_buf(buf, " .");
+		concat_buf(buf, " %s daddr", print_nft_family(family));
+		items++;
+	}
+
+	if (f->schedparam & VALUE_SCHEDPARAM_SRCPORT) {
+		if (items)
+			concat_buf(buf, " .");
+		concat_buf(buf, " %s sport", print_nft_protocol(f->protocol));
+		items++;
+	}
+
+	if (f->schedparam & VALUE_SCHEDPARAM_DSTPORT) {
+		if (items)
+			concat_buf(buf, " .");
+		concat_buf(buf, " %s dport", print_nft_protocol(f->protocol));
+		items++;
+	}
+
+	if (f->schedparam & VALUE_SCHEDPARAM_SRCMAC) {
+		if (items)
+			concat_buf(buf, " .");
+		concat_buf(buf, " ether saddr");
+		items++;
+	}
+
+	if (f->schedparam & VALUE_SCHEDPARAM_DSTMAC) {
+		if (items)
+			concat_buf(buf, " .");
+		concat_buf(buf, " ether daddr");
+	}
+
+	return 0;
+}
+
 static int run_farm_rules_gen_sched(struct sbuffer *buf, struct farm *f, int family)
 {
 	switch (f->scheduler) {
@@ -488,11 +535,9 @@ static int run_farm_rules_gen_sched(struct sbuffer *buf, struct farm *f, int fam
 		concat_buf(buf, " numgen random mod %d", f->total_weight);
 		break;
 	case VALUE_SCHED_HASH:
-		if ((f->protocol != VALUE_PROTO_TCP || f->protocol == VALUE_PROTO_SCTP) &&
-		    (f->mode == VALUE_MODE_DSR || f->mode == VALUE_MODE_STLSDNAT))
-			concat_buf(buf, " jhash %s saddr . %s sport mod %d", print_nft_family(family), print_nft_protocol(f->protocol), f->total_weight);
-		else
-			concat_buf(buf, " jhash %s saddr mod %d", print_nft_family(family), f->total_weight);
+		concat_buf(buf, " jhash");
+		run_farm_rules_gen_sched_param(buf, f, family);
+		concat_buf(buf, " mod %d", f->total_weight);
 		break;
 	case VALUE_SCHED_SYMHASH:
 		concat_buf(buf, " symhash mod %d", f->total_weight);

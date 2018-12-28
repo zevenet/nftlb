@@ -81,6 +81,14 @@ enum actions {
 	ACTION_NONE,
 };
 
+#define VALUE_SCHEDPARAM_NONE		0
+#define VALUE_SCHEDPARAM_SRCIP		(1 << 0)
+#define VALUE_SCHEDPARAM_DSTIP		(1 << 1)
+#define VALUE_SCHEDPARAM_SRCPORT	(1 << 2)
+#define VALUE_SCHEDPARAM_DSTPORT	(1 << 3)
+#define VALUE_SCHEDPARAM_SRCMAC		(1 << 4)
+#define VALUE_SCHEDPARAM_DSTMAC		(1 << 5)
+
 #define VALUE_LOG_NONE			0
 #define VALUE_LOG_INPUT			(1 << 0)
 #define VALUE_LOG_FORWARD		(1 << 1)
@@ -104,6 +112,7 @@ struct farm {
 	int			mode;
 	int			protocol;
 	int			scheduler;
+	int			schedparam;
 	int			helper;
 	int			log;
 	int			mark;

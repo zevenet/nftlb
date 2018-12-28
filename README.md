@@ -75,6 +75,7 @@ Where every farm object has the following attributes:
 	"mode": "<snat | dnat | dsr>",			*Topology to be implemented (required)*
 	"protocol": "<tcp | udp | sctp | all>",		*Protocol to be used by the virtual service (tcp by default)*
 	"scheduler": "<weight | rr | hash | symhash>",	*Scheduler to be used (round robin by default)*
+	"sched-param": "<srcip | dstip | srcport | dstport | srcmac | dstmac | none>",	*Hash input parameters (none by default)*
 	"helper": "<none | amanda | ftp | h323 | irc | netbios-ns | pptp | sane | sip | snmp | tftp>",	*L7 helper to be used (none by default)*
 	"log": "<none | input | forward | output>",	*Enable logging (none by default)*
 	"mark": "<hexadecimal mark>",			*Set mark mask for the farm (none by default)*

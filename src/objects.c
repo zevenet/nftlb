@@ -146,6 +146,46 @@ char * obj_print_sched(int scheduler)
 	}
 }
 
+void obj_print_schedparam(int param, char* buf)
+{
+	if (param == 0) {
+		sprintf(buf, "%s", CONFIG_VALUE_SCHEDPARAM_NONE);
+		return;
+	}
+
+	if (param & VALUE_SCHEDPARAM_SRCIP) {
+		strcat(buf, CONFIG_VALUE_SCHEDPARAM_SRCIP);
+		strcat(buf, " ");
+	}
+
+	if (param & VALUE_SCHEDPARAM_DSTIP) {
+		strcat(buf, CONFIG_VALUE_SCHEDPARAM_DSTIP);
+		strcat(buf, " ");
+	}
+
+	if (param & VALUE_SCHEDPARAM_SRCPORT) {
+		strcat(buf, CONFIG_VALUE_SCHEDPARAM_SRCPORT);
+		strcat(buf, " ");
+	}
+
+	if (param & VALUE_SCHEDPARAM_DSTPORT) {
+		strcat(buf, CONFIG_VALUE_SCHEDPARAM_DSTPORT);
+		strcat(buf, " ");
+	}
+
+	if (param & VALUE_SCHEDPARAM_SRCMAC) {
+		strcat(buf, CONFIG_VALUE_SCHEDPARAM_SRCMAC);
+		strcat(buf, " ");
+	}
+
+	if (param & VALUE_SCHEDPARAM_DSTMAC) {
+		strcat(buf, CONFIG_VALUE_SCHEDPARAM_DSTMAC);
+		strcat(buf, " ");
+	}
+
+	return;
+}
+
 char * obj_print_helper(int helper)
 {
 	switch (helper) {
