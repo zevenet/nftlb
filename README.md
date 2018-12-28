@@ -72,7 +72,7 @@ Where every farm object has the following attributes:
 	"virtual-addr": "<ip address>",			*IP address for the virtual service (required)*
 	"virtual-ports": "<port list>",			*Port list separated by commas or ranges separated by a hyphen*
 	"source-addr": "<ip address>",			*Source IP address instead of masquerading*
-	"mode": "<snat | dnat | dsr>",			*Topology to be implemented (required)*
+	"mode": "<snat | dnat | dsr | stlsdnat>",	*Topology to be implemented (required)*
 	"protocol": "<tcp | udp | sctp | all>",		*Protocol to be used by the virtual service (tcp by default)*
 	"scheduler": "<weight | rr | hash | symhash>",	*Scheduler to be used (round robin by default)*
 	"sched-param": "<srcip | dstip | srcport | dstport | srcmac | dstmac | none>",	*Hash input parameters (none by default)*
