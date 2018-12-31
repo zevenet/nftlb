@@ -39,7 +39,6 @@ static int resize_buf(struct sbuffer *buf, int times)
 {
 	char *pbuf;
 	int newsize;
-	syslog(LOG_DEBUG, "%s():%d: times %d", __FUNCTION__, __LINE__, times);
 
 	if (times == 0)
 		return 0;
@@ -63,8 +62,6 @@ int create_buf(struct sbuffer *buf)
 	buf->size = 0;
 	buf->next = 0;
 
-	syslog(LOG_DEBUG, "%s():%d: allocating new buffer size %d", __FUNCTION__, __LINE__, DEFAULT_BUFFER_SIZE);
-
 	buf->data = (char *) malloc(DEFAULT_BUFFER_SIZE + 1);
 	if (!buf->data) {
 		return 1;
@@ -87,8 +84,6 @@ char *get_buf_data(struct sbuffer *buf)
 
 int clean_buf(struct sbuffer *buf)
 {
-	syslog(LOG_DEBUG, "%s():%d: cleaning buffer size %d", __FUNCTION__, __LINE__, buf->size);
-
 	if (buf->data)
 		free(buf->data);
 	buf->size = 0;
@@ -102,8 +97,6 @@ int concat_buf(struct sbuffer *buf, char *fmt, ...)
 	int len;
 	va_list args;
 	char *pnext;
-
-	syslog(LOG_DEBUG, "%s():%d: format is %s and next %d", __FUNCTION__, __LINE__, fmt, buf->next);
 
 	va_start(args, fmt);
 	len = vsnprintf(0, 0, fmt, args);
