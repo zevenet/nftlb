@@ -455,32 +455,34 @@ static void add_dump_list(json_t *obj, const char *objname, int object,
 				continue;
 
 			item = json_object();
-			add_dump_obj(item, "name", f->name);
-			add_dump_obj(item, "family", obj_print_family(f->family));
-			add_dump_obj(item, "virtual-addr", f->virtaddr);
-			add_dump_obj(item, "virtual-ports", f->virtports);
+			add_dump_obj(item, CONFIG_KEY_NAME, f->name);
+			add_dump_obj(item, CONFIG_KEY_FAMILY, obj_print_family(f->family));
+			add_dump_obj(item, CONFIG_KEY_VIRTADDR, f->virtaddr);
+			add_dump_obj(item, CONFIG_KEY_VIRTPORTS, f->virtports);
 
 			if (f->srcaddr)
-				add_dump_obj(item, "source-addr", f->srcaddr);
+				add_dump_obj(item, CONFIG_KEY_SRCADDR, f->srcaddr);
+			else
+				add_dump_obj(item, CONFIG_KEY_SRCADDR, "");
 
-			add_dump_obj(item, "mode", obj_print_mode(f->mode));
-			add_dump_obj(item, "protocol", obj_print_proto(f->protocol));
-			add_dump_obj(item, "scheduler", obj_print_sched(f->scheduler));
+			add_dump_obj(item, CONFIG_KEY_MODE, obj_print_mode(f->mode));
+			add_dump_obj(item, CONFIG_KEY_PROTO, obj_print_proto(f->protocol));
+			add_dump_obj(item, CONFIG_KEY_SCHED, obj_print_sched(f->scheduler));
 
 			obj_print_schedparam(f->schedparam, (char *)buf);
-			add_dump_obj(item, "sched-param", buf);
+			add_dump_obj(item, CONFIG_KEY_SCHEDPARAM, buf);
 			buf[0] = '\0';
 
-			add_dump_obj(item, "helper", obj_print_helper(f->helper));
+			add_dump_obj(item, CONFIG_KEY_HELPER, obj_print_helper(f->helper));
 
 			obj_print_log(f->log, (char *)buf);
-			add_dump_obj(item, "log", buf);
+			add_dump_obj(item, CONFIG_KEY_LOG, buf);
 
 			config_dump_hex(value, f->mark);
-			add_dump_obj(item, "mark", value);
+			add_dump_obj(item, CONFIG_KEY_MARK, value);
 			config_dump_int(value, f->priority);
-			add_dump_obj(item, "priority", value);
-			add_dump_obj(item, "state", obj_print_state(f->state));
+			add_dump_obj(item, CONFIG_KEY_PRIORITY, value);
+			add_dump_obj(item, CONFIG_KEY_STATE, obj_print_state(f->state));
 			add_dump_list(item, CONFIG_KEY_BCKS, LEVEL_BCKS, &f->backends, NULL);
 			json_array_append_new(jarray, item);
 		}
@@ -488,15 +490,15 @@ static void add_dump_list(json_t *obj, const char *objname, int object,
 	case LEVEL_BCKS:
 		list_for_each_entry(b, head, list) {
 			item = json_object();
-			add_dump_obj(item, "name", b->name);
-			add_dump_obj(item, "ip-addr", b->ipaddr);
+			add_dump_obj(item, CONFIG_KEY_NAME, b->name);
+			add_dump_obj(item, CONFIG_KEY_IPADDR, b->ipaddr);
 			config_dump_int(value, b->weight);
-			add_dump_obj(item, "weight", value);
+			add_dump_obj(item, CONFIG_KEY_WEIGHT, value);
 			config_dump_int(value, b->priority);
-			add_dump_obj(item, "priority", value);
+			add_dump_obj(item, CONFIG_KEY_PRIORITY, value);
 			config_dump_hex(value, b->mark);
-			add_dump_obj(item, "mark", value);
-			add_dump_obj(item, "state", obj_print_state(b->state));
+			add_dump_obj(item, CONFIG_KEY_MARK, value);
+			add_dump_obj(item, CONFIG_KEY_STATE, obj_print_state(b->state));
 			json_array_append_new(jarray, item);
 		}
 		break;

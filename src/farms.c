@@ -257,58 +257,58 @@ static void farm_print(struct farm *f)
 	char buf[100] = {};
 
 	syslog(LOG_DEBUG," [farm] ");
-	syslog(LOG_DEBUG,"    [name] %s", f->name);
+	syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_NAME, f->name);
 
 	if (f->fqdn)
-		syslog(LOG_DEBUG,"    [fqdn] %s", f->fqdn);
+		syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_FQDN, f->fqdn);
 
 	if (f->iface)
-		syslog(LOG_DEBUG,"    [iface] %s", f->iface);
+		syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_IFACE, f->iface);
 
 	if (f->iethaddr)
-		syslog(LOG_DEBUG,"    [iethaddr] %s", f->iethaddr);
+		syslog(LOG_DEBUG,"    [i-%s] %s", CONFIG_KEY_ETHADDR, f->iethaddr);
 
 	syslog(LOG_DEBUG,"    *[ifidx] %d", f->ifidx);
 
 	if (f->oface)
-		syslog(LOG_DEBUG,"    [oface] %s", f->oface);
+		syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_OFACE, f->oface);
 
 	if (f->oethaddr)
-		syslog(LOG_DEBUG,"    [oethaddr] %s", f->oethaddr);
+		syslog(LOG_DEBUG,"    [o-%s] %s", CONFIG_KEY_ETHADDR, f->oethaddr);
 
 	syslog(LOG_DEBUG,"    *[ofidx] %d", f->ofidx);
 
 	if (f->virtaddr)
-		syslog(LOG_DEBUG,"    [virtaddr] %s", f->virtaddr);
+		syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_VIRTADDR, f->virtaddr);
 
 	if (f->virtports)
-		syslog(LOG_DEBUG,"    [virtports] %s", f->virtports);
+		syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_VIRTPORTS, f->virtports);
 
 	if (f->srcaddr)
-		syslog(LOG_DEBUG,"    [srcaddr] %s", f->srcaddr);
+		syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_SRCADDR, f->srcaddr);
 
-	syslog(LOG_DEBUG,"    [family] %s", obj_print_family(f->family));
-	syslog(LOG_DEBUG,"    [mode] %s", obj_print_mode(f->mode));
-	syslog(LOG_DEBUG,"    [protocol] %s", obj_print_proto(f->protocol));
-	syslog(LOG_DEBUG,"    [scheduler] %s", obj_print_sched(f->scheduler));
+	syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_FAMILY, obj_print_family(f->family));
+	syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_MODE, obj_print_mode(f->mode));
+	syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_PROTO, obj_print_proto(f->protocol));
+	syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_SCHED, obj_print_sched(f->scheduler));
 
 	obj_print_schedparam(f->schedparam, (char *)buf);
-	syslog(LOG_DEBUG,"    [schedparam] %s", buf);
+	syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_SCHEDPARAM, buf);
 	buf[0] = '\0';
 
-	syslog(LOG_DEBUG,"    [helper] %s", obj_print_helper(f->helper));
+	syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_HELPER, obj_print_helper(f->helper));
 
 	obj_print_log(f->log, (char *)buf);
-	syslog(LOG_DEBUG,"    [log] %s", buf);
+	syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_LOG, buf);
 
-	syslog(LOG_DEBUG,"    [mark] 0x%x", f->mark);
-	syslog(LOG_DEBUG,"    [state] %s", obj_print_state(f->state));
-	syslog(LOG_DEBUG,"    [priority] %d", f->priority);
+	syslog(LOG_DEBUG,"    [%s] 0x%x", CONFIG_KEY_MARK, f->mark);
+	syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_STATE, obj_print_state(f->state));
+	syslog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_PRIORITY, f->priority);
 	syslog(LOG_DEBUG,"    *[total_weight] %d", f->total_weight);
 	syslog(LOG_DEBUG,"    *[total_bcks] %d", f->total_bcks);
 	syslog(LOG_DEBUG,"    *[bcks_available] %d", f->bcks_available);
 	syslog(LOG_DEBUG,"    *[bcks_are_marked] %d", f->bcks_are_marked);
-	syslog(LOG_DEBUG,"    *[action] %d", f->action);
+	syslog(LOG_DEBUG,"    *[%s] %d", CONFIG_KEY_ACTION, f->action);
 
 	if (f->total_bcks != 0)
 		backend_s_print(f);

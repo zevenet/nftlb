@@ -101,25 +101,25 @@ void backend_s_print(struct farm *f)
 
 	list_for_each_entry(b, &f->backends, list) {
 		syslog(LOG_DEBUG,"    [backend] ");
-		syslog(LOG_DEBUG,"       [name] %s", b->name);
+		syslog(LOG_DEBUG,"       [%s] %s", CONFIG_KEY_NAME, b->name);
 
 		if (b->fqdn)
-			syslog(LOG_DEBUG,"       [fqdn] %s", b->fqdn);
+			syslog(LOG_DEBUG,"       [%s] %s", CONFIG_KEY_FQDN, b->fqdn);
 
 		if (b->ipaddr)
-			syslog(LOG_DEBUG,"       [ipaddr] %s", b->ipaddr);
+			syslog(LOG_DEBUG,"       [%s] %s", CONFIG_KEY_IPADDR, b->ipaddr);
 
 		if (b->ethaddr)
-			syslog(LOG_DEBUG,"       [ethaddr] %s", b->ethaddr);
+			syslog(LOG_DEBUG,"       [%s] %s", CONFIG_KEY_ETHADDR, b->ethaddr);
 
 		if (b->ports)
-			syslog(LOG_DEBUG,"       [ports] %s", b->ports);
+			syslog(LOG_DEBUG,"       [%s] %s", CONFIG_KEY_PORTS, b->ports);
 
-		syslog(LOG_DEBUG,"       [mark] 0x%x", b->mark);
-		syslog(LOG_DEBUG,"       [weight] %d", b->weight);
-		syslog(LOG_DEBUG,"       [priority] %d", b->priority);
-		syslog(LOG_DEBUG,"       [state] %s", obj_print_state(b->state));
-		syslog(LOG_DEBUG,"      *[action] %d", b->action);
+		syslog(LOG_DEBUG,"       [%s] 0x%x", CONFIG_KEY_MARK, b->mark);
+		syslog(LOG_DEBUG,"       [%s] %d", CONFIG_KEY_WEIGHT, b->weight);
+		syslog(LOG_DEBUG,"       [%s] %d", CONFIG_KEY_PRIORITY, b->priority);
+		syslog(LOG_DEBUG,"       [%s] %s", CONFIG_KEY_STATE, obj_print_state(b->state));
+		syslog(LOG_DEBUG,"      *[%s] %d", CONFIG_KEY_ACTION, b->action);
 	}
 }
 
