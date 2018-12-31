@@ -252,6 +252,21 @@ static int farm_set_mode(struct farm *f, int new_value)
 	return 0;
 }
 
+static int farm_set_sched(struct farm *f, int new_value)
+{
+	int old_value = f->scheduler;
+
+	syslog(LOG_DEBUG, "%s():%d: farm %s old scheduler %d new scheduler %d", __FUNCTION__, __LINE__, f->name, old_value, new_value);
+
+	f->scheduler = new_value;
+
+	if (f->scheduler == VALUE_SCHED_HASH && f->schedparam == VALUE_SCHEDPARAM_NONE) {
+		f->schedparam = VALUE_SCHEDPARAM_SRCIP;
+	}
+
+	return 0;
+}
+
 static void farm_print(struct farm *f)
 {
 	char buf[100] = {};
@@ -553,7 +568,7 @@ int farm_set_attribute(struct config_pair *c)
 		f->protocol = c->int_value;
 		break;
 	case KEY_SCHED:
-		f->scheduler = c->int_value;
+		farm_set_sched(f, c->int_value);
 		break;
 	case KEY_SCHEDPARAM:
 		f->schedparam = c->int_value;
