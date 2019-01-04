@@ -54,9 +54,6 @@ static struct backend * backend_create(struct farm *f, char *name)
 	b->state = DEFAULT_BACKEND_STATE;
 	b->action = DEFAULT_ACTION;
 
-	f->total_weight += DEFAULT_WEIGHT;
-	f->bcks_available++;
-
 	return b;
 }
 
@@ -252,7 +249,7 @@ static int backend_validate(struct backend *b)
 	if (!b->ipaddr || strcmp(b->ipaddr, "") == 0)
 		return 0;
 
-	if (farm_is_ingress_mode(f) &&
+	if (f->mode == VALUE_MODE_DSR &&
 		(!b->ethaddr || strcmp(b->ethaddr, "") == 0))
 		return 0;
 
