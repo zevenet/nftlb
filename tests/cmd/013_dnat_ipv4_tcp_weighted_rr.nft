@@ -1,7 +1,7 @@
 table ip nftlb {
-	map tcp-services {
+	map nat-tcp-services {
 		type ipv4_addr . inet_service : verdict
-		elements = { 192.168.56.101 . 80 : goto lb01 }
+		elements = { 192.168.56.101 . 80 : goto nat-lb01 }
 	}
 
 	map tcp-services-back {
@@ -10,7 +10,7 @@ table ip nftlb {
 
 	chain prerouting {
 		type nat hook prerouting priority filter; policy accept;
-		ip daddr . tcp dport vmap @tcp-services
+		ip daddr . tcp dport vmap @nat-tcp-services
 	}
 
 	chain postrouting {
@@ -19,7 +19,7 @@ table ip nftlb {
 		snat to ip daddr . tcp dport map @tcp-services-back
 	}
 
-	chain lb01 {
+	chain nat-lb01 {
 		dnat to numgen random mod 7 map { 0-1 : 192.168.0.10, 2 : 192.168.0.11, 3 : 192.168.0.12, 4-5 : 192.168.0.13, 6 : 192.168.0.14 }
 	}
 }
