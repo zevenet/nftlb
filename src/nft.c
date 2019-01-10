@@ -869,16 +869,16 @@ static int run_farm_rules(struct nft_ctx *ctx, struct farm *f, int family, int a
 	if (need_filter(f))
 		run_farm_rules_filter(ctx, &buf, f, family, action, mark);
 
+	/* no bck rules */
+	if (f->bcks_available == 0)
+		goto avoidrules;
+
 	/* backends rule */
 	concat_buf(&buf, " ; add rule %s %s %s", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain);
 
 	/* input log */
 	if (f->log & VALUE_LOG_INPUT)
 		concat_buf(&buf, " log prefix \"INPUT-%s \"", chain);
-
-	/* no bck rules */
-	if (f->bcks_available == 0)
-		goto avoidrules;
 
 	switch (f->mode) {
 	case VALUE_MODE_DSR:
