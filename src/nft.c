@@ -1055,6 +1055,8 @@ static int del_farm_rules(struct nft_ctx *ctx, struct farm *f, int family)
 		run_farm_rules_gen_srv(&buf, f, family, chain, service, ACTION_DELETE, BCK_MAP_IPADDR_PORT, BCK_MAP_NONE);
 	}
 
+	if (need_filter(f))
+		run_farm_rules_gen_chains(&buf, f, fchain, family, ACTION_DELETE);
 	run_farm_rules_gen_chains(&buf, f, chain, family, ACTION_DELETE);
 
 	exec_cmd(ctx, get_buf_data(&buf));
