@@ -539,9 +539,9 @@ int bck_pos_actionable(struct config_pair *c)
 	f = cur->fptr;
 	b = cur->bptr;
 
-	syslog(LOG_DEBUG, "%s():%d: pre actionable backend %s of farm %s with param %d", __FUNCTION__, __LINE__, b->name, f->name, c->key);
+	syslog(LOG_DEBUG, "%s():%d: pos actionable backend %s of farm %s with param %d", __FUNCTION__, __LINE__, b->name, f->name, c->key);
 
-	if (!backend_is_available(b))
+	if (!backend_is_available(b) && c->key != KEY_STATE)
 		return 0;
 
 	switch (c->key) {
