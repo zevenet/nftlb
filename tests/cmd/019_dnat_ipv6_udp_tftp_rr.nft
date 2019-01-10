@@ -20,6 +20,7 @@ table ip6 nftlb {
 
 	chain filter {
 		type filter hook prerouting priority mangle; policy accept;
+		meta mark set ct mark
 		ip6 daddr . udp dport vmap @filter-udp-services6
 	}
 

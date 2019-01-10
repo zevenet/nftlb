@@ -32,6 +32,7 @@ table ip nftlb {
 
 	chain filter {
 		type filter hook prerouting priority mangle; policy accept;
+		meta mark set ct mark
 		ip daddr . udp dport vmap @filter-udp-services
 	}
 

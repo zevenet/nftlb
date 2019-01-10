@@ -20,6 +20,7 @@ table ip nftlb {
 
 	chain filter {
 		type filter hook prerouting priority mangle; policy accept;
+		meta mark set ct mark
 		ip daddr . tcp dport vmap @filter-tcp-services
 	}
 
@@ -39,6 +40,6 @@ table ip nftlb {
 	}
 
 	chain filter-lb01 {
-		ct helper set "ftp" ct mark set 0x80000000 meta mark set ct mark
+		ct helper set "ftp" ct mark set 0x80000000
 	}
 }

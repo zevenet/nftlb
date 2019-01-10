@@ -484,12 +484,14 @@ static int run_base_filter(struct nft_ctx *ctx, struct farm *f)
 	if ((rules_needed & NFTLB_IPV4_ACTIVE) && !(nat_base_rules & NFTLB_IPV4_ACTIVE)) {
 		concat_buf(&buf, " ; add table %s %s", NFTLB_IPV4_FAMILY, NFTLB_TABLE_NAME);
 		concat_buf(&buf, " ; add chain %s %s %s { type %s hook %s priority %d ;}", NFTLB_IPV4_FAMILY, NFTLB_TABLE_NAME, NFTLB_TABLE_FILTER, NFTLB_TYPE_FILTER, NFTLB_HOOK_PREROUTING, NFTLB_FILTER_PRIO);
+		concat_buf(&buf, " ; add rule %s %s %s mark set ct mark", NFTLB_IPV4_FAMILY, NFTLB_TABLE_NAME, NFTLB_TABLE_FILTER);
 		filter_base_rules |= NFTLB_IPV4_ACTIVE;
 	}
 
 	if ((rules_needed & NFTLB_IPV6_ACTIVE) && !(nat_base_rules & NFTLB_IPV6_ACTIVE)) {
 		concat_buf(&buf, " ; add table %s %s", NFTLB_IPV6_FAMILY, NFTLB_TABLE_NAME);
 		concat_buf(&buf, " ; add chain %s %s %s { type %s hook %s priority %d ;}", NFTLB_IPV6_FAMILY, NFTLB_TABLE_NAME, NFTLB_TABLE_FILTER, NFTLB_TYPE_FILTER, NFTLB_HOOK_PREROUTING, NFTLB_FILTER_PRIO);
+		concat_buf(&buf, " ; add rule %s %s %s mark set ct mark", NFTLB_IPV6_FAMILY, NFTLB_TABLE_NAME, NFTLB_TABLE_FILTER);
 		filter_base_rules |= NFTLB_IPV6_ACTIVE;
 	}
 
@@ -821,11 +823,9 @@ static int run_farm_rules_filter(struct nft_ctx *ctx, struct sbuffer *buf, struc
 		if (run_farm_rules_gen_sched(buf, f, family) == -1)
 			return -1;
 		run_farm_rules_gen_bck_map(buf, f, BCK_MAP_WEIGHT, BCK_MAP_MARK, mark);
-		concat_buf(buf, " mark set ct mark");
 	} else if (mark != DEFAULT_MARK) {
 		concat_buf(buf, " ct mark set");
 		concat_buf(buf, " 0x%x", mark);
-		concat_buf(buf, " mark set ct mark");
 	}
 
 	if (f->protocol == VALUE_PROTO_ALL) {

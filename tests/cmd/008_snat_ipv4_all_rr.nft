@@ -15,6 +15,7 @@ table ip nftlb {
 
 	chain filter {
 		type filter hook prerouting priority mangle; policy accept;
+		meta mark set ct mark
 		ip daddr vmap @filter-services
 	}
 
@@ -34,6 +35,6 @@ table ip nftlb {
 	}
 
 	chain filter-lb01 {
-		ct mark set 0x80000000 meta mark set ct mark
+		ct mark set 0x80000000
 	}
 }
