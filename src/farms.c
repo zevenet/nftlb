@@ -631,7 +631,7 @@ int farm_s_set_action(int action)
 
 int farm_get_masquerade(struct farm *f)
 {
-	int masq = (f->mode == VALUE_MODE_SNAT && f->srcaddr == DEFAULT_SRCADDR);
+	int masq = (f->mode == VALUE_MODE_SNAT && (f->srcaddr == DEFAULT_SRCADDR || strcmp(f->srcaddr, "") == 0));
 
 	syslog(LOG_DEBUG, "%s():%d: farm %s masquerade %d", __FUNCTION__, __LINE__, f->name, masq);
 
