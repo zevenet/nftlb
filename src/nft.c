@@ -1047,11 +1047,11 @@ static int del_farm_rules(struct nft_ctx *ctx, struct farm *f, int family)
 
 	if (f->protocol == VALUE_PROTO_ALL) {
 		if (need_filter(f))
-			run_farm_rules_gen_srv(&buf, f, family, chain, service, ACTION_DELETE, BCK_MAP_IPADDR, BCK_MAP_NONE);
+			run_farm_rules_gen_srv(&buf, f, family, fchain, fservice, ACTION_DELETE, BCK_MAP_IPADDR, BCK_MAP_NONE);
 		run_farm_rules_gen_srv(&buf, f, family, chain, service, ACTION_DELETE, BCK_MAP_IPADDR, BCK_MAP_NONE);
 	} else {
 		if (need_filter(f))
-			run_farm_rules_gen_srv(&buf, f, family, chain, service, ACTION_DELETE, BCK_MAP_IPADDR_PORT, BCK_MAP_NONE);
+			run_farm_rules_gen_srv(&buf, f, family, fchain, fservice, ACTION_DELETE, BCK_MAP_IPADDR_PORT, BCK_MAP_NONE);
 		run_farm_rules_gen_srv(&buf, f, family, chain, service, ACTION_DELETE, BCK_MAP_IPADDR_PORT, BCK_MAP_NONE);
 	}
 
