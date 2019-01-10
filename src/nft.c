@@ -1030,17 +1030,17 @@ static int del_farm_rules(struct nft_ctx *ctx, struct farm *f, int family)
 	int ret = 0;
 	char chain[255] = {0};
 	char service[255] = {0};
-	char *type = NFTLB_TYPE_NONE;
+	char fchain[255] = {0};
+	char fservice[255] = {0};
 
-	if (!farm_is_ingress_mode(f))
-		type = NFTLB_TYPE_NAT;
-
-	if (strcmp(type, NFTLB_TYPE_NONE) == 0) {
+	if (farm_is_ingress_mode(f)) {
 		sprintf(chain, "%s", f->name);
 		sprintf(service, "%s", print_nft_service(family, f->protocol, KEY_IFACE));
 	} else {
-		sprintf(chain, "%s-%s", type, f->name);
-		sprintf(service, "%s-%s", type, print_nft_service(family, f->protocol, KEY_IFACE));
+		sprintf(chain, "%s-%s", NFTLB_TYPE_NAT, f->name);
+		sprintf(service, "%s-%s", NFTLB_TYPE_NAT, print_nft_service(family, f->protocol, KEY_IFACE));
+		sprintf(fchain, "%s-%s", NFTLB_TYPE_FILTER, f->name);
+		sprintf(fservice, "%s-%s", NFTLB_TYPE_FILTER, print_nft_service(family, f->protocol, KEY_IFACE));
 	}
 
 	create_buf(&buf);
