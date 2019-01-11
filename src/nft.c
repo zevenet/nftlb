@@ -292,7 +292,7 @@ static unsigned int get_rules_needed(int family, int protocol, int key)
 
 static int need_filter(struct farm *f)
 {
-	return (f->helper != DEFAULT_HELPER || f->bcks_are_marked || f->mark != DEFAULT_MARK || farm_get_masquerade(f));
+	return (f->helper != DEFAULT_HELPER || (!farm_is_ingress_mode(f) && f->bcks_are_marked) || f->mark != DEFAULT_MARK || farm_get_masquerade(f));
 }
 
 static int run_base_ndv(struct nft_ctx *ctx, struct farm *f, int key)
@@ -842,21 +842,17 @@ static int run_farm_rules(struct nft_ctx *ctx, struct farm *f, int family, int a
 	struct sbuffer buf;
 	char chain[255] = {0};
 	char service[255] = {0};
-	char *type = NFTLB_TYPE_NONE;
-	int mark;
+	int mark = 0;
 	int out = 0;
-
-	if (!farm_is_ingress_mode(f))
-		type = NFTLB_TYPE_NAT;
 
 	create_buf(&buf);
 
-	if (strcmp(type, NFTLB_TYPE_NONE) == 0) {
+	if (farm_is_ingress_mode(f)) {
 		sprintf(chain, "%s", f->name);
 		sprintf(service, "%s", print_nft_service(family, f->protocol, KEY_IFACE));
 	} else {
-		sprintf(chain, "%s-%s", type, f->name);
-		sprintf(service, "%s-%s", type, print_nft_service(family, f->protocol, KEY_IFACE));
+		sprintf(chain, "%s-%s", NFTLB_TYPE_NAT, f->name);
+		sprintf(service, "%s-%s", NFTLB_TYPE_NAT, print_nft_service(family, f->protocol, KEY_IFACE));
 	}
 
 	run_farm_rules_gen_chains(&buf, f, chain, family, action);
@@ -865,13 +861,15 @@ static int run_farm_rules(struct nft_ctx *ctx, struct farm *f, int family, int a
 	if (f->bcks_available == 0)
 		goto avoidrules;
 
-	/* set marks */
-	mark = f->mark;
-	if (farm_get_masquerade(f))
-		mark |= NFTLB_POSTROUTING_MARK;
+	if (!farm_is_ingress_mode(f)) {
+		/* set marks */
+		mark = f->mark;
+		if (farm_get_masquerade(f))
+			mark |= NFTLB_POSTROUTING_MARK;
 
-	if (need_filter(f))
-		run_farm_rules_filter(ctx, &buf, f, family, action, mark);
+		if (need_filter(f))
+			run_farm_rules_filter(ctx, &buf, f, family, action, mark);
+	}
 
 	/* backends rule */
 	concat_buf(&buf, " ; add rule %s %s %s", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain);
@@ -891,10 +889,10 @@ static int run_farm_rules(struct nft_ctx *ctx, struct farm *f, int family, int a
 		concat_buf(&buf, " dnat to");
 	}
 
-	if (!f->bcks_are_marked && run_farm_rules_gen_sched(&buf, f, family) == -1)
+	if ((farm_is_ingress_mode(f) || !f->bcks_are_marked) && run_farm_rules_gen_sched(&buf, f, family) == -1)
 		return -1;
 
-	if (f->mode == VALUE_MODE_DSR)
+	if (farm_is_ingress_mode(f))
 		out = run_farm_rules_gen_bck_map(&buf, f, BCK_MAP_WEIGHT, BCK_MAP_ETHADDR, 0);
 	else {
 		if(!f->bcks_are_marked)
@@ -908,7 +906,7 @@ static int run_farm_rules(struct nft_ctx *ctx, struct farm *f, int family, int a
 	if (out == -1)
 		return -1;
 
-	if (f->mode == VALUE_MODE_DSR || f->mode == VALUE_MODE_STLSDNAT)
+	if (farm_is_ingress_mode(f))
 		concat_buf(&buf, " fwd to %s", f->oface);
 
 avoidrules:
