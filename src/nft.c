@@ -861,6 +861,10 @@ static int run_farm_rules(struct nft_ctx *ctx, struct farm *f, int family, int a
 
 	run_farm_rules_gen_chains(&buf, f, chain, family, action);
 
+	/* no bck rules */
+	if (f->bcks_available == 0)
+		goto avoidrules;
+
 	/* set marks */
 	mark = f->mark;
 	if (farm_get_masquerade(f))
@@ -868,10 +872,6 @@ static int run_farm_rules(struct nft_ctx *ctx, struct farm *f, int family, int a
 
 	if (need_filter(f))
 		run_farm_rules_filter(ctx, &buf, f, family, action, mark);
-
-	/* no bck rules */
-	if (f->bcks_available == 0)
-		goto avoidrules;
 
 	/* backends rule */
 	concat_buf(&buf, " ; add rule %s %s %s", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain);
