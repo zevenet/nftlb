@@ -892,10 +892,10 @@ static int run_farm_rules(struct nft_ctx *ctx, struct farm *f, int family, int a
 	if ((farm_is_ingress_mode(f) || !f->bcks_are_marked) && run_farm_rules_gen_sched(&buf, f, family) == -1)
 		return -1;
 
-	if (farm_is_ingress_mode(f))
+	if (f->mode == VALUE_MODE_DSR)
 		out = run_farm_rules_gen_bck_map(&buf, f, BCK_MAP_WEIGHT, BCK_MAP_ETHADDR, 0);
 	else {
-		if(!f->bcks_are_marked)
+		if(f->mode == VALUE_MODE_STLSDNAT || !f->bcks_are_marked)
 			out = run_farm_rules_gen_bck_map(&buf, f, BCK_MAP_WEIGHT, BCK_MAP_IPADDR, 0);
 		else {
 			concat_buf(&buf, " ct mark");
@@ -956,22 +956,22 @@ static int run_farm_stlsnat(struct nft_ctx *ctx, struct farm *f, int family, int
 	char action_str[255] = { 0 };
 	char name[255] = { 0 };
 
-	switch (action) {
-	case ACTION_DELETE:
-		sprintf(action_str, "delete");
-		break;
-	default:
-		sprintf(action_str, "add");
-		break;
-	}
-
 	sprintf(name, "%s-back", f->name);
 	create_buf(&buf);
 
-	run_farm_rules_gen_chains(&buf, f, name, family, action);
-	concat_buf(&buf, " ; %s rule %s %s %s %s saddr set %s fwd to %s", action_str, print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, name, print_nft_family(family), f->virtaddr, f->iface);
-
-	run_farm_rules_gen_srv(&buf, f, family, name, print_nft_service(family, f->protocol, KEY_OFACE), ACTION_START, BCK_MAP_BCK_IPADDR, BCK_MAP_NAME);
+	switch (action) {
+	case ACTION_DELETE:
+		sprintf(action_str, "delete");
+		run_farm_rules_gen_srv(&buf, f, family, name, print_nft_service(family, f->protocol, KEY_OFACE), action, BCK_MAP_BCK_IPADDR, BCK_MAP_NAME);
+		run_farm_rules_gen_chains(&buf, f, name, family, action);
+		break;
+	default:
+		sprintf(action_str, "add");
+		run_farm_rules_gen_chains(&buf, f, name, family, action);
+		concat_buf(&buf, " ; %s rule %s %s %s %s saddr set %s fwd to %s", action_str, print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, name, print_nft_family(family), f->virtaddr, f->iface);
+		run_farm_rules_gen_srv(&buf, f, family, name, print_nft_service(family, f->protocol, KEY_OFACE), action, BCK_MAP_BCK_IPADDR, BCK_MAP_NAME);
+		break;
+	}
 
 	exec_cmd(ctx, get_buf_data(&buf));
 	clean_buf(&buf);
