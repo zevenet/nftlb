@@ -806,6 +806,10 @@ static int run_farm_rules_filter(struct nft_ctx *ctx, struct sbuffer *buf, struc
 
 	run_farm_rules_gen_chains(buf, f, chain, family, action);
 
+	/* no bck rules */
+	if (f->bcks_available == 0)
+		goto norules;
+
 	/* backends rule */
 	concat_buf(buf, " ; add rule %s %s %s", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain);
 
@@ -827,6 +831,10 @@ static int run_farm_rules_filter(struct nft_ctx *ctx, struct sbuffer *buf, struc
 		concat_buf(buf, " ct mark set");
 		concat_buf(buf, " 0x%x", mark);
 	}
+
+norules:
+	if (action == ACTION_RELOAD)
+		return 0;
 
 	if (f->protocol == VALUE_PROTO_ALL) {
 		run_farm_rules_gen_srv(buf, f, family, chain, service, action, BCK_MAP_IPADDR, BCK_MAP_NAME);
@@ -857,10 +865,6 @@ static int run_farm_rules(struct nft_ctx *ctx, struct farm *f, int family, int a
 
 	run_farm_rules_gen_chains(&buf, f, chain, family, action);
 
-	/* no bck rules */
-	if (f->bcks_available == 0)
-		goto avoidrules;
-
 	if (!farm_is_ingress_mode(f)) {
 		/* set marks */
 		mark = f->mark;
@@ -870,6 +874,10 @@ static int run_farm_rules(struct nft_ctx *ctx, struct farm *f, int family, int a
 		if (need_filter(f))
 			run_farm_rules_filter(ctx, &buf, f, family, action, mark);
 	}
+
+	/* no bck rules */
+	if (f->bcks_available == 0)
+		goto avoidrules;
 
 	/* backends rule */
 	concat_buf(&buf, " ; add rule %s %s %s", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain);
