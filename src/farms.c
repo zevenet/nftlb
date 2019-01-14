@@ -391,76 +391,68 @@ int farm_set_ifinfo(struct farm *f, int key)
 	switch (key) {
 	case KEY_IFACE:
 
-		if (f->iface == DEFAULT_IFNAME) {
-			ret = net_get_local_ifname_per_vip(f->virtaddr, if_str);
+		ret = net_get_local_ifname_per_vip(f->virtaddr, if_str);
 
-			if (ret != 0) {
-				syslog(LOG_ERR, "%s():%d: inbound interface not found with VIP %s by farm %s", __FUNCTION__, __LINE__, f->virtaddr, f->name);
-				return -1;
-			}
-
-			obj_set_attribute_string(if_str, &f->iface);
-			farm_strim_netface(f->iface);
+		if (ret != 0) {
+			syslog(LOG_ERR, "%s():%d: inbound interface not found with VIP %s by farm %s", __FUNCTION__, __LINE__, f->virtaddr, f->name);
+			return -1;
 		}
 
-		if (f->ifidx == DEFAULT_IFIDX) {
-			if_index = if_nametoindex(f->iface);
+		obj_set_attribute_string(if_str, &f->iface);
+		farm_strim_netface(f->iface);
 
-			if (if_index == 0) {
-				syslog(LOG_ERR, "%s():%d: index of the inbound interface %s in farm %s not found", __FUNCTION__, __LINE__, f->iface, f->name);
-				return -1;
-			}
+		if_index = if_nametoindex(f->iface);
 
-			f->ifidx = if_index;
+		if (if_index == 0) {
+			syslog(LOG_ERR, "%s():%d: index of the inbound interface %s in farm %s not found", __FUNCTION__, __LINE__, f->iface, f->name);
+			return -1;
 		}
 
-		if (f->iethaddr == DEFAULT_ETHADDR) {
-			ether_addr = &f->iethaddr;
+		f->ifidx = if_index;
 
-			net_get_local_ifinfo((unsigned char **)&ether, f->iface);
-			farm_strim_netface(f->iface);
+		ether_addr = &f->iethaddr;
 
-			sprintf(streth, "%02x:%02x:%02x:%02x:%02x:%02x", ether[0],
-				ether[1], ether[2], ether[3], ether[4], ether[5]);
+		net_get_local_ifinfo((unsigned char **)&ether, f->iface);
+		farm_strim_netface(f->iface);
 
-			obj_set_attribute_string(streth, ether_addr);
-		}
+		sprintf(streth, "%02x:%02x:%02x:%02x:%02x:%02x", ether[0],
+			ether[1], ether[2], ether[3], ether[4], ether[5]);
+
+		obj_set_attribute_string(streth, ether_addr);
 		break;
 	case KEY_OFACE:
 		ether_addr = &f->oethaddr;
 
-		if (f->oface == DEFAULT_IFNAME) {
-			b = backend_get_first(f);
-			if (!b || b->ipaddr == DEFAULT_IPADDR) {
-				syslog(LOG_ERR, "%s():%d: there is no backend yet in the farm %s", __FUNCTION__, __LINE__, f->name);
-				return 0;
-			}
-
-			ret = net_get_local_ifidx_per_remote_host(b->ipaddr, &if_index);
-			if (ret == -1) {
-				syslog(LOG_ERR, "%s():%d: unable to get the outbound interface to %s for the farm %s", __FUNCTION__, __LINE__, b->ipaddr, f->name);
-				return -1;
-			}
-
-			f->ofidx = if_index;
-
-			if (if_indextoname(if_index, if_str) == NULL) {
-				syslog(LOG_ERR, "%s():%d: unable to get the outbound interface name with index %d required by the farm %s", __FUNCTION__, __LINE__, if_index, f->name);
-				return -1;
-			}
-
-			obj_set_attribute_string(if_str, &f->oface);
-			farm_strim_netface(f->oface);
-		} else {
-			if_index = if_nametoindex(f->oface);
-
-			if (if_index == 0) {
-				syslog(LOG_ERR, "%s():%d: index of outbound interface %s in farm %s is not found", __FUNCTION__, __LINE__, f->oface, f->name);
-				return -1;
-			}
-
-			f->ofidx = if_index;
+		b = backend_get_first(f);
+		if (!b || b->ipaddr == DEFAULT_IPADDR) {
+			syslog(LOG_ERR, "%s():%d: there is no backend yet in the farm %s", __FUNCTION__, __LINE__, f->name);
+			return 0;
 		}
+
+		ret = net_get_local_ifidx_per_remote_host(b->ipaddr, &if_index);
+		if (ret == -1) {
+			syslog(LOG_ERR, "%s():%d: unable to get the outbound interface to %s for the farm %s", __FUNCTION__, __LINE__, b->ipaddr, f->name);
+			return -1;
+		}
+
+		f->ofidx = if_index;
+
+		if (if_indextoname(if_index, if_str) == NULL) {
+			syslog(LOG_ERR, "%s():%d: unable to get the outbound interface name with index %d required by the farm %s", __FUNCTION__, __LINE__, if_index, f->name);
+			return -1;
+		}
+
+		obj_set_attribute_string(if_str, &f->oface);
+		farm_strim_netface(f->oface);
+
+		if_index = if_nametoindex(f->oface);
+
+		if (if_index == 0) {
+			syslog(LOG_ERR, "%s():%d: index of outbound interface %s in farm %s is not found", __FUNCTION__, __LINE__, f->oface, f->name);
+			return -1;
+		}
+
+		f->ofidx = if_index;
 		break;
 	}
 
@@ -572,6 +564,7 @@ int farm_set_attribute(struct config_pair *c)
 		break;
 	case KEY_VIRTADDR:
 		obj_set_attribute_string(c->str_value, &f->virtaddr);
+		farm_set_netinfo(f);
 		break;
 	case KEY_VIRTPORTS:
 		obj_set_attribute_string(c->str_value, &f->virtports);
@@ -662,12 +655,9 @@ void farm_s_set_backend_ether_by_oifidx(int interface_idx, const char * ip_bck, 
 	struct list_head *farms = obj_get_farms();
 	struct farm *f;
 
-	syslog(LOG_DEBUG, "%s():%d: updating farms with oifidx %d and backends with ip address %s and ether address %s", __FUNCTION__, __LINE__, interface_idx, ip_bck, ether_bck);
+	syslog(LOG_DEBUG, "%s():%d: updating farms with backends ip address %s and ether address %s", __FUNCTION__, __LINE__, ip_bck, ether_bck);
 
 	list_for_each_entry(f, farms, list) {
-
-		if (f->ofidx != interface_idx)
-			continue;
 
 		syslog(LOG_DEBUG, "%s():%d: farm with oifidx %d found", __FUNCTION__, __LINE__, interface_idx);
 
@@ -678,6 +668,7 @@ void farm_s_set_backend_ether_by_oifidx(int interface_idx, const char * ip_bck, 
 		}
 
 		if (backend_s_set_ether_by_ipaddr(f, ip_bck, ether_bck)) {
+			f->ofidx = interface_idx;
 			farm_set_action(f, ACTION_RELOAD);
 			farm_rulerize(f);
 		}
