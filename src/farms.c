@@ -247,6 +247,7 @@ static int farm_set_mode(struct farm *f, int new_value)
 	if (old_value != new_value) {
 		f->mode = new_value;
 		farm_set_netinfo(f);
+		backend_s_validate(f);
 	}
 
 	return 0;
@@ -625,6 +626,7 @@ int farm_set_action(struct farm *f, int action)
 		farm_manage_eventd();
 		f->action = action;
 		farm_set_netinfo(f);
+		backend_s_validate(f);
 
 		return 1;
 	}

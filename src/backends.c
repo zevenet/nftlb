@@ -246,11 +246,11 @@ static int backend_validate(struct backend *b)
 	syslog(LOG_DEBUG, "%s():%d: validating backend %s of farm %s",
 	       __FUNCTION__, __LINE__, b->name, f->name);
 
-	if (!b->ipaddr || strcmp(b->ipaddr, "") == 0)
-		return 0;
-
 	if (f->mode == VALUE_MODE_DSR &&
 		(!b->ethaddr || strcmp(b->ethaddr, "") == 0))
+		return 0;
+
+	if (!b->ipaddr || strcmp(b->ipaddr, "") == 0)
 		return 0;
 
 	return 1;
@@ -316,6 +316,18 @@ int backend_s_delete(struct farm *f)
 	f->total_bcks = 0;
 	f->bcks_available = 0;
 	f->total_weight = 0;
+
+	return 0;
+}
+
+int backend_s_validate(struct farm *f)
+{
+	struct backend *b, *next;
+
+	list_for_each_entry_safe(b, next, &f->backends, list) {
+		if (b->state == VALUE_STATE_CONFERR && backend_validate(b))
+			backend_set_state(b, VALUE_STATE_UP);
+	}
 
 	return 0;
 }

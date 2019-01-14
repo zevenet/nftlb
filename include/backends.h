@@ -46,6 +46,7 @@ int backend_is_available(struct backend *b);
 int backend_set_action(struct backend *b, int action);
 int backend_s_set_action(struct farm *f, int action);
 
+int backend_s_validate(struct farm *f);
 int backend_s_delete(struct farm *f);
 
 int backend_set_attribute(struct config_pair *c);
