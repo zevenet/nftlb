@@ -651,7 +651,9 @@ int net_eventd_stop(void)
 
 	ev_io_stop(st_ev_loop, io_handle.io);
 	mnl_socket_close(nl);
-	free(io_handle.io);
+
+	if (io_handle.io)
+		free(io_handle.io);
 
 	net_event_enabled = 0;
 
