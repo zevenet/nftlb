@@ -342,7 +342,6 @@ static void nftlb_read_cb(struct ev_loop *loop, struct ev_io *io, int revents)
 	       inet_ntoa(cli->addr.sin_addr), ntohs(cli->addr.sin_port));
 end:
 	bzero(buffer, size);
-	free(state.body_response);
 
 	ev_timer_stop(loop, &cli->timer);
 	nftlb_client_release(loop, cli);
