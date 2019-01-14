@@ -256,7 +256,7 @@ static int backend_validate(struct backend *b)
 	return 1;
 }
 
-int backend_is_available(struct backend *b)
+static int backend_is_usable(struct backend *b)
 {
 	struct farm *f = b->parent;
 
@@ -264,8 +264,16 @@ int backend_is_available(struct backend *b)
 	       __FUNCTION__, __LINE__, b->name, obj_print_state(b->state), b->priority);
 
 	return (b->state == VALUE_STATE_UP) &&
-			(b->priority <= f->priority) &&
-			(backend_validate(b));
+			(b->priority <= f->priority);
+}
+
+int backend_is_available(struct backend *b)
+{
+	syslog(LOG_DEBUG, "%s():%d: backend %s state is %s and priority %d",
+	       __FUNCTION__, __LINE__, b->name, obj_print_state(b->state), b->priority);
+
+	return (backend_is_usable(b) &&
+			backend_validate(b));
 }
 
 int backend_set_action(struct backend *b, int action)
@@ -475,11 +483,7 @@ int backend_s_find_ethers(struct farm *f)
 	syslog(LOG_DEBUG, "%s():%d: finding backends for %s", __FUNCTION__, __LINE__, f->name);
 
 	list_for_each_entry(b, &f->backends, list) {
-
-		if (!backend_is_available(b))
-			continue;
-
-		if (backend_validate(b))
+		if (!backend_is_usable(b) || backend_validate(b))
 			continue;
 
 		if (backend_set_ipaddr_from_ether(b) == -1)
