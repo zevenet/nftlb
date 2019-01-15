@@ -972,14 +972,14 @@ static int run_farm_stlsnat(struct nft_ctx *ctx, struct farm *f, int family, int
 	switch (action) {
 	case ACTION_DELETE:
 		sprintf(action_str, "delete");
-		run_farm_rules_gen_srv(&buf, f, family, chain, print_nft_service(family, f->protocol, KEY_OFACE), action, BCK_MAP_BCK_IPADDR, BCK_MAP_NAME);
+		run_farm_rules_gen_srv(&buf, f, family, chain, services, action, BCK_MAP_BCK_IPADDR, BCK_MAP_NAME);
 		run_farm_rules_gen_chains(&buf, f, chain, family, action);
 		break;
 	default:
 		sprintf(action_str, "add");
 		run_farm_rules_gen_chains(&buf, f, chain, family, action);
 		concat_buf(&buf, " ; %s rule %s %s %s %s saddr set %s fwd to %s", action_str, print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain, print_nft_family(family), f->virtaddr, f->iface);
-		run_farm_rules_gen_srv(&buf, f, family, chain, print_nft_service(family, f->protocol, KEY_OFACE), action, BCK_MAP_BCK_IPADDR, BCK_MAP_NAME);
+		run_farm_rules_gen_srv(&buf, f, family, chain, services, action, BCK_MAP_BCK_IPADDR, BCK_MAP_NAME);
 		break;
 	}
 
