@@ -94,6 +94,7 @@ int main(int argc, char *argv[])
 			break;
 		case 'k':
 			server_set_key(optarg);
+			sprintf(optarg, "%*s", (int)strlen(optarg) - 1, " ");
 			break;
 		case 'e':
 			mode = NFTLB_EXIT_MODE;
