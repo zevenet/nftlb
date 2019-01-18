@@ -1,27 +1,24 @@
 table netdev nftlb {
-	map services {
-		type ipv4_addr : verdict
-		elements = { 192.168.0.10 : goto lb01-back, 192.168.0.11 : goto lb01-back,
-			     192.168.0.12 : goto lb01-back, 192.168.0.13 : goto lb01-back,
-			     192.168.0.14 : goto lb01-back }
-	}
-
-	map tcp-services {
+	map tcp-services-lo {
 		type ipv4_addr . inet_service : verdict
-		elements = { 192.168.56.101 . 80 : goto lb01 }
+		elements = { 192.168.0.10 . 80 : goto lb01-back,
+			     192.168.0.11 . 80 : goto lb01-back,
+			     192.168.0.12 . 80 : goto lb01-back,
+			     192.168.0.13 . 80 : goto lb01-back,
+			     192.168.0.14 . 80 : goto lb01-back,
+			     192.168.56.101 . 80 : goto lb01 }
 	}
 
 	chain ingress-lo {
 		type filter hook ingress device lo priority filter; policy accept;
-		ip saddr vmap @services
-		ip daddr . tcp dport vmap @tcp-services
+		ip saddr . tcp sport vmap @tcp-services-lo
 	}
 
 	chain lb01 {
-		ip daddr set numgen random mod 7 map { 0-1 : 192.168.0.10, 2 : 192.168.0.11, 3 : 192.168.0.12, 4-5 : 192.168.0.13, 6 : 192.168.0.14 } fwd to "lo"
+		ip daddr set numgen random mod 7 map { 0-1 : 192.168.0.10, 2 : 192.168.0.11, 3 : 192.168.0.12, 4-5 : 192.168.0.13, 6 : 192.168.0.14 } ether daddr set ip daddr map { 192.168.0.10 : 02:02:02:02:02:02, 192.168.0.11 : 03:03:03:03:03:03, 192.168.0.12 : 04:04:04:04:04:04, 192.168.0.13 : 05:05:05:05:05:05, 192.168.0.14 : 06:06:06:06:06:06 } fwd to "lo"
 	}
 
 	chain lb01-back {
-		ip saddr set 192.168.56.101 fwd to "lo"
+		ip saddr set 192.168.56.101 ether saddr set 01:01:01:01:01:01 fwd to "lo"
 	}
 }

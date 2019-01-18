@@ -3,9 +3,8 @@
 		{
 			"name" : "lb01",
 			"family" : "ipv4",
-			"iface" : "lo",
-			"oface" : "lo",
 			"virtual-addr" : "192.168.56.101",
+			"ether-addr" : "01:01:01:01:01:01",
 			"virtual-ports" : "80",
 			"mode" : "stlsdnat",
 			"protocol" : "tcp",
@@ -15,6 +14,7 @@
 				{
 					"name" : "bck0",
 					"ip-addr" : "192.168.0.10",
+					"ether-addr" : "02:02:02:02:02:02",
 					"weight" : "2",
 					"priority" : "1",
 					"state" : "up"
@@ -22,6 +22,7 @@
 				{
 					"name" : "bck1",
 					"ip-addr" : "192.168.0.11",
+					"ether-addr" : "03:03:03:03:03:03",
 					"weight" : "1",
 					"priority" : "1",
 					"state" : "up"
@@ -29,6 +30,7 @@
 				{
 					"name" : "bck2",
 					"ip-addr" : "192.168.0.12",
+					"ether-addr" : "04:04:04:04:04:04",
 					"weight" : "1",
 					"priority" : "1",
 					"state" : "up"
@@ -36,6 +38,7 @@
 				{
 					"name" : "bck3",
 					"ip-addr" : "192.168.0.13",
+					"ether-addr" : "05:05:05:05:05:05",
 					"weight" : "2",
 					"priority" : "1",
 					"state" : "up"
@@ -43,11 +46,14 @@
 				{
 					"name" : "bck4",
 					"ip-addr" : "192.168.0.14",
+					"ether-addr" : "06:06:06:06:06:06",
 					"weight" : "1",
 					"priority" : "1",
 					"state" : "up"
 				}
-			]
+			],
+			"iface" : "lo",
+			"oface" : "lo"
 		}
 	]
 }

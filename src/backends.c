@@ -140,7 +140,7 @@ static int backend_set_ipaddr_from_ether(struct backend *b)
 	unsigned char src_ethaddr[ETH_HW_ADDR_LEN];
 	char streth[ETH_HW_STR_LEN] = {};
 
-	if (f->mode != VALUE_MODE_DSR)
+	if (!farm_is_ingress_mode(f))
 		return 0;
 
 	if (f->iethaddr == DEFAULT_ETHADDR ||
@@ -246,7 +246,7 @@ static int backend_validate(struct backend *b)
 	syslog(LOG_DEBUG, "%s():%d: validating backend %s of farm %s",
 	       __FUNCTION__, __LINE__, b->name, f->name);
 
-	if (f->mode == VALUE_MODE_DSR &&
+	if (farm_is_ingress_mode(f) &&
 		(!b->ethaddr || strcmp(b->ethaddr, "") == 0))
 		return 0;
 

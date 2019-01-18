@@ -122,7 +122,7 @@ static int farm_validate(struct farm *f)
 		return 0;
 	}
 
-	if (f->mode == VALUE_MODE_DSR &&
+	if (farm_is_ingress_mode(f) &&
 		(!f->iethaddr || strcmp(f->iethaddr, "") == 0))
 		return 0;
 
@@ -147,12 +147,12 @@ static int farm_s_update_dsr_counter(void)
 	syslog(LOG_DEBUG, "%s():%d: updating dsr counter", __FUNCTION__, __LINE__);
 
 	list_for_each_entry(f, farms, list) {
-		if (f->mode == VALUE_MODE_DSR)
+		if (farm_is_ingress_mode(f))
 			dsrcount++;
 	}
 
 	if (dsrcount != curcount)
-		syslog(LOG_DEBUG, "%s():%d: farm DSR counter becomes %d", __FUNCTION__, __LINE__, dsrcount);
+		syslog(LOG_DEBUG, "%s():%d: farm dsr counter becomes %d", __FUNCTION__, __LINE__, dsrcount);
 
 	obj_set_dsr_counter(dsrcount);
 
@@ -183,7 +183,7 @@ static int farm_set_netinfo(struct farm *f)
 
 	if (farm_set_ifinfo(f, KEY_IFACE) == 0 &&
 		farm_set_ifinfo(f, KEY_OFACE) == 0 &&
-		f->mode == VALUE_MODE_DSR) {
+		farm_is_ingress_mode(f)) {
 
 		farm_manage_eventd();
 		backend_s_find_ethers(f);

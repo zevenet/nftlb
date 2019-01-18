@@ -3,9 +3,8 @@
 		{
 			"name" : "lb01",
 			"family" : "ipv4",
-			"iface" : "lo",
-			"oface" : "lo",
 			"virtual-addr" : "192.168.0.154",
+			"ether-addr" : "01:01:01:01:01:01",
 			"virtual-ports" : "80-88,90-95,96",
 			"mode" : "stlsdnat",
 			"protocol" : "tcp",
@@ -15,6 +14,7 @@
 				{
 					"name" : "bck0",
 					"ip-addr" : "192.168.0.10",
+					"ether-addr" : "02:02:02:02:02:02",
 					"weight" : "5",
 					"priority" : "1",
 					"state" : "up"
@@ -22,6 +22,7 @@
 				{
 					"name" : "bck1",
 					"ip-addr" : "192.168.0.11",
+					"ether-addr" : "03:03:03:03:03:03",
 					"weight" : "5",
 					"priority" : "1",
 					"state" : "up"
@@ -29,6 +30,7 @@
 				{
 					"name" : "bck2",
 					"ip-addr" : "192.168.0.12",
+					"ether-addr" : "04:04:04:04:04:04",
 					"weight" : "5",
 					"priority" : "2",
 					"state" : "up"
@@ -36,6 +38,7 @@
 				{
 					"name" : "bck3",
 					"ip-addr" : "192.168.0.13",
+					"ether-addr" : "05:05:05:05:05:05",
 					"weight" : "5",
 					"priority" : "1",
 					"state" : "up"
@@ -43,6 +46,7 @@
 				{
 					"name" : "bck4",
 					"ip-addr" : "192.168.0.14",
+					"ether-addr" : "06:06:06:06:06:06",
 					"weight" : "5",
 					"priority" : "2",
 					"state" : "up"
@@ -50,6 +54,7 @@
 				{
 					"name" : "bck5",
 					"ip-addr" : "192.168.0.15",
+					"ether-addr" : "07:07:07:07:07:07",
 					"weight" : "5",
 					"priority" : "1",
 					"state" : "up"
@@ -57,11 +62,14 @@
 				{
 					"name" : "bck6",
 					"ip-addr" : "192.168.0.16",
+					"ether-addr" : "08:08:08:08:08:08",
 					"weight" : "5",
 					"priority" : "2",
 					"state" : "up"
 				}
-			]
+			],
+			"iface" : "lo",
+			"oface" : "lo"
 		}
 	]
 }

@@ -3,8 +3,6 @@
 		{
 			"name" : "lb01",
 			"family" : "ipv4",
-			"iface" : "lo",
-			"oface" : "lo",
 			"virtual-addr" : "192.168.0.100",
 			"ether-addr" : "01:01:01:01:01:01",
 			"virtual-ports" : "80-88",
@@ -29,7 +27,9 @@
 					"priority" : "1",
 					"state" : "up"
 				}
-			]
+			],
+			"iface" : "lo",
+			"oface" : "lo"
 		}
 	]
 }
