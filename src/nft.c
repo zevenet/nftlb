@@ -807,6 +807,12 @@ static int run_farm_rules_filter_policies(struct sbuffer *buf, struct farm *f, i
 					print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain, meter_str, f->newrtlimit, burst_str, meter_str);
 	}
 
+	if (f->rstrtlimit > 0) {
+		sprintf(meter_str, "%s-%s", CONFIG_KEY_RSTRTLIMIT, f->name);
+		concat_buf(buf, " ; add rule %s %s %s tcp flags rst meter %s { ip saddr limit rate over %d/second } log prefix \"%s\" drop",
+					print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain, meter_str, f->rstrtlimit, meter_str);
+	}
+
 	return 0;
 }
 

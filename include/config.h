@@ -51,6 +51,7 @@
 #define CONFIG_KEY_ACTION		"action"
 #define CONFIG_KEY_NEWRTLIMIT	"new-rtlimit"
 #define CONFIG_KEY_NEWRTLIMITBURST	"new-rtlimit-burst"
+#define CONFIG_KEY_RSTRTLIMIT	"rst-rtlimit"
 
 #define CONFIG_VALUE_FAMILY_IPV4	"ipv4"
 #define CONFIG_VALUE_FAMILY_IPV6	"ipv6"

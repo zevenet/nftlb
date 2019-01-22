@@ -47,6 +47,7 @@
 #define DEFAULT_ACTION		ACTION_START
 #define DEFAULT_NEWRTLIMIT	0
 #define DEFAULT_NEWRTLIMITBURST	0
+#define DEFAULT_RSTRTLIMIT	0
 
 
 enum levels {
@@ -83,6 +84,7 @@ enum keys {
 	KEY_ACTION,
 	KEY_NEWRTLIMIT,
 	KEY_NEWRTLIMITBURST,
+	KEY_RSTRTLIMIT,
 };
 
 enum obj_types {

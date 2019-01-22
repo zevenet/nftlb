@@ -252,6 +252,9 @@ static void config_value(const char *value)
 	case KEY_NEWRTLIMITBURST:
 		c.int_value = atoi(value);
 		break;
+	case KEY_RSTRTLIMIT:
+		c.int_value = atoi(value);
+		break;
 	default:
 		c.str_value = (char *)value;
 	}
@@ -313,6 +316,8 @@ static int config_key(const char *key)
 		return KEY_NEWRTLIMIT;
 	if (strcmp(key, CONFIG_KEY_NEWRTLIMITBURST) == 0)
 		return KEY_NEWRTLIMITBURST;
+	if (strcmp(key, CONFIG_KEY_RSTRTLIMIT) == 0)
+		return KEY_RSTRTLIMIT;
 
 	return -1;
 }
