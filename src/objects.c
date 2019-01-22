@@ -253,6 +253,18 @@ char * obj_print_state(int state)
 	}
 }
 
+char * obj_print_switch(int state)
+{
+	switch (state) {
+	case VALUE_SWITCH_ON:
+		return CONFIG_VALUE_SWITCH_ON;
+	case VALUE_SWITCH_OFF:
+		return CONFIG_VALUE_SWITCH_OFF;
+	default:
+		return NULL;
+	}
+}
+
 int obj_set_attribute(struct config_pair *c, int actionable)
 {
 	syslog(LOG_DEBUG, "%s():%d: actionable is %d", __FUNCTION__, __LINE__, actionable);

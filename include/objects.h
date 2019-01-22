@@ -49,6 +49,8 @@
 #define DEFAULT_NEWRTLIMITBURST	0
 #define DEFAULT_RSTRTLIMIT	0
 #define DEFAULT_ESTCONNLIMIT	0
+#define DEFAULT_TCPSTRICT	VALUE_SWITCH_OFF
+
 
 enum levels {
 	LEVEL_INIT,
@@ -86,6 +88,7 @@ enum keys {
 	KEY_NEWRTLIMITBURST,
 	KEY_RSTRTLIMIT,
 	KEY_ESTCONNLIMIT,
+	KEY_TCPSTRICT,
 };
 
 enum obj_types {
@@ -116,6 +119,7 @@ void obj_print_schedparam(int param, char* buf);
 char * obj_print_helper(int helper);
 void obj_print_log(int log, char *buf);
 char * obj_print_state(int state);
+char * obj_print_switch(int value);
 int obj_set_attribute(struct config_pair *c, int actionable);
 int obj_set_attribute_string(char *src, char **dst);
 void obj_print(void);

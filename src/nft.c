@@ -819,6 +819,12 @@ static int run_farm_rules_filter_policies(struct sbuffer *buf, struct farm *f, i
 					print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain, meter_str, f->estconnlimit, meter_str);
 	}
 
+	if (f->tcpstrict == VALUE_SWITCH_ON) {
+		sprintf(meter_str, "%s-%s", CONFIG_KEY_TCPSTRICT, f->name);
+		concat_buf(buf, " ; add rule %s %s %s ct state invalid log prefix \"%s\" drop",
+					print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain, meter_str);
+	}
+
 	return 0;
 }
 

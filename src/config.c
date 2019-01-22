@@ -181,6 +181,16 @@ static int config_value_log(const char *value)
 	return logmask;
 }
 
+static int config_value_switch(const char *value)
+{
+	if (strcmp(value, CONFIG_VALUE_SWITCH_ON) == 0)
+		return VALUE_SWITCH_ON;
+	else
+		return VALUE_SWITCH_OFF;
+
+	return -1;
+}
+
 static int config_value_state(const char *value)
 {
 	if (strcmp(value, CONFIG_VALUE_STATE_UP) == 0)
@@ -258,6 +268,9 @@ static void config_value(const char *value)
 	case KEY_ESTCONNLIMIT:
 		c.int_value = atoi(value);
 		break;
+	case KEY_TCPSTRICT:
+		c.int_value = config_value_switch(value);
+		break;
 	default:
 		c.str_value = (char *)value;
 	}
@@ -323,6 +336,8 @@ static int config_key(const char *key)
 		return KEY_RSTRTLIMIT;
 	if (strcmp(key, CONFIG_KEY_ESTCONNLIMIT) == 0)
 		return KEY_ESTCONNLIMIT;
+	if (strcmp(key, CONFIG_KEY_TCPSTRICT) == 0)
+		return KEY_TCPSTRICT;
 
 	return -1;
 }
@@ -511,6 +526,8 @@ static void add_dump_list(json_t *obj, const char *objname, int object,
 			add_dump_obj(item, CONFIG_KEY_RSTRTLIMIT, value);
 			config_dump_int(value, f->estconnlimit);
 			add_dump_obj(item, CONFIG_KEY_ESTCONNLIMIT, value);
+
+			add_dump_obj(item, CONFIG_KEY_TCPSTRICT, obj_print_switch(f->tcpstrict));
 
 			add_dump_list(item, CONFIG_KEY_BCKS, LEVEL_BCKS, &f->backends, NULL);
 			json_array_append_new(jarray, item);

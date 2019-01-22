@@ -53,6 +53,7 @@
 #define CONFIG_KEY_NEWRTLIMITBURST	"new-rtlimit-burst"
 #define CONFIG_KEY_RSTRTLIMIT	"rst-rtlimit"
 #define CONFIG_KEY_ESTCONNLIMIT	"est-connlimit"
+#define CONFIG_KEY_TCPSTRICT	"tcp-strict"
 
 #define CONFIG_VALUE_FAMILY_IPV4	"ipv4"
 #define CONFIG_VALUE_FAMILY_IPV6	"ipv6"
@@ -100,6 +101,8 @@
 #define CONFIG_VALUE_ACTION_START	"start"
 #define CONFIG_VALUE_ACTION_RELOAD	"reload"
 #define CONFIG_VALUE_ACTION_NONE	"none"
+#define CONFIG_VALUE_SWITCH_ON		"on"
+#define CONFIG_VALUE_SWITCH_OFF		"off"
 
 enum config_src {
 	CONFIG_SRC_FILE,

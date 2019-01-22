@@ -81,6 +81,11 @@ enum actions {
 	ACTION_NONE,
 };
 
+ enum switches {
+	VALUE_SWITCH_OFF,
+	VALUE_SWITCH_ON,
+};
+
 #define VALUE_SCHEDPARAM_NONE		0
 #define VALUE_SCHEDPARAM_SRCIP		(1 << 0)
 #define VALUE_SCHEDPARAM_DSTIP		(1 << 1)
@@ -122,6 +127,7 @@ struct farm {
 	int			newrtlimitbst;
 	int			rstrtlimit;
 	int			estconnlimit;
+	int			tcpstrict;
 	int			total_weight;
 	int			total_bcks;
 	int			bcks_available;
