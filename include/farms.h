@@ -121,6 +121,7 @@ struct farm {
 	int			newrtlimit;
 	int			newrtlimitbst;
 	int			rstrtlimit;
+	int			estconnlimit;
 	int			total_weight;
 	int			total_bcks;
 	int			bcks_available;

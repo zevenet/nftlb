@@ -76,6 +76,7 @@ static struct farm * farm_create(char *name)
 	pfarm->newrtlimit = DEFAULT_NEWRTLIMIT;
 	pfarm->newrtlimitbst = DEFAULT_NEWRTLIMITBURST;
 	pfarm->rstrtlimit = DEFAULT_RSTRTLIMIT;
+	pfarm->estconnlimit = DEFAULT_ESTCONNLIMIT;
 	pfarm->total_bcks = 0;
 	pfarm->bcks_available = 0;
 	pfarm->bcks_are_marked = 0;
@@ -339,6 +340,7 @@ static void farm_print(struct farm *f)
 	syslog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_NEWRTLIMIT, f->newrtlimit);
 	syslog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_NEWRTLIMITBURST, f->newrtlimitbst);
 	syslog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_RSTRTLIMIT, f->rstrtlimit);
+	syslog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_ESTCONNLIMIT, f->estconnlimit);
 
 	syslog(LOG_DEBUG,"    *[total_weight] %d", f->total_weight);
 	syslog(LOG_DEBUG,"    *[total_bcks] %d", f->total_bcks);
@@ -491,6 +493,7 @@ int farm_pre_actionable(struct config_pair *c)
 	case KEY_NEWRTLIMIT:
 	case KEY_NEWRTLIMITBURST:
 	case KEY_RSTRTLIMIT:
+	case KEY_ESTCONNLIMIT:
 		if (farm_set_action(f, ACTION_STOP))
 			farm_rulerize(f);
 		break;
@@ -525,6 +528,7 @@ int farm_pos_actionable(struct config_pair *c)
 	case KEY_NEWRTLIMIT:
 	case KEY_NEWRTLIMITBURST:
 	case KEY_RSTRTLIMIT:
+	case KEY_ESTCONNLIMIT:
 		farm_set_action(f, ACTION_START);
 		break;
 	case KEY_STATE:
@@ -621,6 +625,9 @@ int farm_set_attribute(struct config_pair *c)
 		break;
 	case KEY_RSTRTLIMIT:
 		f->rstrtlimit = c->int_value;
+		break;
+	case KEY_ESTCONNLIMIT:
+		f->estconnlimit = c->int_value;
 		break;
 	default:
 		return -1;

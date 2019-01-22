@@ -255,6 +255,9 @@ static void config_value(const char *value)
 	case KEY_RSTRTLIMIT:
 		c.int_value = atoi(value);
 		break;
+	case KEY_ESTCONNLIMIT:
+		c.int_value = atoi(value);
+		break;
 	default:
 		c.str_value = (char *)value;
 	}
@@ -318,6 +321,8 @@ static int config_key(const char *key)
 		return KEY_NEWRTLIMITBURST;
 	if (strcmp(key, CONFIG_KEY_RSTRTLIMIT) == 0)
 		return KEY_RSTRTLIMIT;
+	if (strcmp(key, CONFIG_KEY_ESTCONNLIMIT) == 0)
+		return KEY_ESTCONNLIMIT;
 
 	return -1;
 }
@@ -500,9 +505,12 @@ static void add_dump_list(json_t *obj, const char *objname, int object,
 
 			config_dump_int(value, f->newrtlimit);
 			add_dump_obj(item, CONFIG_KEY_NEWRTLIMIT, value);
-
 			config_dump_int(value, f->newrtlimitbst);
 			add_dump_obj(item, CONFIG_KEY_NEWRTLIMITBURST, value);
+			config_dump_int(value, f->rstrtlimit);
+			add_dump_obj(item, CONFIG_KEY_RSTRTLIMIT, value);
+			config_dump_int(value, f->estconnlimit);
+			add_dump_obj(item, CONFIG_KEY_ESTCONNLIMIT, value);
 
 			add_dump_list(item, CONFIG_KEY_BCKS, LEVEL_BCKS, &f->backends, NULL);
 			json_array_append_new(jarray, item);
