@@ -118,13 +118,14 @@ struct farm {
 	int			mark;
 	int			state;
 	int			priority;
+	int			newrtlimit;
+	int			newrtlimitbst;
 	int			total_weight;
 	int			total_bcks;
 	int			bcks_available;
 	int			bcks_are_marked;
 	struct list_head	backends;
 };
-
 
 struct list_head * farm_s_get_head(void);
 void farm_s_print(void);

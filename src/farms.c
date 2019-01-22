@@ -73,6 +73,8 @@ static struct farm * farm_create(char *name)
 
 	pfarm->total_weight = 0;
 	pfarm->priority = DEFAULT_PRIORITY;
+	pfarm->newrtlimit = DEFAULT_NEWRTLIMIT;
+	pfarm->newrtlimitbst = DEFAULT_NEWRTLIMITBURST;
 	pfarm->total_bcks = 0;
 	pfarm->bcks_available = 0;
 	pfarm->bcks_are_marked = 0;
@@ -332,6 +334,10 @@ static void farm_print(struct farm *f)
 	syslog(LOG_DEBUG,"    [%s] 0x%x", CONFIG_KEY_MARK, f->mark);
 	syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_STATE, obj_print_state(f->state));
 	syslog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_PRIORITY, f->priority);
+
+	syslog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_NEWRTLIMIT, f->newrtlimit);
+	syslog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_NEWRTLIMITBURST, f->newrtlimitbst);
+
 	syslog(LOG_DEBUG,"    *[total_weight] %d", f->total_weight);
 	syslog(LOG_DEBUG,"    *[total_bcks] %d", f->total_bcks);
 	syslog(LOG_DEBUG,"    *[bcks_available] %d", f->bcks_available);
@@ -480,6 +486,8 @@ int farm_pre_actionable(struct config_pair *c)
 	case KEY_VIRTPORTS:
 	case KEY_MODE:
 	case KEY_PROTO:
+	case KEY_NEWRTLIMIT:
+	case KEY_NEWRTLIMITBURST:
 		if (farm_set_action(f, ACTION_STOP))
 			farm_rulerize(f);
 		break;
@@ -511,6 +519,8 @@ int farm_pos_actionable(struct config_pair *c)
 	case KEY_VIRTPORTS:
 	case KEY_MODE:
 	case KEY_PROTO:
+	case KEY_NEWRTLIMIT:
+	case KEY_NEWRTLIMITBURST:
 		farm_set_action(f, ACTION_START);
 		break;
 	case KEY_STATE:
@@ -598,6 +608,12 @@ int farm_set_attribute(struct config_pair *c)
 		break;
 	case KEY_ACTION:
 		farm_set_action(f, c->int_value);
+		break;
+	case KEY_NEWRTLIMIT:
+		f->newrtlimit = c->int_value;
+		break;
+	case KEY_NEWRTLIMITBURST:
+		f->newrtlimitbst = c->int_value;
 		break;
 	default:
 		return -1;

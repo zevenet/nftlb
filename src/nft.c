@@ -94,7 +94,6 @@
 #define NFTLB_NFT_SADDR			"saddr"
 #define NFTLB_NFT_SPORT			"sport"
 
-
 enum map_modes {
 	BCK_MAP_NONE,
 	BCK_MAP_IPADDR,
@@ -794,6 +793,23 @@ static int run_farm_rules_gen_srv(struct sbuffer *buf, struct farm *f, int famil
 	return 0;
 }
 
+static int run_farm_rules_filter_policies(struct sbuffer *buf, struct farm *f, int family, char *chain)
+{
+	char meter_str[255] = {};
+	char burst_str[255] = {};
+
+	if (f->newrtlimitbst > 0)
+		sprintf(burst_str, "burst %d packets ", f->newrtlimitbst);
+
+	if (f->newrtlimit > 0) {
+		sprintf(meter_str, "%s-%s", CONFIG_KEY_NEWRTLIMIT, f->name);
+		concat_buf(buf, " ; add rule %s %s %s ct state new meter %s { ip saddr limit rate over %d/second %s} log prefix \"%s\" drop",
+					print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain, meter_str, f->newrtlimit, burst_str, meter_str);
+	}
+
+	return 0;
+}
+
 static int run_farm_rules_filter(struct nft_ctx *ctx, struct sbuffer *buf, struct farm *f, int family, int action, int mark)
 {
 	struct sbuffer buf2;
@@ -804,6 +820,8 @@ static int run_farm_rules_filter(struct nft_ctx *ctx, struct sbuffer *buf, struc
 	sprintf(service, "%s-%s", NFTLB_TYPE_FILTER, print_nft_service(family, f->protocol));
 
 	run_farm_rules_gen_chains(buf, f, chain, family, action);
+
+	run_farm_rules_filter_policies(buf, f, family, chain);
 
 	/* no bck rules */
 	if (f->bcks_available == 0)

@@ -246,6 +246,11 @@ static void config_value(const char *value)
 	case KEY_ACTION:
 		c.int_value = config_value_action(value);
 		break;
+	case KEY_NEWRTLIMIT:
+		c.int_value = atoi(value);
+		break;
+	case KEY_NEWRTLIMITBURST:
+		c.int_value = atoi(value);
 		break;
 	default:
 		c.str_value = (char *)value;
@@ -304,6 +309,10 @@ static int config_key(const char *key)
 		return KEY_PRIORITY;
 	if (strcmp(key, CONFIG_KEY_ACTION) == 0)
 		return KEY_ACTION;
+	if (strcmp(key, CONFIG_KEY_NEWRTLIMIT) == 0)
+		return KEY_NEWRTLIMIT;
+	if (strcmp(key, CONFIG_KEY_NEWRTLIMITBURST) == 0)
+		return KEY_NEWRTLIMITBURST;
 
 	return -1;
 }
@@ -483,6 +492,13 @@ static void add_dump_list(json_t *obj, const char *objname, int object,
 			config_dump_int(value, f->priority);
 			add_dump_obj(item, CONFIG_KEY_PRIORITY, value);
 			add_dump_obj(item, CONFIG_KEY_STATE, obj_print_state(f->state));
+
+			config_dump_int(value, f->newrtlimit);
+			add_dump_obj(item, CONFIG_KEY_NEWRTLIMIT, value);
+
+			config_dump_int(value, f->newrtlimitbst);
+			add_dump_obj(item, CONFIG_KEY_NEWRTLIMITBURST, value);
+
 			add_dump_list(item, CONFIG_KEY_BCKS, LEVEL_BCKS, &f->backends, NULL);
 			json_array_append_new(jarray, item);
 		}
