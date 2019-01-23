@@ -128,6 +128,7 @@ struct farm {
 	int			rstrtlimit;
 	int			estconnlimit;
 	int			tcpstrict;
+	int			queue;
 	int			total_weight;
 	int			total_bcks;
 	int			bcks_available;

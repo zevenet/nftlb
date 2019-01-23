@@ -85,6 +85,7 @@ Where every farm object has the following attributes:
 	"rst-rtlimit": "<number>",				*Number of tcp resets per second allowed (disabled by default)*
 	"est-connlimit": "<number>",				*Number of established connections allowed (disabled by default)*
 	"tcp-strict": "<on | off>",				*Option to avoid bogus TCP attacks (disabled by default)*
+	"queue": "<number>",				*Number of the queue to send the packets to userspace (disabled by default)*
 	"state": "<up | down | off>",			*Set the status of the virtual service (up by default)*
 	"backends" : [					*List of backends*
 		{<object backend 1>},

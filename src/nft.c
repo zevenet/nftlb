@@ -825,6 +825,12 @@ static int run_farm_rules_filter_policies(struct sbuffer *buf, struct farm *f, i
 					print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain, meter_str);
 	}
 
+	if (f->queue != DEFAULT_QUEUE) {
+		sprintf(meter_str, "%s-%s", CONFIG_KEY_QUEUE, f->name);
+		concat_buf(buf, " ; add rule %s %s %s tcp flags syn queue num %d bypass log prefix \"%s\"",
+					print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain, f->queue, meter_str);
+	}
+
 	return 0;
 }
 

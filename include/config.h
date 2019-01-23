@@ -54,6 +54,7 @@
 #define CONFIG_KEY_RSTRTLIMIT	"rst-rtlimit"
 #define CONFIG_KEY_ESTCONNLIMIT	"est-connlimit"
 #define CONFIG_KEY_TCPSTRICT	"tcp-strict"
+#define CONFIG_KEY_QUEUE		"queue"
 
 #define CONFIG_VALUE_FAMILY_IPV4	"ipv4"
 #define CONFIG_VALUE_FAMILY_IPV6	"ipv6"

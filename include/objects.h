@@ -50,6 +50,7 @@
 #define DEFAULT_RSTRTLIMIT	0
 #define DEFAULT_ESTCONNLIMIT	0
 #define DEFAULT_TCPSTRICT	VALUE_SWITCH_OFF
+#define DEFAULT_QUEUE		-1
 
 
 enum levels {
@@ -89,6 +90,7 @@ enum keys {
 	KEY_RSTRTLIMIT,
 	KEY_ESTCONNLIMIT,
 	KEY_TCPSTRICT,
+	KEY_QUEUE,
 };
 
 enum obj_types {
