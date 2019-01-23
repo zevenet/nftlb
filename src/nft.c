@@ -839,6 +839,7 @@ static int run_farm_rules_filter(struct nft_ctx *ctx, struct sbuffer *buf, struc
 	struct sbuffer buf2;
 	char chain[255] = {0};
 	char service[255] = {0};
+	char protocol[255] = {0};
 
 	sprintf(chain, "%s-%s", NFTLB_TYPE_FILTER, f->name);
 	sprintf(service, "%s-%s", NFTLB_TYPE_FILTER, print_nft_service(family, f->protocol));
@@ -847,21 +848,37 @@ static int run_farm_rules_filter(struct nft_ctx *ctx, struct sbuffer *buf, struc
 
 	run_farm_rules_filter_policies(buf, f, family, chain);
 
+	/* helpers */
+	if (f->helper != DEFAULT_HELPER && (f->mode == VALUE_MODE_SNAT || f->mode == VALUE_MODE_DNAT)) {
+		if (f->protocol == VALUE_PROTO_TCP || f->protocol == VALUE_PROTO_ALL) {
+			sprintf(protocol, "tcp");
+
+			concat_buf(buf, " ; add rule %s %s %s %s protocol %s ct helper set %s-%s", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain, print_nft_table_family(family, f->mode), protocol, obj_print_helper(f->helper), protocol);
+
+			create_buf(&buf2);
+			concat_buf(&buf2, " ; add ct helper %s %s %s-%s { type \"%s\" protocol %s ; }", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, obj_print_helper(f->helper), protocol, obj_print_helper(f->helper), protocol);
+			exec_cmd(ctx, get_buf_data(&buf2));
+			clean_buf(&buf2);
+		}
+
+		if (f->protocol == VALUE_PROTO_UDP || f->protocol == VALUE_PROTO_ALL) {
+			sprintf(protocol, "udp");
+
+			concat_buf(buf, " ; add rule %s %s %s %s protocol %s ct helper set %s-%s", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain, print_nft_table_family(family, f->mode), protocol, obj_print_helper(f->helper), protocol);
+
+			create_buf(&buf2);
+			concat_buf(&buf2, " ; add ct helper %s %s %s-%s { type \"%s\" protocol %s ; }", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, obj_print_helper(f->helper), protocol, obj_print_helper(f->helper), protocol);
+			exec_cmd(ctx, get_buf_data(&buf2));
+			clean_buf(&buf2);
+		}
+	}
+
 	/* no bck rules */
 	if (f->bcks_available == 0)
 		goto norules;
 
 	/* backends rule */
 	concat_buf(buf, " ; add rule %s %s %s", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain);
-
-	/* helpers */
-	if (f->helper != DEFAULT_HELPER && (f->mode == VALUE_MODE_SNAT || f->mode == VALUE_MODE_DNAT)) {
-		concat_buf(buf, " ct helper set %s", obj_print_helper(f->helper));
-		create_buf(&buf2);
-		concat_buf(&buf2, " ; add ct helper %s %s %s { type \"%s\" protocol %s ; }", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, obj_print_helper(f->helper), obj_print_helper(f->helper), obj_print_proto(f->protocol));
-		exec_cmd(ctx, get_buf_data(&buf2));
-		clean_buf(&buf2);
-	}
 
 	if (f->bcks_are_marked) {
 		concat_buf(buf, " ct mark set");
