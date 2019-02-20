@@ -46,17 +46,31 @@
 #define DEFAULT_BACKEND_STATE	VALUE_STATE_CONFERR
 #define DEFAULT_ACTION		ACTION_START
 #define DEFAULT_NEWRTLIMIT	0
-#define DEFAULT_NEWRTLIMITBURST	0
+#define DEFAULT_RTLIMITBURST	0
 #define DEFAULT_RSTRTLIMIT	0
 #define DEFAULT_ESTCONNLIMIT	0
 #define DEFAULT_TCPSTRICT	VALUE_SWITCH_OFF
 #define DEFAULT_QUEUE		-1
-
+#define DEFAULT_POLICY_TYPE	VALUE_TYPE_BLACK
+#define DEFAULT_POLICY_TIMEOUT	0
+#define DEFAULT_POLICY_PRIORITY	-1
+#define DEFAULT_ELEMENT_TIME		""
 
 enum levels {
 	LEVEL_INIT,
 	LEVEL_FARMS,
 	LEVEL_BCKS,
+	LEVEL_FARMPOLICY,
+	LEVEL_POLICIES,
+	LEVEL_ELEMENTS,
+};
+
+enum actions {
+	ACTION_START,
+	ACTION_STOP,
+	ACTION_RELOAD,
+	ACTION_DELETE,
+	ACTION_NONE,
 };
 
 enum keys {
@@ -88,19 +102,24 @@ enum keys {
 	KEY_NEWRTLIMIT,
 	KEY_NEWRTLIMITBURST,
 	KEY_RSTRTLIMIT,
+	KEY_RSTRTLIMITBURST,
 	KEY_ESTCONNLIMIT,
 	KEY_TCPSTRICT,
 	KEY_QUEUE,
-};
-
-enum obj_types {
-	OBJ_TYPE_FARM,
-	OBJ_TYPE_BCK,
+	KEY_POLICIES,
+	KEY_ELEMENTS,
+	KEY_TYPE,
+	KEY_TIMEOUT,
+	KEY_DATA,
+	KEY_TIME,
 };
 
 struct obj_config {
 	struct farm		*fptr;
 	struct backend		*bptr;
+	struct policy		*pptr;
+	struct element		*eptr;
+	struct farmpolicy	*fpptr;
 	struct config_pair	*c;
 };
 
@@ -126,5 +145,10 @@ int obj_set_attribute(struct config_pair *c, int actionable);
 int obj_set_attribute_string(char *src, char **dst);
 void obj_print(void);
 int obj_rulerize(void);
+
+struct list_head * obj_get_policies(void);
+int obj_get_total_policies(void);
+void obj_set_total_policies(int new_value);
+char * obj_print_policy_type(int type);
 
 #endif /* _OBJECTS_H_ */

@@ -52,9 +52,16 @@
 #define CONFIG_KEY_NEWRTLIMIT	"new-rtlimit"
 #define CONFIG_KEY_NEWRTLIMITBURST	"new-rtlimit-burst"
 #define CONFIG_KEY_RSTRTLIMIT	"rst-rtlimit"
+#define CONFIG_KEY_RSTRTLIMITBURST	"rst-rtlimit-burst"
 #define CONFIG_KEY_ESTCONNLIMIT	"est-connlimit"
 #define CONFIG_KEY_TCPSTRICT	"tcp-strict"
 #define CONFIG_KEY_QUEUE		"queue"
+#define CONFIG_KEY_POLICIES		"policies"
+#define CONFIG_KEY_TYPE			"type"
+#define CONFIG_KEY_TIMEOUT		"timeout"
+#define CONFIG_KEY_ELEMENTS		"elements"
+#define CONFIG_KEY_DATA			"data"
+#define CONFIG_KEY_TIME			"time"
 
 #define CONFIG_VALUE_FAMILY_IPV4	"ipv4"
 #define CONFIG_VALUE_FAMILY_IPV6	"ipv6"
@@ -104,6 +111,9 @@
 #define CONFIG_VALUE_ACTION_NONE	"none"
 #define CONFIG_VALUE_SWITCH_ON		"on"
 #define CONFIG_VALUE_SWITCH_OFF		"off"
+#define CONFIG_VALUE_POLICIES_TYPE_BL	"blacklist"
+#define CONFIG_VALUE_POLICIES_TYPE_WL	"whitelist"
+
 
 enum config_src {
 	CONFIG_SRC_FILE,
@@ -121,8 +131,12 @@ void config_pair_init(struct config_pair *c);
 int config_file(const char *file);
 int config_buffer(const char *buf);
 int config_print_farms(char **buf, char *name);
+int config_print_policies(char **buf, char *name);
 int config_set_farm_action(const char *name, const char *value);
 int config_set_backend_action(const char *fname, const char *bname, const char *value);
+int config_set_fpolicy_action(const char *fname, const char *fpname, const char *value);
+int config_set_policy_action(const char *name, const char *value);
+int config_set_element_action(const char *pname, const char *edata, const char *value);
 void config_print_response(char **buf, const char *message);
 
 #endif /* _CONFIG_H_ */

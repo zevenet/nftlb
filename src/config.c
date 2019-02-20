@@ -30,10 +30,13 @@
 #include "config.h"
 #include "farms.h"
 #include "backends.h"
+#include "farmpolicy.h"
+#include "policies.h"
+#include "elements.h"
 
 #define CONFIG_MAXBUF			4096
 
-static void config_json(json_t *element, int level, int source);
+static void config_json(json_t *element, int level, int source, int key);
 
 struct config_pair c;
 
@@ -219,6 +222,16 @@ static int config_value_action(const char *value)
 	return ACTION_NONE;
 }
 
+static int config_value_type(const char *value)
+{
+	if (strcmp(value, CONFIG_VALUE_POLICIES_TYPE_BL) == 0)
+		return VALUE_TYPE_BLACK;
+	if (strcmp(value, CONFIG_VALUE_POLICIES_TYPE_WL) == 0)
+		return VALUE_TYPE_WHITE;
+
+	return -1;
+}
+
 static void config_value(const char *value)
 {
 	switch(c.key) {
@@ -251,28 +264,23 @@ static void config_value(const char *value)
 		break;
 	case KEY_WEIGHT:
 	case KEY_PRIORITY:
+	case KEY_NEWRTLIMIT:
+	case KEY_NEWRTLIMITBURST:
+	case KEY_RSTRTLIMIT:
+	case KEY_RSTRTLIMITBURST:
+	case KEY_ESTCONNLIMIT:
+	case KEY_QUEUE:
+	case KEY_TIMEOUT:
 		c.int_value = atoi(value);
 		break;
 	case KEY_ACTION:
 		c.int_value = config_value_action(value);
 		break;
-	case KEY_NEWRTLIMIT:
-		c.int_value = atoi(value);
-		break;
-	case KEY_NEWRTLIMITBURST:
-		c.int_value = atoi(value);
-		break;
-	case KEY_RSTRTLIMIT:
-		c.int_value = atoi(value);
-		break;
-	case KEY_ESTCONNLIMIT:
-		c.int_value = atoi(value);
-		break;
 	case KEY_TCPSTRICT:
 		c.int_value = config_value_switch(value);
 		break;
-	case KEY_QUEUE:
-		c.int_value = atoi(value);
+	case KEY_TYPE:
+		c.int_value = config_value_type(value);
 		break;
 	default:
 		c.str_value = (char *)value;
@@ -337,21 +345,37 @@ static int config_key(const char *key)
 		return KEY_NEWRTLIMITBURST;
 	if (strcmp(key, CONFIG_KEY_RSTRTLIMIT) == 0)
 		return KEY_RSTRTLIMIT;
+	if (strcmp(key, CONFIG_KEY_RSTRTLIMITBURST) == 0)
+		return KEY_RSTRTLIMITBURST;
 	if (strcmp(key, CONFIG_KEY_ESTCONNLIMIT) == 0)
 		return KEY_ESTCONNLIMIT;
 	if (strcmp(key, CONFIG_KEY_TCPSTRICT) == 0)
 		return KEY_TCPSTRICT;
 	if (strcmp(key, CONFIG_KEY_QUEUE) == 0)
 		return KEY_QUEUE;
+	if (strcmp(key, CONFIG_KEY_POLICIES) == 0)
+		return KEY_POLICIES;
+	if (strcmp(key, CONFIG_KEY_TYPE) == 0)
+		return KEY_TYPE;
+	if (strcmp(key, CONFIG_KEY_TIMEOUT) == 0)
+		return KEY_TIMEOUT;
+	if (strcmp(key, CONFIG_KEY_ELEMENTS) == 0)
+		return KEY_ELEMENTS;
+	if (strcmp(key, CONFIG_KEY_DATA) == 0)
+		return KEY_DATA;
+	if (strcmp(key, CONFIG_KEY_TIME) == 0)
+		return KEY_TIME;
 
 	return -1;
 }
 
 static int jump_config_value(int level, int key)
 {
-	if ((level == LEVEL_INIT && key != KEY_FARMS) ||
-	    (key == KEY_BCKS && level != LEVEL_FARMS))
-		return -1;
+	if ((level == LEVEL_INIT && key != KEY_FARMS && key != KEY_POLICIES) ||
+	    (key == KEY_BCKS && level != LEVEL_FARMS) ||
+	    (key == KEY_POLICIES && level != LEVEL_FARMS && level != LEVEL_INIT) ||
+	    (key == KEY_ELEMENTS && level != LEVEL_POLICIES))
+			return -1;
 
 	return 0;
 }
@@ -364,9 +388,8 @@ static void config_json_object(json_t *element, int level, int source)
 	json_object_foreach(element, key, value) {
 		c.level = level;
 		c.key = config_key(key);
-
 		if (jump_config_value(level, c.key) == 0)
-			config_json(value, level, source);
+			config_json(value, level, source, c.key);
 	}
 }
 
@@ -376,7 +399,7 @@ static void config_json_array(json_t *element, int level, int source)
 	size_t i;
 
 	for (i = 0; i < size; i++)
-		config_json(json_array_get(element, i), level, source);
+		config_json(json_array_get(element, i), level, source, -1);
 }
 
 static void config_json_string(json_t *element, int level, int source)
@@ -389,15 +412,35 @@ static void config_json_string(json_t *element, int level, int source)
 	init_pair(&c);
 }
 
-static void config_json(json_t *element, int level, int source)
+static void config_json(json_t *element, int level, int source, int key)
 {
+	syslog(LOG_DEBUG, "%s():%d: %d(level) %d(source)", __FUNCTION__, __LINE__, level, source);
+
 	switch (json_typeof(element)) {
 	case JSON_OBJECT:
 		config_json_object(element, level, source);
 		break;
 	case JSON_ARRAY:
-		level++;
+		if (level == LEVEL_INIT && key == KEY_FARMS)
+			level = LEVEL_FARMS;
+		if (level == LEVEL_INIT && key == KEY_POLICIES)
+			level = LEVEL_POLICIES;
+		if (level == LEVEL_FARMS && key == KEY_BCKS)
+			level = LEVEL_BCKS;
+		if (level == LEVEL_FARMS && key == KEY_POLICIES)
+			level = LEVEL_FARMPOLICY;
+		if (level == LEVEL_POLICIES && key == KEY_ELEMENTS)
+			level = LEVEL_ELEMENTS;
+
 		config_json_array(element, level, source);
+
+		if (level == LEVEL_FARMS || level == LEVEL_POLICIES)
+			level = LEVEL_INIT;
+		if (level == LEVEL_BCKS || level == LEVEL_FARMPOLICY)
+			level = LEVEL_FARMS;
+		if (level == LEVEL_ELEMENTS)
+			level = LEVEL_POLICIES;
+
 		break;
 	case JSON_STRING:
 		config_json_string(element, level, source);
@@ -436,7 +479,7 @@ int config_file(const char *file)
 	root = json_loadf(fd, JSON_ALLOW_NUL, &error);
 
 	if (root) {
-		config_json(root, LEVEL_INIT, CONFIG_SRC_FILE);
+		config_json(root, LEVEL_INIT, CONFIG_SRC_FILE, -1);
 		json_decref(root);
 	} else {
 		fprintf(stderr, "Configuration file error '%s' on line %d: %s", file, error.line, error.text);
@@ -459,7 +502,7 @@ int config_buffer(const char *buf)
 	root = json_loadb(buf, strlen(buf), JSON_ALLOW_NUL, &error);
 
 	if (root) {
-		config_json(root, LEVEL_INIT, CONFIG_SRC_BUFFER);
+		config_json(root, LEVEL_INIT, CONFIG_SRC_BUFFER, -1);
 		json_decref(root);
 	} else {
 		syslog(LOG_ERR, "Configuration error on line %d: %s", error.line, error.text);
@@ -482,6 +525,9 @@ static void add_dump_list(json_t *obj, const char *objname, int object,
 {
 	struct farm *f;
 	struct backend *b;
+	struct farmpolicy *fp;
+	struct policy *p;
+	struct element *e;
 	json_t *jarray = json_array();
 	json_t *item;
 	char value[10];
@@ -529,6 +575,8 @@ static void add_dump_list(json_t *obj, const char *objname, int object,
 			add_dump_obj(item, CONFIG_KEY_NEWRTLIMITBURST, value);
 			config_dump_int(value, f->rstrtlimit);
 			add_dump_obj(item, CONFIG_KEY_RSTRTLIMIT, value);
+			config_dump_int(value, f->rstrtlimitbst);
+			add_dump_obj(item, CONFIG_KEY_RSTRTLIMITBURST, value);
 			config_dump_int(value, f->estconnlimit);
 			add_dump_obj(item, CONFIG_KEY_ESTCONNLIMIT, value);
 
@@ -538,6 +586,8 @@ static void add_dump_list(json_t *obj, const char *objname, int object,
 			add_dump_obj(item, CONFIG_KEY_QUEUE, value);
 
 			add_dump_list(item, CONFIG_KEY_BCKS, LEVEL_BCKS, &f->backends, NULL);
+			add_dump_list(item, CONFIG_KEY_POLICIES, LEVEL_FARMPOLICY, &f->policies, NULL);
+
 			json_array_append_new(jarray, item);
 		}
 		break;
@@ -556,6 +606,39 @@ static void add_dump_list(json_t *obj, const char *objname, int object,
 			json_array_append_new(jarray, item);
 		}
 		break;
+	case LEVEL_FARMPOLICY:
+		list_for_each_entry(fp, head, list) {
+			item = json_object();
+			add_dump_obj(item, "name", fp->policy->name);
+			json_array_append_new(jarray, item);
+		}
+		break;
+	case LEVEL_POLICIES:
+		list_for_each_entry(p, head, list) {
+			if (name != NULL && (strcmp(name, "") != 0) && (strcmp(p->name, name) != 0))
+				continue;
+
+			item = json_object();
+			add_dump_obj(item, "name", p->name);
+			add_dump_obj(item, "type", obj_print_policy_type(p->type));
+			config_dump_int(value, p->timeout);
+			add_dump_obj(item, "timeout", value);
+			config_dump_int(value, p->priority);
+			add_dump_obj(item, "priority", value);
+			config_dump_int(value, p->used);
+			add_dump_obj(item, "used", value);
+			add_dump_list(item, CONFIG_KEY_ELEMENTS, LEVEL_ELEMENTS, &p->elements, NULL);
+			json_array_append_new(jarray, item);
+		}
+		break;
+	case LEVEL_ELEMENTS:
+		list_for_each_entry(e, head, list) {
+			item = json_object();
+			add_dump_obj(item, "data", e->data);
+			add_dump_obj(item, "time", e->time);
+			json_array_append_new(jarray, item);
+		}
+		break;
 	default:
 		return;
 	}
@@ -570,6 +653,22 @@ int config_print_farms(char **buf, char *name)
 	json_t* jdata = json_object();
 
 	add_dump_list(jdata, CONFIG_KEY_FARMS, LEVEL_FARMS, farms, name);
+
+	*buf = json_dumps(jdata, JSON_INDENT(8));
+	json_decref(jdata);
+
+	if (*buf == NULL)
+		return -1;
+
+	return 0;
+}
+
+ int config_print_policies(char **buf, char *name)
+{
+	struct list_head *policies = obj_get_policies();
+	json_t* jdata = json_object();
+
+	add_dump_list(jdata, CONFIG_KEY_POLICIES, LEVEL_POLICIES, policies, name);
 
 	*buf = json_dumps(jdata, JSON_INDENT(8));
 	json_decref(jdata);
@@ -616,6 +715,70 @@ int config_set_backend_action(const char *fname, const char *bname, const char *
 		return -1;
 
 	backend_set_action(b, config_value_action(value));
+
+	return 0;
+}
+
+int config_set_fpolicy_action(const char *fname, const char *fpname, const char *value)
+{
+	struct farm *f;
+	struct farmpolicy *fp;
+
+	if (!fname || strcmp(fname, "") == 0)
+		return -1;
+
+	f = farm_lookup_by_name(fname);
+	if (!f)
+		return -1;
+
+	if (!fpname || strcmp(fpname, "") == 0)
+		return farmpolicy_s_set_action(f, config_value_action(value));
+
+	fp = farmpolicy_lookup_by_name(f, fpname);
+	if (!fp)
+		return -1;
+
+	farmpolicy_set_action(fp, config_value_action(value));
+
+	return 0;
+}
+
+int config_set_policy_action(const char *name, const char *value)
+{
+	struct policy *p;
+
+	if (!name || strcmp(name, "") == 0)
+		return policy_s_set_action(config_value_action(value));
+
+	p = policy_lookup_by_name(name);
+	if (!p)
+		return -1;
+
+	policy_set_action(p, config_value_action(value));
+
+	return 0;
+}
+
+int config_set_element_action(const char *pname, const char *edata, const char *value)
+{
+	struct policy *p;
+	struct element *e;
+
+	if (!pname || strcmp(pname, "") == 0)
+		return -1;
+
+	p = policy_lookup_by_name(pname);
+	if (!p)
+		return -1;
+
+	if (!edata || strcmp(edata, "") == 0)
+		return element_s_set_action(p, config_value_action(value));
+
+	e = element_lookup_by_name(p, edata);
+	if (!e)
+		return -1;
+
+	element_set_action(e, config_value_action(value));
 
 	return 0;
 }

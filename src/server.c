@@ -62,6 +62,7 @@ enum ws_methods {
 enum ws_responses {
 	WS_HTTP_500,
 	WS_HTTP_401,
+	WS_HTTP_404,
 	WS_HTTP_200,
 };
 
@@ -76,6 +77,7 @@ struct nftlb_http_state {
 static const char *ws_str_responses[] = {
 	HTTP_PROTO "500 Internal Server Error" HTTP_LINE_END,
 	HTTP_PROTO "401 Unauthorized" HTTP_LINE_END,
+	HTTP_PROTO "404 Not Found" HTTP_LINE_END,
 	HTTP_PROTO "200 OK" HTTP_LINE_END,
 };
 
@@ -145,19 +147,21 @@ static int get_request(char *buf, struct nftlb_http_state *state)
 
 static int send_get_response(struct nftlb_http_state *state)
 {
-	char farm[SRV_MAX_IDENT] = {0};
-	char farms[SRV_MAX_IDENT] = {0};
+	char firstlevel[SRV_MAX_IDENT] = {0};
+	char secondlevel[SRV_MAX_IDENT] = {0};
 
-	sscanf(state->uri, "/%199[^/]/%199[^/\n]", farms, farm);
+	sscanf(state->uri, "/%199[^/]/%199[^/\n]", firstlevel, secondlevel);
 
-	if (strcmp(farms, CONFIG_KEY_FARMS) != 0) {
-		state->status_code = WS_HTTP_500;
-		return -1;
-	}
-
-	if (config_print_farms(&state->body_response, farm) == 0) {
-		state->status_code = WS_HTTP_200;
-		return 0;
+	if (strcmp(firstlevel, CONFIG_KEY_FARMS) == 0) {
+		if (config_print_farms(&state->body_response, secondlevel) == 0) {
+			state->status_code = WS_HTTP_200;
+			return 0;
+		}
+	} else if (strcmp(firstlevel, CONFIG_KEY_POLICIES) == 0) {
+		if (config_print_policies(&state->body_response, secondlevel) == 0) {
+			state->status_code = WS_HTTP_200;
+			return 0;
+		}
 	}
 
 	state->status_code = WS_HTTP_500;
@@ -166,16 +170,17 @@ static int send_get_response(struct nftlb_http_state *state)
 
 static int send_delete_response(struct nftlb_http_state *state)
 {
-	char farm[SRV_MAX_IDENT] = {0};
-	char bck[SRV_MAX_IDENT] = {0};
-	char farms[SRV_MAX_IDENT] = {0};
-	char bcks[SRV_MAX_IDENT] = {0};
+	char firstlevel[SRV_MAX_IDENT] = {0};
+	char secondlevel[SRV_MAX_IDENT] = {0};
+	char thirdlevel[SRV_MAX_IDENT] = {0};
+	char fourthlevel[SRV_MAX_IDENT] = {0};
 	int ret;
 
 	sscanf(state->uri, "/%199[^/]/%199[^/]/%199[^/]/%199[^\n]",
-	       farms, farm, bcks, bck);
+	       firstlevel, secondlevel, thirdlevel, fourthlevel);
 
-	if (strcmp(farms, CONFIG_KEY_FARMS) != 0) {
+	if (strcmp(firstlevel, CONFIG_KEY_FARMS) != 0 &&
+		strcmp(firstlevel, CONFIG_KEY_POLICIES) != 0) {
 		state->status_code = WS_HTTP_500;
 		return -1;
 	}
@@ -186,40 +191,84 @@ static int send_delete_response(struct nftlb_http_state *state)
 		return -1;
 	}
 
-	if (strcmp(bcks,CONFIG_KEY_BCKS) == 0) {
-		ret = config_set_backend_action(farm, bck, CONFIG_VALUE_ACTION_STOP);
+	if (strcmp(firstlevel, CONFIG_KEY_FARMS) == 0 &&
+		strcmp(thirdlevel, CONFIG_KEY_BCKS) == 0) {
+		ret = config_set_backend_action(secondlevel, fourthlevel, CONFIG_VALUE_ACTION_STOP);
 		if (ret != 0) {
 			config_print_response(&state->body_response,
-					      "error deleting backend");
+					      "error stopping backend");
 			goto delete_end;
 		}
-		ret = config_set_farm_action(farm, CONFIG_VALUE_ACTION_RELOAD);
+		ret = config_set_farm_action(secondlevel, CONFIG_VALUE_ACTION_RELOAD);
 		if (ret != 0) {
 			config_print_response(&state->body_response,
 					      "error reloading farm");
 			goto delete_end;
 		}
-		ret = obj_rulerize();
-		ret = config_set_backend_action(farm, bck, CONFIG_VALUE_ACTION_DELETE);
+		obj_rulerize();
+		ret = config_set_backend_action(secondlevel, fourthlevel, CONFIG_VALUE_ACTION_DELETE);
 		if (ret != 0) {
 			config_print_response(&state->body_response,
 					      "error deleting backend");
 			goto delete_end;
 		}
-	} else {
-		ret = config_set_farm_action(farm, CONFIG_VALUE_ACTION_STOP);
+	} else if (strcmp(firstlevel, CONFIG_KEY_FARMS) == 0 &&
+			   strcmp(thirdlevel, CONFIG_KEY_POLICIES) == 0) {
+		ret = config_set_farm_action(secondlevel, CONFIG_VALUE_ACTION_RELOAD);
+		if (ret != 0) {
+			config_print_response(&state->body_response,
+					      "error reloading farm");
+			goto delete_end;
+		}
+		ret = config_set_fpolicy_action(secondlevel, fourthlevel, CONFIG_VALUE_ACTION_DELETE);
+		if (ret != 0) {
+			config_print_response(&state->body_response,
+					      "error stopping farm policy");
+			goto delete_end;
+		}
+		obj_rulerize();
+	} else if (strcmp(firstlevel, CONFIG_KEY_POLICIES) == 0 &&
+			   strcmp(thirdlevel, CONFIG_KEY_ELEMENTS) == 0) {
+		ret = config_set_element_action(secondlevel, fourthlevel, CONFIG_VALUE_ACTION_DELETE);
+		if (ret != 0) {
+			config_print_response(&state->body_response,
+					      "error deleting policy element");
+			goto delete_end;
+		}
+		obj_rulerize();
+	} else if (strcmp(firstlevel, CONFIG_KEY_FARMS) == 0 &&
+			   strcmp(thirdlevel, "") == 0) {
+		ret = config_set_farm_action(secondlevel, CONFIG_VALUE_ACTION_STOP);
 		if (ret != 0) {
 			config_print_response(&state->body_response,
 					      "error stopping farm");
 			goto delete_end;
 		}
 		ret = obj_rulerize();
-		config_set_farm_action(farm, CONFIG_VALUE_ACTION_DELETE);
+		config_set_farm_action(secondlevel, CONFIG_VALUE_ACTION_DELETE);
 		if (ret != 0) {
 			config_print_response(&state->body_response,
 					      "error deleting farm");
 			goto delete_end;
 		}
+	} else if (strcmp(firstlevel, CONFIG_KEY_POLICIES) == 0 &&
+			   strcmp(thirdlevel, "") == 0) {
+		ret = config_set_policy_action(secondlevel, CONFIG_VALUE_ACTION_STOP);
+		if (ret != 0) {
+			config_print_response(&state->body_response,
+					      "error stopping policy");
+			goto delete_end;
+		}
+		obj_rulerize();
+		ret = config_set_policy_action(secondlevel, CONFIG_VALUE_ACTION_DELETE);
+		if (ret != 0) {
+			config_print_response(&state->body_response,
+					      "error deleting policy");
+			goto delete_end;
+		}
+	} else {
+		state->status_code = WS_HTTP_500;
+		return -1;
 	}
 
 	config_print_response(&state->body_response, "success");
@@ -231,8 +280,13 @@ delete_end:
 
 static int send_post_response(struct nftlb_http_state *state)
 {
-	if (strncmp(state->uri, "/farms", 6) != 0) {
-		state->status_code = WS_HTTP_500;
+	char firstlevel[SRV_MAX_IDENT] = {0};
+
+	sscanf(state->uri, "/%199[^\n]", firstlevel);
+
+	if ((strcmp(firstlevel, CONFIG_KEY_FARMS) != 0) &&
+		(strcmp(firstlevel, CONFIG_KEY_POLICIES) != 0)) {
+		state->status_code = WS_HTTP_404;
 		return -1;
 	}
 
@@ -319,6 +373,7 @@ static void nftlb_read_cb(struct ev_loop *loop, struct ev_io *io, int revents)
 	size = recv(io->fd, buffer, SRV_MAX_BUF, 0);
 	if (size < 0)
 		return;
+
 	if (size == 0) {
 		syslog(LOG_DEBUG, "connection closed by client %s:%hu\n",
 		       inet_ntoa(cli->addr.sin_addr), ntohs(cli->addr.sin_port));
@@ -347,6 +402,7 @@ end:
 	nftlb_client_release(loop, cli);
 
 	syslog(LOG_DEBUG, "%d client(s) connected", --nftserver.clients);
+
 	return;
 }
 

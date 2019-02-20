@@ -1,9 +1,4 @@
 table ip nftlb {
-	ct helper ftp-tcp {
-		type "ftp" protocol tcp
-		l3proto ip
-	}
-
 	map filter-tcp-services {
 		type ipv4_addr . inet_service : verdict
 		elements = { 192.168.0.100 . 80 : goto filter-lb01 }
@@ -40,7 +35,7 @@ table ip nftlb {
 	}
 
 	chain filter-lb01 {
-		ip protocol tcp ct helper set "ftp-tcp"
+		ct state new meter new-rtlimit-lb01 size 65535 { ip saddr limit rate over 10/second burst 3 packets}  log prefix "new-rtlimit-lb01" drop
 		ct mark set 0x80000000
 	}
 }

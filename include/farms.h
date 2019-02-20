@@ -73,14 +73,6 @@ enum states {
 	VALUE_STATE_CONFERR,
 };
 
-enum actions {
-	ACTION_START,
-	ACTION_STOP,
-	ACTION_RELOAD,
-	ACTION_DELETE,
-	ACTION_NONE,
-};
-
  enum switches {
 	VALUE_SWITCH_OFF,
 	VALUE_SWITCH_ON,
@@ -126,6 +118,7 @@ struct farm {
 	int			newrtlimit;
 	int			newrtlimitbst;
 	int			rstrtlimit;
+	int			rstrtlimitbst;
 	int			estconnlimit;
 	int			tcpstrict;
 	int			queue;
@@ -133,12 +126,16 @@ struct farm {
 	int			total_bcks;
 	int			bcks_available;
 	int			bcks_are_marked;
+	int			policies_action;
+	int			policies_used;
 	struct list_head	backends;
+	struct list_head	policies;
 };
 
 struct list_head * farm_s_get_head(void);
 void farm_s_print(void);
 int farm_is_ingress_mode(struct farm *f);
+int farm_needs_policies(struct farm *f);
 int farm_set_ifinfo(struct farm *f, int key);
 struct farm * farm_lookup_by_name(const char *name);
 
@@ -150,6 +147,7 @@ int farm_set_action(struct farm *f, int action);
 int farm_s_set_action(int action);
 int farm_get_masquerade(struct farm *f);
 void farm_s_set_backend_ether_by_oifidx(int interface_idx, const char * ip_bck, char * ether_bck);
+int farm_s_lookup_policy_action(char *name, int action);
 
 int farm_rulerize(struct farm *f);
 int farm_s_rulerize(void);

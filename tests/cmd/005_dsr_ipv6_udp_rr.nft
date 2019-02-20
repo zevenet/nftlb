@@ -5,7 +5,7 @@ table netdev nftlb {
 	}
 
 	chain ingress-lo {
-		type filter hook ingress device lo priority filter; policy accept;
+		type filter hook ingress device "lo" priority filter; policy accept;
 		ip6 daddr . udp dport vmap @udp-services6-lo
 	}
 

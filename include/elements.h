@@ -1,4 +1,4 @@
-/*
+ /*
  *   This file is part of nftlb, nftables load balancer.
  *
  *   Copyright (C) ZEVENET SL.
@@ -19,15 +19,26 @@
  *
  */
 
-#ifndef _NFT_H_
-#define _NFT_H_
+#ifndef _ELEMENTS_H_
+#define _ELEMENTS_H_
 
-#include "farms.h"
+#include "policies.h"
 
-#define NFTLB_POSTROUTING_MARK		0x80000000
 
-int nft_reset(void);
-int nft_rulerize(struct farm *f);
-int nft_rulerize_policies(struct policy *p);
+struct element {
+	struct list_head	list;
+	struct policy		*policy;
+	char				*data;
+	char				*time;
+	int					action;
+};
 
-#endif /* _NFT_H_ */
+void element_s_print(struct policy *p);
+struct element * element_lookup_by_name(struct policy *p, const char *data);
+int element_set_action(struct element *e, int action);
+int element_s_set_action(struct policy *p, int action);
+int element_s_delete(struct policy *p);
+int element_set_attribute(struct config_pair *c);
+int element_pos_actionable(struct config_pair *c);
+
+#endif /* _ELEMENTS_H_ */

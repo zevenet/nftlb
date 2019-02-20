@@ -58,6 +58,11 @@ The configuration files have the following format:
 		{ <object farm 1> },
 		{ <object farm 2> },
 		{ ... }
+	],
+	"policies" : [
+		{ <object policy 1> },
+		{ <object policy 2> },
+		{ ... }
 	]
 }
 ```
@@ -91,6 +96,12 @@ Where every farm object has the following attributes:
 		{<object backend 1>},
 		{<object backend 2>},
 		{...}
+	],
+	"policies" : [					*List of policies*
+		{
+			"name" : "<policy name>",
+		},
+		{...}
 	]
 }
 ```
@@ -106,6 +117,20 @@ Where every backend object has the following attributes:
 	"state": "<up | down | off>",			*Set the status of the backend (up by default)*
 }
 ```
+Where every policy object has the following attributes:
+```
+{
+	"name" : "<string>",				*Name of the policy (required)*
+	"type": "<blacklist | whitelist>",			*Policy type*
+	"elements" : [					*List of IPs or networks*
+		{
+			"data" : "<ip or network>"
+		},
+		{...}
+	]
+}
+```
+
 You can find some examples in the *tests/* folder.
 
 ### API examples

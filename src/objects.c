@@ -23,7 +23,10 @@
 #include "config.h"
 #include "list.h"
 #include "farms.h"
+#include "farmpolicy.h"
 #include "backends.h"
+#include "policies.h"
+#include "elements.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -35,16 +38,23 @@ struct obj_config	current_obj;
 struct list_head	farms;
 int			total_farms = 0;
 int			dsr_counter = 0;
-
+struct list_head	policies;
+int			total_policies = 0;
 
 void objects_init(void)
 {
 	init_list_head(&farms);
+	init_list_head(&policies);
 }
 
 struct list_head * obj_get_farms(void)
 {
 	return &farms;
+}
+
+struct list_head * obj_get_policies(void)
+{
+	return &policies;
 }
 
 int obj_get_total_farms(void)
@@ -56,6 +66,17 @@ void obj_set_total_farms(int new_value)
 {
 	if (new_value >= 0)
 		total_farms = new_value;
+}
+
+int obj_get_total_policies(void)
+{
+	return total_policies;
+}
+
+void obj_set_total_policies(int new_value)
+{
+	if (new_value >= 0)
+		total_policies = new_value;
 }
 
 int obj_get_dsr_counter(void)
@@ -77,6 +98,9 @@ static void obj_config_init(void)
 	config_pair_init(current_obj.c);
 	current_obj.fptr = NULL;
 	current_obj.bptr = NULL;
+	current_obj.fpptr = NULL;
+	current_obj.pptr = NULL;
+	current_obj.eptr = NULL;
 }
 
 struct obj_config * obj_get_current_object(void)
@@ -288,6 +312,30 @@ int obj_set_attribute(struct config_pair *c, int actionable)
 		if (actionable)
 			bck_pos_actionable(c);
 		break;
+	case LEVEL_FARMPOLICY:
+		if (actionable)
+			farmpolicy_pre_actionable(c);
+
+		farmpolicy_set_attribute(c);
+
+		if (actionable)
+			farmpolicy_pos_actionable(c);
+		break;
+	case LEVEL_POLICIES:
+		if (actionable)
+			policy_pre_actionable(c);
+
+		policy_set_attribute(c);
+
+		if (actionable)
+			policy_pos_actionable(c);
+		break;
+	case LEVEL_ELEMENTS:
+		element_set_attribute(c);
+
+		if (actionable)
+			element_pos_actionable(c);
+		break;
 	default:
 		return -1;
 	}
@@ -312,10 +360,24 @@ int obj_set_attribute_string(char *src, char **dst)
 void obj_print(void)
 {
 	farm_s_print();
+	policies_s_print();
 }
 
 int obj_rulerize(void)
 {
 	obj_config_init();
+	policy_s_rulerize();
 	return farm_s_rulerize();
+}
+
+char * obj_print_policy_type(int type)
+{
+	switch (type) {
+	case VALUE_TYPE_BLACK:
+		return CONFIG_VALUE_POLICIES_TYPE_BL;
+	case VALUE_TYPE_WHITE:
+		return CONFIG_VALUE_POLICIES_TYPE_WL;
+	default:
+		return NULL;
+	}
 }

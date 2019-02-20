@@ -1,5 +1,5 @@
 table ip nftlb {
-	ct helper sip {
+	ct helper sip-udp {
 		type "sip" protocol udp
 		l3proto ip
 	}
@@ -52,6 +52,6 @@ table ip nftlb {
 	}
 
 	chain filter-lb01 {
-		ct helper set "sip"
+		ip protocol udp ct helper set "sip-udp"
 	}
 }

@@ -38,9 +38,6 @@ static struct backend * backend_create(struct farm *f, char *name)
 		return NULL;
 	}
 
-	list_add_tail(&b->list, &f->backends);
-	f->total_bcks++;
-
 	b->parent = f;
 	obj_set_attribute_string(name, &b->name);
 
@@ -53,6 +50,9 @@ static struct backend * backend_create(struct farm *f, char *name)
 	b->mark = DEFAULT_MARK;
 	b->state = DEFAULT_BACKEND_STATE;
 	b->action = DEFAULT_ACTION;
+
+	list_add_tail(&b->list, &f->backends);
+	f->total_bcks++;
 
 	return b;
 }

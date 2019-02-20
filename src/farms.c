@@ -27,6 +27,7 @@
 
 #include "farms.h"
 #include "backends.h"
+#include "farmpolicy.h"
 #include "objects.h"
 #include "config.h"
 #include "nft.h"
@@ -42,9 +43,6 @@ static struct farm * farm_create(char *name)
 		syslog(LOG_ERR, "Farm memory allocation error");
 		return NULL;
 	}
-
-	list_add_tail(&pfarm->list, farms);
-	obj_set_total_farms(obj_get_total_farms() + 1);
 
 	obj_set_attribute_string(name, &pfarm->name);
 
@@ -70,12 +68,14 @@ static struct farm * farm_create(char *name)
 	pfarm->action = DEFAULT_ACTION;
 
 	init_list_head(&pfarm->backends);
+	init_list_head(&pfarm->policies);
 
 	pfarm->total_weight = 0;
 	pfarm->priority = DEFAULT_PRIORITY;
 	pfarm->newrtlimit = DEFAULT_NEWRTLIMIT;
-	pfarm->newrtlimitbst = DEFAULT_NEWRTLIMITBURST;
+	pfarm->newrtlimitbst = DEFAULT_RTLIMITBURST;
 	pfarm->rstrtlimit = DEFAULT_RSTRTLIMIT;
+	pfarm->rstrtlimitbst = DEFAULT_RTLIMITBURST;
 	pfarm->estconnlimit = DEFAULT_ESTCONNLIMIT;
 	pfarm->tcpstrict = DEFAULT_TCPSTRICT;
 	pfarm->queue = DEFAULT_QUEUE;
@@ -83,6 +83,11 @@ static struct farm * farm_create(char *name)
 	pfarm->total_bcks = 0;
 	pfarm->bcks_available = 0;
 	pfarm->bcks_are_marked = 0;
+	pfarm->policies_used = 0;
+	pfarm->policies_action = ACTION_NONE;
+
+	list_add_tail(&pfarm->list, farms);
+	obj_set_total_farms(obj_get_total_farms() + 1);
 
 	return pfarm;
 }
@@ -90,6 +95,7 @@ static struct farm * farm_create(char *name)
 static int farm_delete(struct farm *pfarm)
 {
 	backend_s_delete(pfarm);
+	farmpolicy_s_delete(pfarm);
 	list_del(&pfarm->list);
 
 	if (pfarm->name && strcmp(pfarm->name, "") != 0)
@@ -122,6 +128,11 @@ static int farm_validate(struct farm *f)
 
 	if (!f->virtaddr || strcmp(f->virtaddr, "") == 0)
 		return 0;
+
+	if (farm_needs_policies(f) &&
+		(!f->iface || (strcmp(f->iface, "") == 0))) {
+		return 0;
+	}
 
 	if (farm_is_ingress_mode(f) &&
 		(!f->iface || (strcmp(f->iface, "") == 0) ||
@@ -188,13 +199,15 @@ static int farm_set_netinfo(struct farm *f)
 		return -1;
 	}
 
-	if (farm_set_ifinfo(f, KEY_IFACE) == 0 &&
-		farm_set_ifinfo(f, KEY_OFACE) == 0 &&
-		farm_is_ingress_mode(f)) {
-
+	if (farm_is_ingress_mode(f) &&
+		farm_set_ifinfo(f, KEY_IFACE) == 0 &&
+		farm_set_ifinfo(f, KEY_OFACE) == 0 ) {
 		farm_manage_eventd();
 		backend_s_find_ethers(f);
 	}
+
+	if (farm_needs_policies(f))
+		farm_set_ifinfo(f, KEY_IFACE);
 
 	return 0;
 }
@@ -343,18 +356,23 @@ static void farm_print(struct farm *f)
 	syslog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_NEWRTLIMIT, f->newrtlimit);
 	syslog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_NEWRTLIMITBURST, f->newrtlimitbst);
 	syslog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_RSTRTLIMIT, f->rstrtlimit);
+	syslog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_RSTRTLIMITBURST, f->rstrtlimitbst);
 	syslog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_ESTCONNLIMIT, f->estconnlimit);
-	syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_TCPSTRICT, obj_print_state(f->tcpstrict));
+	syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_TCPSTRICT, obj_print_switch(f->tcpstrict));
 	syslog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_QUEUE, f->queue);
 
 	syslog(LOG_DEBUG,"    *[total_weight] %d", f->total_weight);
 	syslog(LOG_DEBUG,"    *[total_bcks] %d", f->total_bcks);
 	syslog(LOG_DEBUG,"    *[bcks_available] %d", f->bcks_available);
 	syslog(LOG_DEBUG,"    *[bcks_are_marked] %d", f->bcks_are_marked);
+	syslog(LOG_DEBUG,"    *[policies_action] %d", f->policies_action);
+	syslog(LOG_DEBUG,"    *[policies_used] %d", f->policies_used);
 	syslog(LOG_DEBUG,"    *[%s] %d", CONFIG_KEY_ACTION, f->action);
 
 	if (f->total_bcks != 0)
 		backend_s_print(f);
+
+	farmpolicy_s_print(f);
 }
 
 void farm_s_print(void)
@@ -382,8 +400,12 @@ struct farm * farm_lookup_by_name(const char *name)
 
 int farm_is_ingress_mode(struct farm *f)
 {
-	syslog(LOG_DEBUG, "%s():%d: farm %s is in ingress mode?", __FUNCTION__, __LINE__, f->name);
 	return (f->mode == VALUE_MODE_DSR || f->mode == VALUE_MODE_STLSDNAT);
+}
+
+int farm_needs_policies(struct farm *f)
+{
+	return (!farm_is_ingress_mode(f) && f->policies_used > 0) || (f->policies_action != ACTION_NONE);
 }
 
 int farm_set_ifinfo(struct farm *f, int key)
@@ -398,7 +420,7 @@ int farm_set_ifinfo(struct farm *f, int key)
 
 	syslog(LOG_DEBUG, "%s():%d: farm %s set interface info for interface key %d", __FUNCTION__, __LINE__, f->name, key);
 
-	if (!farm_is_ingress_mode(f)) {
+	if (!(farm_is_ingress_mode(f) || (farm_needs_policies(f) && key == KEY_IFACE))) {
 		syslog(LOG_DEBUG, "%s():%d: farm %s is not in ingress mode", __FUNCTION__, __LINE__, f->name);
 		return -1;
 	}
@@ -498,6 +520,7 @@ int farm_pre_actionable(struct config_pair *c)
 	case KEY_NEWRTLIMIT:
 	case KEY_NEWRTLIMITBURST:
 	case KEY_RSTRTLIMIT:
+	case KEY_RSTRTLIMITBURST:
 	case KEY_ESTCONNLIMIT:
 	case KEY_TCPSTRICT:
 	case KEY_QUEUE:
@@ -535,6 +558,7 @@ int farm_pos_actionable(struct config_pair *c)
 	case KEY_NEWRTLIMIT:
 	case KEY_NEWRTLIMITBURST:
 	case KEY_RSTRTLIMIT:
+	case KEY_RSTRTLIMITBURST:
 	case KEY_ESTCONNLIMIT:
 	case KEY_TCPSTRICT:
 	case KEY_QUEUE:
@@ -635,6 +659,9 @@ int farm_set_attribute(struct config_pair *c)
 	case KEY_RSTRTLIMIT:
 		f->rstrtlimit = c->int_value;
 		break;
+	case KEY_RSTRTLIMITBURST:
+		f->rstrtlimitbst = c->int_value;
+		break;
 	case KEY_ESTCONNLIMIT:
 		f->estconnlimit = c->int_value;
 		break;
@@ -654,6 +681,9 @@ int farm_set_attribute(struct config_pair *c)
 int farm_set_action(struct farm *f, int action)
 {
 	syslog(LOG_DEBUG, "%s():%d: farm %s set action %d", __FUNCTION__, __LINE__, f->name, action);
+
+	if (action != ACTION_NONE && action != ACTION_RELOAD && f->policies_used != 0)
+		f->policies_action = action;
 
 	if (action == ACTION_DELETE) {
 		farm_delete(f);
@@ -718,6 +748,17 @@ void farm_s_set_backend_ether_by_oifidx(int interface_idx, const char * ip_bck, 
 			farm_rulerize(f);
 		}
 	}
+}
+
+int farm_s_lookup_policy_action(char *name, int action)
+{
+	struct list_head *farms = obj_get_farms();
+	struct farm *f, *next;
+
+	list_for_each_entry_safe(f, next, farms, list)
+		farmpolicy_s_lookup_policy_action(f, name, action);
+
+	return 0;
 }
 
 int farm_rulerize(struct farm *f)

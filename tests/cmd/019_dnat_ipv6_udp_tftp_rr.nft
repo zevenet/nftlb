@@ -1,5 +1,5 @@
 table ip6 nftlb {
-	ct helper tftp {
+	ct helper tftp-udp {
 		type "tftp" protocol udp
 		l3proto ip6
 	}
@@ -40,6 +40,6 @@ table ip6 nftlb {
 	}
 
 	chain filter-lb01 {
-		ct helper set "tftp"
+		ip6 nexthdr udp ct helper set "tftp-udp"
 	}
 }
