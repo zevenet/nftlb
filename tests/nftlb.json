@@ -1,0 +1,244 @@
+{
+ "farms": [
+  {
+   "name": "lb01",
+   "family": "ipv4",
+   "virtual-addr": "127.0.0.1",
+   "virtual-ports": "6595",
+   "mode": "dnat",
+   "protocol": "tcp",
+   "scheduler": "weight",
+   "state": "up",
+   "backends": [
+    {
+     "name": "gs1",
+     "ip-addr": "10.0.2.1",
+     "weight": "1",
+     "state": "up",
+     "mark": "0x1"
+    },
+    {
+     "name": "gs3",
+     "ip-addr": "10.0.2.3",
+     "weight": "1",
+     "state": "up",
+     "mark": "0x3"
+    },
+    {
+     "name": "gs4",
+     "ip-addr": "10.0.2.4",
+     "weight": "1",
+     "state": "up",
+     "mark": "0x4"
+    },
+    {
+     "name": "gs5",
+     "ip-addr": "10.0.2.5",
+     "weight": "1",
+     "state": "up",
+     "mark": "0x5"
+    }
+   ]
+  },
+  {
+   "name": "lb02",
+   "family": "ipv4",
+   "virtual-addr": "127.0.0.2",
+   "virtual-ports": "443",
+   "mode": "dnat",
+   "protocol": "tcp",
+   "scheduler": "weight",
+   "state": "up",
+   "backends": [
+    {
+     "name": "gs1",
+     "ip-addr": "10.0.2.1",
+     "weight": "1",
+     "state": "up",
+     "mark": "0x1"
+    },
+    {
+     "name": "gs3",
+     "ip-addr": "10.0.2.3",
+     "weight": "1",
+     "state": "up",
+     "mark": "0x3"
+    },
+    {
+     "name": "gs4",
+     "ip-addr": "10.0.2.4",
+     "weight": "1",
+     "state": "up",
+     "mark": "0x4"
+    },
+    {
+     "name": "gs5",
+     "ip-addr": "10.0.2.5",
+     "weight": "1",
+     "state": "up",
+     "mark": "0x5"
+    }
+   ]
+  },
+  {
+   "name": "lb03",
+   "family": "ipv4",
+   "virtual-addr": "127.0.0.3",
+   "virtual-ports": "6595",
+   "mode": "dnat",
+   "protocol": "tcp",
+   "scheduler": "weight",
+   "state": "up",
+   "backends": [
+    {
+     "name": "gs1",
+     "ip-addr": "10.0.2.1",
+     "weight": "1",
+     "state": "up",
+     "mark": "0x1"
+    },
+    {
+     "name": "gs3",
+     "ip-addr": "10.0.2.3",
+     "weight": "1",
+     "state": "up",
+     "mark": "0x3"
+    },
+    {
+     "name": "gs4",
+     "ip-addr": "10.0.2.4",
+     "weight": "1",
+     "state": "up",
+     "mark": "0x4"
+    },
+    {
+     "name": "gs5",
+     "ip-addr": "10.0.2.5",
+     "weight": "1",
+     "state": "up",
+     "mark": "0x5"
+    }
+   ]
+  },
+  {
+   "name": "lb04",
+   "family": "ipv4",
+   "virtual-addr": "127.0.0.4",
+   "virtual-ports": "443",
+   "mode": "dnat",
+   "protocol": "tcp",
+   "scheduler": "weight",
+   "state": "up",
+   "backends": [
+    {
+     "name": "gs1",
+     "ip-addr": "10.0.2.1",
+     "weight": "1",
+     "state": "up",
+     "mark": "0x1"
+    },
+    {
+     "name": "gs3",
+     "ip-addr": "10.0.2.3",
+     "weight": "1",
+     "state": "up",
+     "mark": "0x3"
+    },
+    {
+     "name": "gs4",
+     "ip-addr": "10.0.2.4",
+     "weight": "1",
+     "state": "up",
+     "mark": "0x4"
+    },
+    {
+     "name": "gs5",
+     "ip-addr": "10.0.2.5",
+     "weight": "1",
+     "state": "up",
+     "mark": "0x5"
+    }
+   ]
+  },
+  {
+   "name": "lb05",
+   "family": "ipv4",
+   "virtual-addr": "127.0.0.5",
+   "virtual-ports": "6595",
+   "mode": "dnat",
+   "protocol": "tcp",
+   "scheduler": "weight",
+   "state": "up",
+   "backends": [
+    {
+     "name": "gs1",
+     "ip-addr": "10.0.2.1",
+     "weight": "1",
+     "state": "up",
+     "mark": "0x1"
+    },
+    {
+     "name": "gs3",
+     "ip-addr": "10.0.2.3",
+     "weight": "1",
+     "state": "up",
+     "mark": "0x3"
+    },
+    {
+     "name": "gs4",
+     "ip-addr": "10.0.2.4",
+     "weight": "1",
+     "state": "up",
+     "mark": "0x4"
+    },
+    {
+     "name": "gs5",
+     "ip-addr": "10.0.2.5",
+     "weight": "1",
+     "state": "up",
+     "mark": "0x5"
+    }
+   ]
+  },
+  {
+   "name": "lb06",
+   "family": "ipv4",
+   "virtual-addr": "127.0.0.6",
+   "virtual-ports": "443",
+   "mode": "dnat",
+   "protocol": "tcp",
+   "scheduler": "weight",
+   "state": "up",
+   "backends": [
+    {
+     "name": "gs1",
+     "ip-addr": "10.0.2.1",
+     "weight": "1",
+     "state": "up",
+     "mark": "0x1"
+    },
+    {
+     "name": "gs3",
+     "ip-addr": "10.0.2.3",
+     "weight": "1",
+     "state": "up",
+     "mark": "0x3"
+    },
+    {
+     "name": "gs4",
+     "ip-addr": "10.0.2.4",
+     "weight": "1",
+     "state": "up",
+     "mark": "0x4"
+    },
+    {
+     "name": "gs5",
+     "ip-addr": "10.0.2.5",
+     "weight": "1",
+     "state": "up",
+     "mark": "0x5"
+    }
+   ]
+  }
+ ]
+}

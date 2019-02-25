@@ -180,13 +180,6 @@ int element_pos_actionable(struct config_pair *c)
 
 	syslog(LOG_DEBUG, "%s():%d: pos actionable element %s of policy %s with param %d", __FUNCTION__, __LINE__, e->data, p->name, c->key);
 
-	//~ switch (c->key) {
-	//~ case KEY_DATA:
-		//~ break;
-	//~ default:
-		//~ break;
-	//~ }
-
 	policy_set_action(p, ACTION_RELOAD);
 
 	return 0;

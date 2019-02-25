@@ -422,7 +422,7 @@ int farm_set_ifinfo(struct farm *f, int key)
 
 	if (!(farm_is_ingress_mode(f) || (farm_needs_policies(f) && key == KEY_IFACE))) {
 		syslog(LOG_DEBUG, "%s():%d: farm %s is not in ingress mode", __FUNCTION__, __LINE__, f->name);
-		return -1;
+		return 0;
 	}
 
 	switch (key) {
