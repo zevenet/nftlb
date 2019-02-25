@@ -154,7 +154,7 @@ int farmpolicy_set_attribute(struct config_pair *c)
 	struct policy *p;
 
 	if (!cur->fptr)
-		return -1;
+		return PARSER_OBJ_UNKNOWN;
 
 	switch (c->key) {
 	case KEY_NAME:
@@ -170,10 +170,10 @@ int farmpolicy_set_attribute(struct config_pair *c)
 			farm_set_ifinfo(fp->farm, KEY_IFACE);
 		break;
 	default:
-		return -1;
+		return PARSER_STRUCT_FAILED;
 	}
 
-	return 0;
+	return PARSER_OK;
 }
 
 int farmpolicy_pre_actionable(struct config_pair *c)

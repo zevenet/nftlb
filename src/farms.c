@@ -576,8 +576,13 @@ int farm_pos_actionable(struct config_pair *c)
 int farm_set_attribute(struct config_pair *c)
 {
 	struct obj_config *cur = obj_get_current_object();
-	struct farm *f = cur->fptr;
+	struct farm *f;
 	struct farm *nf;
+
+	if (c->key != KEY_NAME && !cur->fptr)
+		return PARSER_OBJ_UNKNOWN;
+
+	f = cur->fptr;
 
 	switch (c->key) {
 	case KEY_NAME:
@@ -672,10 +677,10 @@ int farm_set_attribute(struct config_pair *c)
 		f->queue = c->int_value;
 		break;
 	default:
-		return -1;
+		return PARSER_STRUCT_FAILED;
 	}
 
-	return 0;
+	return PARSER_OK;
 }
 
 int farm_set_action(struct farm *f, int action)

@@ -138,10 +138,15 @@ int element_s_delete(struct policy *p)
 int element_set_attribute(struct config_pair *c)
 {
 	struct obj_config *cur = obj_get_current_object();
-	struct element *e = cur->eptr;
+	struct element *e;
 
 	if (!cur->pptr)
-		return -1;
+		return PARSER_OBJ_UNKNOWN;
+
+	if (c->key != KEY_NAME && !cur->eptr)
+		return PARSER_OBJ_UNKNOWN;
+
+	e = cur->eptr;
 
 	switch (c->key) {
 	case KEY_DATA:

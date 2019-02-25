@@ -61,6 +61,7 @@ enum ws_methods {
 
 enum ws_responses {
 	WS_HTTP_500,
+	WS_HTTP_400,
 	WS_HTTP_401,
 	WS_HTTP_404,
 	WS_HTTP_200,
@@ -76,6 +77,7 @@ struct nftlb_http_state {
 
 static const char *ws_str_responses[] = {
 	HTTP_PROTO "500 Internal Server Error" HTTP_LINE_END,
+	HTTP_PROTO "400 Bad Request" HTTP_LINE_END,
 	HTTP_PROTO "401 Unauthorized" HTTP_LINE_END,
 	HTTP_PROTO "404 Not Found" HTTP_LINE_END,
 	HTTP_PROTO "200 OK" HTTP_LINE_END,
@@ -296,10 +298,24 @@ static int send_post_response(struct nftlb_http_state *state)
 		return -1;
 	}
 
-	if (config_buffer(state->body) != 0) {
+	switch (config_buffer(state->body)) {
+	case PARSER_OK:
+		break;
+	case PARSER_STRUCT_FAILED:
+		config_print_response(&state->body_response,
+				      "the structure is invalid");
+		goto post_end;
+		break;
+	case PARSER_OBJ_UNKNOWN:
+		config_print_response(&state->body_response,
+				      "the object to modify is unknown");
+		goto post_end;
+		break;
+	default:
 		config_print_response(&state->body_response,
 				      "error parsing buffer");
 		goto post_end;
+		break;
 	}
 
 	if (obj_rulerize() != 0) {

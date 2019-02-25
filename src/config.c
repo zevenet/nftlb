@@ -36,7 +36,7 @@
 
 #define CONFIG_MAXBUF			4096
 
-static void config_json(json_t *element, int level, int source, int key);
+static int config_json(json_t *element, int level, int source, int key);
 
 struct config_pair c;
 
@@ -380,45 +380,60 @@ static int jump_config_value(int level, int key)
 	return 0;
 }
 
-static void config_json_object(json_t *element, int level, int source)
+static int config_json_object(json_t *element, int level, int source)
 {
 	const char *key;
 	json_t *value;
+	int ret = PARSER_OK;
 
 	json_object_foreach(element, key, value) {
 		c.level = level;
 		c.key = config_key(key);
-		if (jump_config_value(level, c.key) == 0)
-			config_json(value, level, source, c.key);
+		if (jump_config_value(level, c.key) == 0) {
+			ret = config_json(value, level, source, c.key);
+			if (ret)
+				return ret;
+		}
 	}
+
+	return ret;
 }
 
-static void config_json_array(json_t *element, int level, int source)
+static int config_json_array(json_t *element, int level, int source)
 {
 	size_t size = json_array_size(element);
 	size_t i;
+	int ret = PARSER_OK;
 
-	for (i = 0; i < size; i++)
-		config_json(json_array_get(element, i), level, source, -1);
+	for (i = 0; i < size && ret == PARSER_OK; i++) {
+		ret = config_json(json_array_get(element, i), level, source, -1);
+	}
+
+	return ret;
 }
 
-static void config_json_string(json_t *element, int level, int source)
+static int config_json_string(json_t *element, int level, int source)
 {
+	int ret;
 	config_value(json_string_value(element));
 
 	syslog(LOG_DEBUG, "%s():%d: %d(level) %d(key) %s(value) %d(value)", __FUNCTION__, __LINE__, c.level, c.key, c.str_value, c.int_value);
 
-	obj_set_attribute(&c, source);
+	ret = obj_set_attribute(&c, source);
 	init_pair(&c);
+
+	return ret;
 }
 
-static void config_json(json_t *element, int level, int source, int key)
+static int config_json(json_t *element, int level, int source, int key)
 {
+	int ret = PARSER_OK;
+
 	syslog(LOG_DEBUG, "%s():%d: %d(level) %d(source)", __FUNCTION__, __LINE__, level, source);
 
 	switch (json_typeof(element)) {
 	case JSON_OBJECT:
-		config_json_object(element, level, source);
+		ret = config_json_object(element, level, source);
 		break;
 	case JSON_ARRAY:
 		if (level == LEVEL_INIT && key == KEY_FARMS)
@@ -432,7 +447,7 @@ static void config_json(json_t *element, int level, int source, int key)
 		if (level == LEVEL_POLICIES && key == KEY_ELEMENTS)
 			level = LEVEL_ELEMENTS;
 
-		config_json_array(element, level, source);
+		ret = config_json_array(element, level, source);
 
 		if (level == LEVEL_FARMS || level == LEVEL_POLICIES)
 			level = LEVEL_INIT;
@@ -443,12 +458,15 @@ static void config_json(json_t *element, int level, int source, int key)
 
 		break;
 	case JSON_STRING:
-		config_json_string(element, level, source);
+		ret = config_json_string(element, level, source);
+
 		break;
 	default:
 		fprintf(stderr, "Configuration file unknown element type %d\n", json_typeof(element));
 		syslog(LOG_ERR, "Configuration file unknown element type %d", json_typeof(element));
 	}
+
+	return ret;
 }
 
 void config_pair_init(struct config_pair *c)
@@ -467,24 +485,24 @@ int config_file(const char *file)
 	FILE		*fd;
 	json_error_t	error;
 	json_t		*root;
-	int		ret = 0;
+	int		ret = PARSER_OK;
 
 	fd = fopen(file, "r");
 	if (fd == NULL) {
 		fprintf(stderr, "Error open configuration file %s\n", file);
 		syslog(LOG_ERR, "Error open configuration file %s", file);
-		return -1;
+		return PARSER_FAILED;
 	}
 
 	root = json_loadf(fd, JSON_ALLOW_NUL, &error);
 
 	if (root) {
-		config_json(root, LEVEL_INIT, CONFIG_SRC_FILE, -1);
+		ret = config_json(root, LEVEL_INIT, CONFIG_SRC_FILE, -1);
 		json_decref(root);
 	} else {
 		fprintf(stderr, "Configuration file error '%s' on line %d: %s", file, error.line, error.text);
 		syslog(LOG_ERR, "Configuration file error '%s' on line %d: %s", file, error.line, error.text);
-		ret = -1;
+		ret = PARSER_FAILED;
 	}
 
 	fclose(fd);
@@ -495,18 +513,18 @@ int config_buffer(const char *buf)
 {
 	json_error_t	error;
 	json_t		*root;
-	int		ret = 0;
+	int		ret = PARSER_OK;
 
 	syslog(LOG_DEBUG, "%s():%d: received buffer %d : %s", __FUNCTION__, __LINE__, (int)strlen(buf), buf);
 
 	root = json_loadb(buf, strlen(buf), JSON_ALLOW_NUL, &error);
 
 	if (root) {
-		config_json(root, LEVEL_INIT, CONFIG_SRC_BUFFER, -1);
+		ret = config_json(root, LEVEL_INIT, CONFIG_SRC_BUFFER, -1);
 		json_decref(root);
 	} else {
 		syslog(LOG_ERR, "Configuration error on line %d: %s", error.line, error.text);
-		ret = -1;
+		ret = PARSER_FAILED;
 	}
 
 	return ret;

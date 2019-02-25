@@ -114,6 +114,12 @@
 #define CONFIG_VALUE_POLICIES_TYPE_BL	"blacklist"
 #define CONFIG_VALUE_POLICIES_TYPE_WL	"whitelist"
 
+enum config_parser_output {
+	PARSER_OK,
+	PARSER_FAILED,
+	PARSER_STRUCT_FAILED,
+	PARSER_OBJ_UNKNOWN,
+};
 
 enum config_src {
 	CONFIG_SRC_FILE,

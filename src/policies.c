@@ -113,7 +113,12 @@ struct policy * policy_lookup_by_name(const char *name)
 int policy_set_attribute(struct config_pair *c)
 {
 	struct obj_config *cur = obj_get_current_object();
-	struct policy *p = cur->pptr;
+	struct policy *p;
+
+	if (c->key != KEY_NAME && !cur->pptr)
+		return PARSER_OBJ_UNKNOWN;
+
+	p = cur->pptr;
 
 	switch (c->key) {
 	case KEY_NAME:
@@ -138,10 +143,10 @@ int policy_set_attribute(struct config_pair *c)
 		policy_set_action(p, c->int_value);
 		break;
 	default:
-		return -1;
+		return PARSER_STRUCT_FAILED;
 	}
 
-	return 0;
+	return PARSER_OK;
 }
 
 int policy_set_action(struct policy *p, int action)

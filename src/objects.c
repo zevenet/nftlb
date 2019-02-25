@@ -291,6 +291,7 @@ char * obj_print_switch(int state)
 
 int obj_set_attribute(struct config_pair *c, int actionable)
 {
+	int ret;
 	syslog(LOG_DEBUG, "%s():%d: actionable is %d", __FUNCTION__, __LINE__, actionable);
 
 	switch (c->level) {
@@ -298,7 +299,7 @@ int obj_set_attribute(struct config_pair *c, int actionable)
 		if (actionable)
 			farm_pre_actionable(c);
 
-		farm_set_attribute(c);
+		ret = farm_set_attribute(c);
 
 		if (actionable)
 			farm_pos_actionable(c);
@@ -307,7 +308,7 @@ int obj_set_attribute(struct config_pair *c, int actionable)
 		if (actionable)
 			bck_pre_actionable(c);
 
-		backend_set_attribute(c);
+		ret = backend_set_attribute(c);
 
 		if (actionable)
 			bck_pos_actionable(c);
@@ -316,7 +317,7 @@ int obj_set_attribute(struct config_pair *c, int actionable)
 		if (actionable)
 			farmpolicy_pre_actionable(c);
 
-		farmpolicy_set_attribute(c);
+		ret = farmpolicy_set_attribute(c);
 
 		if (actionable)
 			farmpolicy_pos_actionable(c);
@@ -325,22 +326,22 @@ int obj_set_attribute(struct config_pair *c, int actionable)
 		if (actionable)
 			policy_pre_actionable(c);
 
-		policy_set_attribute(c);
+		ret = policy_set_attribute(c);
 
 		if (actionable)
 			policy_pos_actionable(c);
 		break;
 	case LEVEL_ELEMENTS:
-		element_set_attribute(c);
+		ret = element_set_attribute(c);
 
 		if (actionable)
 			element_pos_actionable(c);
 		break;
 	default:
-		return -1;
+		return PARSER_FAILED;
 	}
 
-	return 0;
+	return ret;
 }
 
 int obj_set_attribute_string(char *src, char **dst)

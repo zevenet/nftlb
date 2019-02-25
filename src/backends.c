@@ -343,10 +343,15 @@ int backend_s_validate(struct farm *f)
 int backend_set_attribute(struct config_pair *c)
 {
 	struct obj_config *cur = obj_get_current_object();
-	struct backend *b = cur->bptr;
+	struct backend *b;
 
 	if (!cur->fptr)
-		return -1;
+		return PARSER_OBJ_UNKNOWN;
+
+	if (c->key != KEY_NAME && !cur->bptr)
+		return PARSER_OBJ_UNKNOWN;
+
+	b = cur->bptr;
 
 	switch (c->key) {
 	case KEY_NAME:
@@ -397,7 +402,7 @@ int backend_set_attribute(struct config_pair *c)
 		return -1;
 	}
 
-	return 0;
+	return PARSER_OK;
 }
 
 static int backend_switch(struct backend *b, int new_state)
