@@ -67,7 +67,8 @@ static int config_value_family(const char *value)
 	if (strcmp(value, CONFIG_VALUE_FAMILY_INET) == 0)
 		return VALUE_FAMILY_INET;
 
-	return -1;
+	syslog(LOG_INFO, "%s():%d: parsing unknown value'%s', using defaults", __FUNCTION__, __LINE__, value);
+	return VALUE_FAMILY_IPV4;
 }
 
 static int config_value_mode(const char *value)
@@ -81,7 +82,8 @@ static int config_value_mode(const char *value)
 	if (strcmp(value, CONFIG_VALUE_MODE_STLSDNAT) == 0)
 		return VALUE_MODE_STLSDNAT;
 
-	return -1;
+	syslog(LOG_INFO, "%s():%d: parsing unknown value'%s', using defaults", __FUNCTION__, __LINE__, value);
+	return VALUE_MODE_SNAT;
 }
 
 static int config_value_proto(const char *value)
@@ -95,7 +97,8 @@ static int config_value_proto(const char *value)
 	if (strcmp(value, CONFIG_VALUE_PROTO_ALL) == 0)
 		return VALUE_PROTO_ALL;
 
-	return -1;
+	syslog(LOG_INFO, "%s():%d: parsing unknown value'%s', using defaults", __FUNCTION__, __LINE__, value);
+	return VALUE_PROTO_TCP;
 }
 
 static int config_value_sched(const char *value)
@@ -109,7 +112,8 @@ static int config_value_sched(const char *value)
 	if (strcmp(value, CONFIG_VALUE_SCHED_SYMHASH) == 0)
 		return VALUE_SCHED_SYMHASH;
 
-	return -1;
+	syslog(LOG_INFO, "%s():%d: parsing unknown value'%s', using defaults", __FUNCTION__, __LINE__, value);
+	return VALUE_SCHED_RR;
 }
 
 static int config_value_schedparam(const char *value)
@@ -162,7 +166,8 @@ static int config_value_helper(const char *value)
 	if (strcmp(value, CONFIG_VALUE_HELPER_TFTP) == 0)
 		return VALUE_HELPER_TFTP;
 
-	return -1;
+	syslog(LOG_INFO, "%s():%d: parsing unknown value'%s', using defaults", __FUNCTION__, __LINE__, value);
+	return VALUE_HELPER_NONE;
 }
 
 static int config_value_log(const char *value)
@@ -191,7 +196,8 @@ static int config_value_switch(const char *value)
 	else
 		return VALUE_SWITCH_OFF;
 
-	return -1;
+	syslog(LOG_INFO, "%s():%d: parsing unknown value'%s', using defaults", __FUNCTION__, __LINE__, value);
+	return VALUE_SWITCH_OFF;
 }
 
 static int config_value_state(const char *value)
@@ -205,7 +211,8 @@ static int config_value_state(const char *value)
 	if (strcmp(value, CONFIG_VALUE_STATE_CONFERR) == 0)
 		return VALUE_STATE_CONFERR;
 
-	return -1;
+	syslog(LOG_INFO, "%s():%d: parsing unknown value'%s', using defaults", __FUNCTION__, __LINE__, value);
+	return VALUE_STATE_UP;
 }
 
 static int config_value_action(const char *value)
@@ -229,11 +236,14 @@ static int config_value_type(const char *value)
 	if (strcmp(value, CONFIG_VALUE_POLICIES_TYPE_WL) == 0)
 		return VALUE_TYPE_WHITE;
 
-	return -1;
+	syslog(LOG_INFO, "%s():%d: parsing unknown value'%s', using defaults", __FUNCTION__, __LINE__, value);
+	return VALUE_TYPE_BLACK;
 }
 
-static void config_value(const char *value)
+static int config_value(const char *value)
 {
+	int ret = 0;
+
 	switch(c.key) {
 	case KEY_FAMILY:
 		c.int_value = config_value_family(value);
@@ -282,9 +292,26 @@ static void config_value(const char *value)
 	case KEY_TYPE:
 		c.int_value = config_value_type(value);
 		break;
-	default:
+	case KEY_NAME:
+	case KEY_NEWNAME:
+	case KEY_IFACE:
+	case KEY_OFACE:
+	case KEY_ETHADDR:
+	case KEY_VIRTADDR:
+	case KEY_VIRTPORTS:
+	case KEY_IPADDR:
+	case KEY_SRCADDR:
+	case KEY_PORTS:
+	case KEY_DATA:
 		c.str_value = (char *)value;
+		break;
+	default:
+		syslog(LOG_ERR, "%s():%d: unknown parsed key %d", __FUNCTION__, __LINE__, c.key);
+		ret = -1;
+		break;
 	}
+
+	return ret;
 }
 
 static int config_key(const char *key)
@@ -366,6 +393,7 @@ static int config_key(const char *key)
 	if (strcmp(key, CONFIG_KEY_TIME) == 0)
 		return KEY_TIME;
 
+	syslog(LOG_ERR, "%s():%d: unknown key '%s'", __FUNCTION__, __LINE__, key);
 	return -1;
 }
 
@@ -389,10 +417,16 @@ static int config_json_object(json_t *element, int level, int source)
 	json_object_foreach(element, key, value) {
 		c.level = level;
 		c.key = config_key(key);
+
+		if (ret)
+			return ret;
+
 		if (jump_config_value(level, c.key) == 0) {
 			ret = config_json(value, level, source, c.key);
-			if (ret)
+			if (ret) {
+				syslog(LOG_ERR, "%s():%d: error parsing object in level %d", __FUNCTION__, __LINE__, c.level);
 				return ret;
+			}
 		}
 	}
 
@@ -415,7 +449,11 @@ static int config_json_array(json_t *element, int level, int source)
 static int config_json_string(json_t *element, int level, int source)
 {
 	int ret;
-	config_value(json_string_value(element));
+
+	ret = config_value(json_string_value(element));
+
+	if (ret)
+		return ret;
 
 	syslog(LOG_DEBUG, "%s():%d: %d(level) %d(key) %s(value) %d(value)", __FUNCTION__, __LINE__, c.level, c.key, c.str_value, c.int_value);
 

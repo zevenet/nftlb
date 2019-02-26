@@ -338,6 +338,7 @@ int obj_set_attribute(struct config_pair *c, int actionable)
 			element_pos_actionable(c);
 		break;
 	default:
+		syslog(LOG_ERR, "%s():%d: unknown level %d", __FUNCTION__, __LINE__, c->level);
 		return PARSER_FAILED;
 	}
 

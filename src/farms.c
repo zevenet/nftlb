@@ -640,6 +640,9 @@ int farm_set_attribute(struct config_pair *c)
 	case KEY_SCHEDPARAM:
 		f->schedparam = c->int_value;
 		break;
+	case KEY_PRIORITY:
+		f->priority = c->int_value;
+		break;
 	case KEY_HELPER:
 		f->helper = c->int_value;
 		break;

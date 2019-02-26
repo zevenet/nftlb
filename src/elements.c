@@ -143,7 +143,7 @@ int element_set_attribute(struct config_pair *c)
 	if (!cur->pptr)
 		return PARSER_OBJ_UNKNOWN;
 
-	if (c->key != KEY_NAME && !cur->eptr)
+	if (c->key != KEY_DATA && !cur->eptr)
 		return PARSER_OBJ_UNKNOWN;
 
 	e = cur->eptr;
