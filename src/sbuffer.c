@@ -27,15 +27,17 @@
 
 #include "sbuffer.h"
 
-#define DEFAULT_BUFFER_SIZE		1024
-#define EXTRA_SIZE				512
+int get_buf_size(struct sbuffer *buf)
+{
+	return buf->size;
+}
 
-static char * get_buf_next(struct sbuffer *buf)
+char * get_buf_next(struct sbuffer *buf)
 {
 	return buf->data + buf->next;
 }
 
-static int resize_buf(struct sbuffer *buf, int times)
+int resize_buf(struct sbuffer *buf, int times)
 {
 	char *pbuf;
 	int newsize;
@@ -62,7 +64,7 @@ int create_buf(struct sbuffer *buf)
 	buf->size = 0;
 	buf->next = 0;
 
-	buf->data = (char *) malloc(DEFAULT_BUFFER_SIZE + 1);
+	buf->data = (char *) calloc(1, DEFAULT_BUFFER_SIZE + 1);
 	if (!buf->data) {
 		return 1;
 	}

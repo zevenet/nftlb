@@ -100,7 +100,6 @@ struct farmpolicy * farmpolicy_lookup_by_name(struct farm *f, const char *name)
 int farmpolicy_set_action(struct farmpolicy *fp, int action)
 {
 	if ((action == ACTION_DELETE) || (action == ACTION_STOP)) {
-				syslog(LOG_DEBUG,"!!!!!!!!!!!! policies deletion !!!!!!!!!!! ");
 		farmpolicy_delete(fp);
 		return 1;
 	}

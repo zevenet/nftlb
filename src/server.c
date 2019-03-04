@@ -32,6 +32,7 @@
 #include "config.h"
 #include "nft.h"
 #include "events.h"
+#include "sbuffer.h"
 
 #define SRV_MAX_BUF			40960
 #define SRV_MAX_HEADER			300
@@ -103,13 +104,18 @@ static int auth_key(const char *recvkey)
 	return (strcmp(nftserver.key, recvkey) == 0);
 }
 
-static int get_request(char *buf, struct nftlb_http_state *state)
+static int get_request(int fd, struct sbuffer *buf, struct nftlb_http_state *state)
 {
 	char method[SRV_MAX_IDENT] = {0};
 	char strkey[SRV_MAX_IDENT] = {0};
+	int contlength;
+	int times = 0;
+	int used = 0;
 	char *ptr;
+	int size;
+	int head;
 
-	if ((ptr = strstr(buf, "Key: ")) == NULL) {
+	if ((ptr = strstr(get_buf_data(buf), "Key: ")) == NULL) {
 		state->status_code = WS_HTTP_401;
 		return -1;
 	}
@@ -121,7 +127,7 @@ static int get_request(char *buf, struct nftlb_http_state *state)
 		return -1;
 	}
 
-	sscanf(buf, "%199[^ ] %199[^ ] ", method, state->uri);
+	sscanf(get_buf_data(buf), "%199[^ ] %199[^ ] ", method, state->uri);
 
 	if (strncmp(method, STR_GET_ACTION, 3) == 0) {
 		state->method = WS_GET_ACTION;
@@ -140,9 +146,43 @@ static int get_request(char *buf, struct nftlb_http_state *state)
 	    state->method != WS_PUT_ACTION)
 		return 0;
 
-	state->body = strstr(buf, "\r\n\r\n");
-	if (state->body)
-		state->body += 4;
+	state->body = strstr(get_buf_data(buf), "\r\n\r\n");
+	if (!state->body) {
+		syslog(LOG_ERR, "Not found body section in the request");
+		state->status_code = WS_HTTP_400;
+		return -1;
+	}
+	state->body += 4;
+	head = state->body - get_buf_data(buf);
+
+	if ((ptr = strstr(get_buf_data(buf), "Content-Length: ")) != NULL) {
+		sscanf(ptr, "Content-Length: %i[^\r\n]", &contlength);
+
+		used = get_buf_next(buf) - get_buf_data(buf);
+
+		if (head + contlength >= get_buf_size(buf))
+			times = ((head + contlength - get_buf_size(buf)) / EXTRA_SIZE) + 1;
+		if (times == 0)
+			return 0;
+
+		if (resize_buf(buf, times)) {
+			syslog(LOG_ERR, "Error resizing the buffer %d times from a size of %d!", times, get_buf_size(buf));
+			state->status_code = WS_HTTP_500;
+			return -1;
+		}
+
+		used = times + ((DEFAULT_BUFFER_SIZE - used) / EXTRA_SIZE);
+
+		for (int i = 0; i < used ; i++) {
+			size = recv(fd, get_buf_next(buf), EXTRA_SIZE, 0);
+			if (size < 0)
+				break;
+			buf->next += size;
+		}
+		concat_buf(buf, "\0");
+	}
+
+	state->body = get_buf_data(buf) + head;
 
 	return 0;
 }
@@ -292,7 +332,7 @@ static int send_post_response(struct nftlb_http_state *state)
 		return -1;
 	}
 
-	state->body_response = malloc(SRV_MAX_IDENT);
+	state->body_response = malloc(SRV_MAX_BUF);
 	if (!state->body_response) {
 		state->status_code = WS_HTTP_500;
 		return -1;
@@ -375,7 +415,7 @@ static void nftlb_http_send_response(struct ev_io *io,
 
 static void nftlb_read_cb(struct ev_loop *loop, struct ev_io *io, int revents)
 {
-	char buffer[SRV_MAX_BUF] = {0};
+	struct sbuffer buf;
 	struct nftlb_http_state state;
 	struct nftlb_client *cli;
 	ssize_t size;
@@ -386,9 +426,13 @@ static void nftlb_read_cb(struct ev_loop *loop, struct ev_io *io, int revents)
 	}
 	cli = container_of(io, struct nftlb_client, io);
 
-	size = recv(io->fd, buffer, SRV_MAX_BUF, 0);
+	state.body_response = NULL;
+	create_buf(&buf);
+	size = recv(io->fd, get_buf_data(&buf), DEFAULT_BUFFER_SIZE - 1, 0);
 	if (size < 0)
 		return;
+
+	buf.next = size;
 
 	if (size == 0) {
 		syslog(LOG_DEBUG, "connection closed by client %s:%hu\n",
@@ -396,7 +440,7 @@ static void nftlb_read_cb(struct ev_loop *loop, struct ev_io *io, int revents)
 		goto end;
 	}
 
-	if (get_request(buffer, &state) < 0) {
+	if (get_request(io->fd, &buf, &state) < 0) {
 		nftlb_http_send_response(io, &state, 0);
 		goto end;
 	}
@@ -412,7 +456,9 @@ static void nftlb_read_cb(struct ev_loop *loop, struct ev_io *io, int revents)
 	syslog(LOG_DEBUG, "connection closed by server %s:%hu\n",
 	       inet_ntoa(cli->addr.sin_addr), ntohs(cli->addr.sin_port));
 end:
-	bzero(buffer, size);
+	if (state.body_response)
+		free(state.body_response);
+	clean_buf(&buf);
 
 	ev_timer_stop(loop, &cli->timer);
 	nftlb_client_release(loop, cli);
