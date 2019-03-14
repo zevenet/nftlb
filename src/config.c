@@ -116,29 +116,29 @@ static int config_value_sched(const char *value)
 	return VALUE_SCHED_RR;
 }
 
-static int config_value_schedparam(const char *value)
+static int config_value_meta(const char *value)
 {
-	int parmask = 0;
+	int mask = 0;
 
-	if (strstr(value, CONFIG_VALUE_SCHEDPARAM_NONE) != NULL) {
-		parmask = VALUE_SCHEDPARAM_NONE;
-		return parmask;
+	if (strstr(value, CONFIG_VALUE_META_NONE) != NULL) {
+		mask = VALUE_META_NONE;
+		return mask;
 	}
 
-	if (strstr(value, CONFIG_VALUE_SCHEDPARAM_SRCIP) != NULL)
-		parmask |= VALUE_SCHEDPARAM_SRCIP;
-	if (strstr(value, CONFIG_VALUE_SCHEDPARAM_DSTIP) != NULL)
-		parmask |= VALUE_SCHEDPARAM_DSTIP;
-	if (strstr(value, CONFIG_VALUE_SCHEDPARAM_SRCPORT) != NULL)
-		parmask |= VALUE_SCHEDPARAM_SRCPORT;
-	if (strstr(value, CONFIG_VALUE_SCHEDPARAM_DSTPORT) != NULL)
-		parmask |= VALUE_SCHEDPARAM_DSTPORT;
-	if (strstr(value, CONFIG_VALUE_SCHEDPARAM_SRCMAC) != NULL)
-		parmask |= VALUE_SCHEDPARAM_SRCMAC;
-	if (strstr(value, CONFIG_VALUE_SCHEDPARAM_DSTMAC) != NULL)
-		parmask |= VALUE_SCHEDPARAM_DSTMAC;
+	if (strstr(value, CONFIG_VALUE_META_SRCIP) != NULL)
+		mask |= VALUE_META_SRCIP;
+	if (strstr(value, CONFIG_VALUE_META_DSTIP) != NULL)
+		mask |= VALUE_META_DSTIP;
+	if (strstr(value, CONFIG_VALUE_META_SRCPORT) != NULL)
+		mask |= VALUE_META_SRCPORT;
+	if (strstr(value, CONFIG_VALUE_META_DSTPORT) != NULL)
+		mask |= VALUE_META_DSTPORT;
+	if (strstr(value, CONFIG_VALUE_META_SRCMAC) != NULL)
+		mask |= VALUE_META_SRCMAC;
+	if (strstr(value, CONFIG_VALUE_META_DSTMAC) != NULL)
+		mask |= VALUE_META_DSTMAC;
 
-	return parmask;
+	return mask;
 }
 
 static int config_value_helper(const char *value)
@@ -258,7 +258,10 @@ static int config_value(const char *value)
 		c.int_value = config_value_sched(value);
 		break;
 	case KEY_SCHEDPARAM:
-		c.int_value = config_value_schedparam(value);
+		c.int_value = config_value_meta(value);
+		break;
+	case KEY_PERSISTENCE:
+		c.int_value = config_value_meta(value);
 		break;
 	case KEY_HELPER:
 		c.int_value = config_value_helper(value);
@@ -274,6 +277,7 @@ static int config_value(const char *value)
 		break;
 	case KEY_WEIGHT:
 	case KEY_PRIORITY:
+	case KEY_PERSISTTM:
 	case KEY_NEWRTLIMIT:
 	case KEY_NEWRTLIMITBURST:
 	case KEY_RSTRTLIMIT:
@@ -350,6 +354,10 @@ static int config_key(const char *key)
 		return KEY_SCHED;
 	if (strcmp(key, CONFIG_KEY_SCHEDPARAM) == 0)
 		return KEY_SCHEDPARAM;
+	if (strcmp(key, CONFIG_KEY_PERSIST) == 0)
+		return KEY_PERSISTENCE;
+	if (strcmp(key, CONFIG_KEY_PERSISTTM) == 0)
+		return KEY_PERSISTTM;
 	if (strcmp(key, CONFIG_KEY_HELPER) == 0)
 		return KEY_HELPER;
 	if (strcmp(key, CONFIG_KEY_LOG) == 0)
@@ -610,9 +618,16 @@ static void add_dump_list(json_t *obj, const char *objname, int object,
 			add_dump_obj(item, CONFIG_KEY_PROTO, obj_print_proto(f->protocol));
 			add_dump_obj(item, CONFIG_KEY_SCHED, obj_print_sched(f->scheduler));
 
-			obj_print_schedparam(f->schedparam, (char *)buf);
+			obj_print_meta(f->schedparam, (char *)buf);
 			add_dump_obj(item, CONFIG_KEY_SCHEDPARAM, buf);
 			buf[0] = '\0';
+
+			obj_print_meta(f->persistence, (char *)buf);
+			add_dump_obj(item, CONFIG_KEY_PERSIST, buf);
+			buf[0] = '\0';
+
+			config_dump_int(value, f->persistttl);
+			add_dump_obj(item, CONFIG_KEY_PERSISTTM, value);
 
 			add_dump_obj(item, CONFIG_KEY_HELPER, obj_print_helper(f->helper));
 

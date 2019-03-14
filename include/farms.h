@@ -78,13 +78,13 @@ enum states {
 	VALUE_SWITCH_ON,
 };
 
-#define VALUE_SCHEDPARAM_NONE		0
-#define VALUE_SCHEDPARAM_SRCIP		(1 << 0)
-#define VALUE_SCHEDPARAM_DSTIP		(1 << 1)
-#define VALUE_SCHEDPARAM_SRCPORT	(1 << 2)
-#define VALUE_SCHEDPARAM_DSTPORT	(1 << 3)
-#define VALUE_SCHEDPARAM_SRCMAC		(1 << 4)
-#define VALUE_SCHEDPARAM_DSTMAC		(1 << 5)
+#define VALUE_META_NONE		0
+#define VALUE_META_SRCIP		(1 << 0)
+#define VALUE_META_DSTIP		(1 << 1)
+#define VALUE_META_SRCPORT	(1 << 2)
+#define VALUE_META_DSTPORT	(1 << 3)
+#define VALUE_META_SRCMAC		(1 << 4)
+#define VALUE_META_DSTMAC		(1 << 5)
 
 #define VALUE_LOG_NONE			0
 #define VALUE_LOG_INPUT			(1 << 0)
@@ -110,6 +110,8 @@ struct farm {
 	int			protocol;
 	int			scheduler;
 	int			schedparam;
+	int			persistence;
+	int			persistttl;
 	int			helper;
 	int			log;
 	int			mark;

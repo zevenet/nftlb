@@ -61,6 +61,8 @@ static struct farm * farm_create(char *name)
 	pfarm->protocol = DEFAULT_PROTO;
 	pfarm->scheduler = DEFAULT_SCHED;
 	pfarm->schedparam = DEFAULT_SCHEDPARAM;
+	pfarm->persistence = DEFAULT_PERSIST;
+	pfarm->persistttl = DEFAULT_PERSISTTM;
 	pfarm->helper = DEFAULT_HELPER;
 	pfarm->log = DEFAULT_LOG;
 	pfarm->mark = DEFAULT_MARK;
@@ -281,8 +283,8 @@ static int farm_set_sched(struct farm *f, int new_value)
 
 	f->scheduler = new_value;
 
-	if (f->scheduler == VALUE_SCHED_HASH && f->schedparam == VALUE_SCHEDPARAM_NONE) {
-		f->schedparam = VALUE_SCHEDPARAM_SRCIP;
+	if (f->scheduler == VALUE_SCHED_HASH && f->schedparam == VALUE_META_NONE) {
+		f->schedparam = VALUE_META_SRCIP;
 	}
 
 	return 0;
@@ -340,9 +342,14 @@ static void farm_print(struct farm *f)
 	syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_PROTO, obj_print_proto(f->protocol));
 	syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_SCHED, obj_print_sched(f->scheduler));
 
-	obj_print_schedparam(f->schedparam, (char *)buf);
+	obj_print_meta(f->schedparam, (char *)buf);
 	syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_SCHEDPARAM, buf);
 	buf[0] = '\0';
+
+	obj_print_meta(f->persistence, (char *)buf);
+	syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_PERSIST, buf);
+	buf[0] = '\0';
+	syslog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_PERSISTTM, f->persistttl);
 
 	syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_HELPER, obj_print_helper(f->helper));
 
@@ -517,13 +524,8 @@ int farm_pre_actionable(struct config_pair *c)
 	case KEY_VIRTPORTS:
 	case KEY_MODE:
 	case KEY_PROTO:
-	case KEY_NEWRTLIMIT:
-	case KEY_NEWRTLIMITBURST:
-	case KEY_RSTRTLIMIT:
-	case KEY_RSTRTLIMITBURST:
-	case KEY_ESTCONNLIMIT:
-	case KEY_TCPSTRICT:
-	case KEY_QUEUE:
+	case KEY_PERSISTENCE:
+	case KEY_PERSISTTM:
 		if (farm_set_action(f, ACTION_STOP))
 			farm_rulerize(f);
 		break;
@@ -555,13 +557,8 @@ int farm_pos_actionable(struct config_pair *c)
 	case KEY_VIRTPORTS:
 	case KEY_MODE:
 	case KEY_PROTO:
-	case KEY_NEWRTLIMIT:
-	case KEY_NEWRTLIMITBURST:
-	case KEY_RSTRTLIMIT:
-	case KEY_RSTRTLIMITBURST:
-	case KEY_ESTCONNLIMIT:
-	case KEY_TCPSTRICT:
-	case KEY_QUEUE:
+	case KEY_PERSISTENCE:
+	case KEY_PERSISTTM:
 		farm_set_action(f, ACTION_START);
 		break;
 	case KEY_STATE:
@@ -639,6 +636,12 @@ int farm_set_attribute(struct config_pair *c)
 		break;
 	case KEY_SCHEDPARAM:
 		f->schedparam = c->int_value;
+		break;
+	case KEY_PERSISTENCE:
+		f->persistence = c->int_value;
+		break;
+	case KEY_PERSISTTM:
+		f->persistttl = c->int_value;
 		break;
 	case KEY_PRIORITY:
 		f->priority = c->int_value;
