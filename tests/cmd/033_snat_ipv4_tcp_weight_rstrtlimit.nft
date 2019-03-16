@@ -19,6 +19,11 @@ table ip nftlb {
 		ip daddr . tcp dport vmap @filter-tcp-services
 	}
 
+	chain filter-lb01 {
+		tcp flags rst meter rst-rtlimit-lb01 size 65535 { ip saddr limit rate over 5/second}  log prefix "rst-rtlimit-lb01" drop
+		ct mark set 0x80000000
+	}
+
 	chain prerouting {
 		type nat hook prerouting priority filter; policy accept;
 		ip daddr . tcp dport vmap @nat-tcp-services
@@ -32,10 +37,5 @@ table ip nftlb {
 
 	chain nat-lb01 {
 		dnat to numgen random mod 10 map { 0-4 : 192.168.0.10, 5-9 : 192.168.0.11 }
-	}
-
-	chain filter-lb01 {
-		tcp flags rst meter rst-rtlimit-lb01 size 65535 { ip saddr limit rate over 5/second}  log prefix "rst-rtlimit-lb01" drop
-		ct mark set 0x80000000
 	}
 }

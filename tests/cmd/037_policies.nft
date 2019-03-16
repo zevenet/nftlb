@@ -5,14 +5,14 @@ table netdev nftlb {
 		elements = { 192.168.40.0/24, 192.168.200.100 }
 	}
 
-	map tcp-services-enp0s3 {
+	map tcp-services-lo {
 		type ipv4_addr . inet_service : verdict
-		elements = { 192.168.0.150 . 80 : goto lb01 }
+		elements = { 127.0.0.1 . 80 : goto lb01 }
 	}
 
-	chain ingress-enp0s3 {
-		type filter hook ingress device "enp0s3" priority filter; policy accept;
-		ip daddr . tcp dport vmap @tcp-services-enp0s3
+	chain ingress-lo {
+		type filter hook ingress device "lo" priority filter; policy accept;
+		ip daddr . tcp dport vmap @tcp-services-lo
 	}
 
 	chain lb01 {
@@ -22,7 +22,7 @@ table netdev nftlb {
 table ip nftlb {
 	map nat-tcp-services {
 		type ipv4_addr . inet_service : verdict
-		elements = { 192.168.0.150 . 80 : goto nat-lb01 }
+		elements = { 127.0.0.1 . 80 : goto nat-lb01 }
 	}
 
 	map tcp-services-back {

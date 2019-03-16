@@ -21,6 +21,10 @@ table ip nftlb {
 		ip daddr . tcp dport vmap @filter-tcp-services
 	}
 
+	chain filter-lb01 {
+		ct mark set 0x80000000
+	}
+
 	chain prerouting {
 		type nat hook prerouting priority filter; policy accept;
 		ip daddr . tcp dport vmap @nat-tcp-services
@@ -34,9 +38,5 @@ table ip nftlb {
 
 	chain nat-lb01 {
 		dnat to symhash mod 20 map { 0-4 : 192.168.0.10, 5-9 : 192.168.0.11, 10-14 : 192.168.0.13, 15-19 : 192.168.0.15 }
-	}
-
-	chain filter-lb01 {
-		ct mark set 0x80000000
 	}
 }

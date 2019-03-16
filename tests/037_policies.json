@@ -19,7 +19,7 @@
 		{
 			"name" : "lb01",
 			"family" : "ipv4",
-			"virtual-addr" : "192.168.0.150",
+			"virtual-addr" : "127.0.0.1",
 			"virtual-ports" : "80",
 			"mode" : "dnat",
 			"protocol" : "tcp",

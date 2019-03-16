@@ -36,6 +36,10 @@ table ip nftlb {
 		ip daddr . udp dport vmap @filter-udp-services
 	}
 
+	chain filter-lb01 {
+		ip protocol udp ct helper set "sip-udp"
+	}
+
 	chain prerouting {
 		type nat hook prerouting priority filter; policy accept;
 		ip daddr . udp dport vmap @nat-udp-services
@@ -49,9 +53,5 @@ table ip nftlb {
 
 	chain nat-lb01 {
 		dnat to numgen inc mod 10 map { 0-4 : 192.168.0.22, 5-9 : 192.168.0.23 }
-	}
-
-	chain filter-lb01 {
-		ip protocol udp ct helper set "sip-udp"
 	}
 }
