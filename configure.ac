@@ -1,4 +1,4 @@
-AC_INIT([nftlb], [0.3], [netfilter-devel@vger.kernel.org])
+AC_INIT([nftlb], [0.4], [netfilter-devel@vger.kernel.org])
 
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])
