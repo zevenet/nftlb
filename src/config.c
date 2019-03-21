@@ -305,7 +305,7 @@ static int config_value(const char *value)
 	case KEY_VIRTPORTS:
 	case KEY_IPADDR:
 	case KEY_SRCADDR:
-	case KEY_PORTS:
+	case KEY_PORT:
 	case KEY_DATA:
 		c.str_value = (char *)value;
 		break;
@@ -344,8 +344,8 @@ static int config_key(const char *key)
 		return KEY_IPADDR;
 	if (strcmp(key, CONFIG_KEY_SRCADDR) == 0)
 		return KEY_SRCADDR;
-	if (strcmp(key, CONFIG_KEY_PORTS) == 0)
-		return KEY_PORTS;
+	if (strcmp(key, CONFIG_KEY_PORT) == 0)
+		return KEY_PORT;
 	if (strcmp(key, CONFIG_KEY_MODE) == 0)
 		return KEY_MODE;
 	if (strcmp(key, CONFIG_KEY_PROTO) == 0)
@@ -667,6 +667,7 @@ static void add_dump_list(json_t *obj, const char *objname, int object,
 			item = json_object();
 			add_dump_obj(item, CONFIG_KEY_NAME, b->name);
 			add_dump_obj(item, CONFIG_KEY_IPADDR, b->ipaddr);
+			add_dump_obj(item, CONFIG_KEY_PORT, b->port);
 			config_dump_int(value, b->weight);
 			add_dump_obj(item, CONFIG_KEY_WEIGHT, value);
 			config_dump_int(value, b->priority);

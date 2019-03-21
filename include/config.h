@@ -36,7 +36,7 @@
 #define CONFIG_KEY_VIRTPORTS		"virtual-ports"
 #define CONFIG_KEY_IPADDR		"ip-addr"
 #define CONFIG_KEY_SRCADDR		"source-addr"
-#define CONFIG_KEY_PORTS		"ports"
+#define CONFIG_KEY_PORT			"port"
 #define CONFIG_KEY_MODE			"mode"
 #define CONFIG_KEY_PROTO		"protocol"
 #define CONFIG_KEY_SCHED		"scheduler"

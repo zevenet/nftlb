@@ -44,7 +44,7 @@ static struct backend * backend_create(struct farm *f, char *name)
 	b->fqdn = DEFAULT_FQDN;
 	b->ethaddr = DEFAULT_ETHADDR;
 	b->ipaddr = DEFAULT_IPADDR;
-	b->ports = DEFAULT_PORTS;
+	b->port = DEFAULT_PORT;
 	b->weight = DEFAULT_WEIGHT;
 	b->priority = DEFAULT_PRIORITY;
 	b->mark = DEFAULT_MARK;
@@ -68,8 +68,8 @@ static int backend_delete_node(struct backend *b)
 		free(b->ipaddr);
 	if (b->ethaddr && strcmp(b->ethaddr, "") != 0)
 		free(b->ethaddr);
-	if (b->ports && strcmp(b->ports, "") != 0)
-		free(b->ports);
+	if (b->port && strcmp(b->port, "") != 0)
+		free(b->port);
 
 	free(b);
 
@@ -109,8 +109,8 @@ void backend_s_print(struct farm *f)
 		if (b->ethaddr)
 			syslog(LOG_DEBUG,"       [%s] %s", CONFIG_KEY_ETHADDR, b->ethaddr);
 
-		if (b->ports)
-			syslog(LOG_DEBUG,"       [%s] %s", CONFIG_KEY_PORTS, b->ports);
+		if (b->port)
+			syslog(LOG_DEBUG,"       [%s] %s", CONFIG_KEY_PORT, b->port);
 
 		syslog(LOG_DEBUG,"       [%s] 0x%x", CONFIG_KEY_MARK, b->mark);
 		syslog(LOG_DEBUG,"       [%s] %d", CONFIG_KEY_WEIGHT, b->weight);
@@ -222,6 +222,23 @@ static int backend_s_set_marked(struct farm *f)
 	return 0;
 }
 
+static int backend_s_set_ports(struct farm *f)
+{
+	struct backend *b;
+
+	syslog(LOG_DEBUG, "%s():%d: finding backends with port for %s", __FUNCTION__, __LINE__, f->name);
+
+	list_for_each_entry(b, &f->backends, list) {
+		if (strcmp(b->port, DEFAULT_PORT) != 0) {
+			f->bcks_have_port = 1;
+			return 1;
+		}
+	}
+
+	f->bcks_have_port = 0;
+	return 0;
+}
+
 static int backend_set_mark(struct backend *b, int new_value)
 {
 	int old_value = b->mark;
@@ -235,6 +252,23 @@ static int backend_set_mark(struct backend *b, int new_value)
 		b->parent->bcks_are_marked = 1;
 	else
 		backend_s_set_marked(b->parent);
+
+	return 0;
+}
+
+static int backend_set_port(struct backend *b, char *new_value)
+{
+	char *old_value = b->port;
+
+	syslog(LOG_DEBUG, "%s():%d: current value is %s, but new value will be %s",
+	       __FUNCTION__, __LINE__, old_value, new_value);
+
+	obj_set_attribute_string(new_value, &b->port);
+
+	if (strcmp(b->port, DEFAULT_PORT) != 0)
+		b->parent->bcks_have_port = 1;
+	else
+		backend_s_set_ports(b->parent);
 
 	return 0;
 }
@@ -380,8 +414,8 @@ int backend_set_attribute(struct config_pair *c)
 	case KEY_ETHADDR:
 		obj_set_attribute_string(c->str_value, &b->ethaddr);
 		break;
-	case KEY_PORTS:
-		obj_set_attribute_string(c->str_value, &b->ports);
+	case KEY_PORT:
+		backend_set_port(b, c->str_value);
 		break;
 	case KEY_WEIGHT:
 		backend_set_weight(b, c->int_value);

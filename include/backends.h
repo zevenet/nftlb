@@ -32,7 +32,7 @@ struct backend {
 	char			*fqdn;
 	char			*ipaddr;
 	char			*ethaddr;
-	char			*ports;
+	char			*port;
 	int			weight;
 	int			priority;
 	int			mark;

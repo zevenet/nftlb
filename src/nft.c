@@ -1122,22 +1122,35 @@ static int run_farm_rules_gen_logs(struct sbuffer *buf, struct farm *f, int fami
 	return 0;
 }
 
-static int run_farm_rules_gen_nat(struct sbuffer *buf, struct farm *f, int family, char *chain, int action)
+static int run_farm_rules_gen_nat_per_bck(struct sbuffer *buf, struct farm *f, int family, char *chain)
+{
+	struct backend *b;
+	int offset = get_farm_mark(f);
+
+	list_for_each_entry(b, &f->backends, list) {
+		if(!backend_is_available(b))
+			continue;
+		concat_buf(buf, " ; add rule %s %s %s %s %s %s ct mark 0x%x dnat to %s", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain, print_nft_table_family(family, f->mode), print_nft_family_protocol(family), print_nft_protocol(f->protocol), b->mark | offset, b->ipaddr);
+		if (strcmp(b->ipaddr, "") != 0)
+			concat_buf(buf, ":%s", b->port);
+	}
+	return 0;
+}
+
+static int run_farm_rules_gen_nat(struct sbuffer *buf, struct farm *f, int family, char *chain)
 {
 	if (f->bcks_available == 0)
 		return 0;
 
-	concat_buf(buf, " ; add rule %s %s %s", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain);
-
 	switch (f->mode) {
 	case VALUE_MODE_DSR:
-		concat_buf(buf, " ether saddr set %s ether daddr set", f->iethaddr);
+		concat_buf(buf, " ; add rule %s %s %s ether saddr set %s ether daddr set", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain, f->iethaddr);
 		run_farm_rules_gen_sched(buf, f, family);
 		run_farm_rules_gen_bck_map(buf, f, BCK_MAP_WEIGHT, BCK_MAP_ETHADDR);
 		concat_buf(buf, " fwd to %s", f->oface);
 		break;
 	case VALUE_MODE_STLSDNAT:
-		concat_buf(buf, " %s daddr set", print_nft_family(family));
+		concat_buf(buf, " ; add rule %s %s %s %s daddr set", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain, print_nft_family(family));
 		run_farm_rules_gen_sched(buf, f, family);
 		run_farm_rules_gen_bck_map(buf, f, BCK_MAP_WEIGHT, BCK_MAP_IPADDR);
 		concat_buf(buf, " ether daddr set ip daddr");
@@ -1145,14 +1158,21 @@ static int run_farm_rules_gen_nat(struct sbuffer *buf, struct farm *f, int famil
 		concat_buf(buf, " fwd to %s", f->oface);
 		break;
 	default:
-		concat_buf(buf, " dnat to");
 		if (!f->bcks_are_marked) {
+			concat_buf(buf, " ; add rule %s %s %s dnat to", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain);
 			run_farm_rules_gen_sched(buf, f, family);
 			run_farm_rules_gen_bck_map(buf, f, BCK_MAP_WEIGHT, BCK_MAP_IPADDR);
-		} else {
+			return 0;
+		}
+
+		if (!f->bcks_have_port) {
+			concat_buf(buf, " ; add rule %s %s %s dnat to", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain);
 			concat_buf(buf, " ct mark");
 			run_farm_rules_gen_bck_map(buf, f, BCK_MAP_MARK, BCK_MAP_IPADDR);
+			return 0;
 		}
+
+		run_farm_rules_gen_nat_per_bck(buf, f, family, chain);
 		break;
 	}
 
@@ -1174,7 +1194,7 @@ static int run_farm_rules(struct sbuffer *buf, struct farm *f, int family, int a
 		run_base_chain_ndv(buf, f, KEY_IFACE);
 		run_farm_rules_gen_chains(buf, print_nft_table_family(family, f->mode), chain, action);
 		run_farm_rules_gen_logs(buf, f, family, chain, action);
-		run_farm_rules_gen_nat(buf, f, family, chain, action);
+		run_farm_rules_gen_nat(buf, f, family, chain);
 		run_farm_stlsnat(buf, f, family, action);
 		break;
 	case VALUE_MODE_DSR:
@@ -1184,7 +1204,7 @@ static int run_farm_rules(struct sbuffer *buf, struct farm *f, int family, int a
 		run_base_chain_ndv(buf, f, KEY_IFACE);
 		run_farm_rules_gen_chains(buf, print_nft_table_family(family, f->mode), chain, action);
 		run_farm_rules_gen_logs(buf, f, family, chain, action);
-		run_farm_rules_gen_nat(buf, f, family, chain, action);
+		run_farm_rules_gen_nat(buf, f, family, chain);
 		break;
 	default:
 		sprintf(chain, "%s-%s", NFTLB_TYPE_NAT, f->name);
@@ -1198,7 +1218,7 @@ static int run_farm_rules(struct sbuffer *buf, struct farm *f, int family, int a
 		run_base_nat(buf, f);
 		run_farm_rules_gen_chains(buf, print_nft_table_family(family, f->mode), chain, action);
 		run_farm_rules_gen_logs(buf, f, family, chain, action);
-		run_farm_rules_gen_nat(buf, f, family, chain, action);
+		run_farm_rules_gen_nat(buf, f, family, chain);
 		run_farm_snat(buf, f, family, action);
 	}
 
