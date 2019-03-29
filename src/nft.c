@@ -1008,6 +1008,25 @@ static int run_farm_rules_filter_persistence(struct sbuffer *buf, struct farm *f
 	return 0;
 }
 
+static int run_farm_rules_gen_meter_per_bck(struct sbuffer *buf, struct farm *f, int family, char *chain)
+{
+	struct backend *b;
+	int offset = get_farm_mark(f);
+	char meter_str[255] = {};
+
+	list_for_each_entry(b, &f->backends, list) {
+		if(!backend_is_available(b))
+			continue;
+
+		if (b->estconnlimit > 0) {
+			sprintf(meter_str, "%s-%s", CONFIG_KEY_ESTCONNLIMIT, b->name);
+			concat_buf(buf, " ; add rule %s %s %s ct mark 0x%x meter %s { ip saddr ct count over %d } log prefix \"%s\" drop",
+						print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain, b->mark | offset, meter_str, b->estconnlimit, meter_str);
+		}
+	}
+	return 0;
+}
+
 static int run_farm_rules_filter_marks(struct sbuffer *buf, struct farm *f, int family, char *chain)
 {
 	int mark = get_farm_mark(f);
@@ -1022,6 +1041,7 @@ static int run_farm_rules_filter_marks(struct sbuffer *buf, struct farm *f, int 
 		if (run_farm_rules_gen_sched(buf, f, family) == -1)
 			return -1;
 		run_farm_rules_gen_bck_map(buf, f, BCK_MAP_WEIGHT, BCK_MAP_MARK);
+		run_farm_rules_gen_meter_per_bck(buf, f, family, chain);
 	} else if (mark != DEFAULT_MARK) {
 		concat_buf(buf, " ct mark set");
 		concat_buf(buf, " 0x%x", mark);
@@ -1130,6 +1150,7 @@ static int run_farm_rules_gen_nat_per_bck(struct sbuffer *buf, struct farm *f, i
 	list_for_each_entry(b, &f->backends, list) {
 		if(!backend_is_available(b))
 			continue;
+
 		concat_buf(buf, " ; add rule %s %s %s %s %s %s ct mark 0x%x dnat to %s", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain, print_nft_table_family(family, f->mode), print_nft_family_protocol(family), print_nft_protocol(f->protocol), b->mark | offset, b->ipaddr);
 		if (strcmp(b->ipaddr, "") != 0)
 			concat_buf(buf, ":%s", b->port);

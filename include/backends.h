@@ -36,6 +36,7 @@ struct backend {
 	int			weight;
 	int			priority;
 	int			mark;
+	int			estconnlimit;
 	int			state;
 };
 

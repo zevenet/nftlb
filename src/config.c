@@ -674,6 +674,8 @@ static void add_dump_list(json_t *obj, const char *objname, int object,
 			add_dump_obj(item, CONFIG_KEY_PRIORITY, value);
 			config_dump_hex(value, b->mark);
 			add_dump_obj(item, CONFIG_KEY_MARK, value);
+			config_dump_int(value, b->estconnlimit);
+			add_dump_obj(item, CONFIG_KEY_ESTCONNLIMIT, value);
 			add_dump_obj(item, CONFIG_KEY_STATE, obj_print_state(b->state));
 			json_array_append_new(jarray, item);
 		}

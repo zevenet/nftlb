@@ -191,8 +191,11 @@ static int send_get_response(struct nftlb_http_state *state)
 {
 	char firstlevel[SRV_MAX_IDENT] = {0};
 	char secondlevel[SRV_MAX_IDENT] = {0};
+	char thirdlevel[SRV_MAX_IDENT] = {0};
+	char fourthlevel[SRV_MAX_IDENT] = {0};
 
-	sscanf(state->uri, "/%199[^/]/%199[^/\n]", firstlevel, secondlevel);
+	sscanf(state->uri, "/%199[^/]/%199[^/]/%199[^/]/%199[^\n]",
+	       firstlevel, secondlevel, thirdlevel, fourthlevel);
 
 	if (strcmp(firstlevel, CONFIG_KEY_FARMS) == 0) {
 		if (config_print_farms(&state->body_response, secondlevel) == 0) {

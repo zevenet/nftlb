@@ -48,6 +48,7 @@ static struct backend * backend_create(struct farm *f, char *name)
 	b->weight = DEFAULT_WEIGHT;
 	b->priority = DEFAULT_PRIORITY;
 	b->mark = DEFAULT_MARK;
+	b->estconnlimit = DEFAULT_ESTCONNLIMIT;
 	b->state = DEFAULT_BACKEND_STATE;
 	b->action = DEFAULT_ACTION;
 
@@ -113,6 +114,7 @@ void backend_s_print(struct farm *f)
 			syslog(LOG_DEBUG,"       [%s] %s", CONFIG_KEY_PORT, b->port);
 
 		syslog(LOG_DEBUG,"       [%s] 0x%x", CONFIG_KEY_MARK, b->mark);
+		syslog(LOG_DEBUG,"       [%s] %d", CONFIG_KEY_ESTCONNLIMIT, b->estconnlimit);
 		syslog(LOG_DEBUG,"       [%s] %d", CONFIG_KEY_WEIGHT, b->weight);
 		syslog(LOG_DEBUG,"       [%s] %d", CONFIG_KEY_PRIORITY, b->priority);
 		syslog(LOG_DEBUG,"       [%s] %s", CONFIG_KEY_STATE, obj_print_state(b->state));
@@ -429,6 +431,9 @@ int backend_set_attribute(struct config_pair *c)
 	case KEY_STATE:
 		backend_set_state(b, c->int_value);
 		break;
+	case KEY_ESTCONNLIMIT:
+		b->estconnlimit = c->int_value;
+		break;
 	case KEY_ACTION:
 		backend_set_action(b, c->int_value);
 		break;
@@ -574,6 +579,7 @@ int bck_pre_actionable(struct config_pair *c)
 		break;
 	case KEY_STATE:
 	case KEY_MARK:
+	case KEY_ESTCONNLIMIT:
 	case KEY_WEIGHT:
 	default:
 		break;

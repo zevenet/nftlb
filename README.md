@@ -117,6 +117,7 @@ Where every backend object has the following attributes:
 	"weight": "<number>",				*Weight of the backend (1 by default)*
 	"priority": "<number>",				*Priority availability for the backend > 0 (1 by default)*
 	"mark": "<hexadecimal mark>",			*Set mark mask for the backend (none by default)*
+	"est-connlimit": "<number>",			*Number of established connections allowed per backend (disabled by default)*
 	"state": "<up | down | off>",			*Set the status of the backend (up by default)*
 }
 ```
