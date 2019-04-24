@@ -56,8 +56,9 @@
 
 #define NFTLB_PREROUTING_PRIO		0
 #define NFTLB_POSTROUTING_PRIO		100
-#define NFTLB_INGRESS_PRIO			0
+#define NFTLB_INGRESS_PRIO			100
 #define NFTLB_FILTER_PRIO			-150
+#define NFTLB_RAW_PRIO				-300
 
 #define NFTLB_IPV4_PROTOCOL		"protocol"
 #define NFTLB_IPV6_PROTOCOL		"nexthdr"
