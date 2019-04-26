@@ -942,8 +942,7 @@ static void run_farm_helper(struct sbuffer *buf, struct farm *f, int family, int
 		break;
 	case ACTION_DELETE:
 	case ACTION_STOP:
-		// TODO: bug detected in nftables
-		//concat_buf(buf, " ; delete ct helper %s %s %s-%s ; ", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, obj_print_helper(f->helper), protocol);
+		concat_buf(buf, " ; delete ct helper %s %s %s-%s ; ", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, obj_print_helper(f->helper), protocol);
 		break;
 	case ACTION_RELOAD:
 	default:
