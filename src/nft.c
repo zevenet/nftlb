@@ -1152,7 +1152,7 @@ static int run_farm_rules_gen_nat_per_bck(struct sbuffer *buf, struct farm *f, i
 			continue;
 
 		concat_buf(buf, " ; add rule %s %s %s %s %s %s ct mark 0x%x dnat to %s", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain, print_nft_table_family(family, f->mode), print_nft_family_protocol(family), print_nft_protocol(f->protocol), b->mark | offset, b->ipaddr);
-		if (strcmp(b->ipaddr, "") != 0)
+		if (strcmp(b->port, "") != 0)
 			concat_buf(buf, ":%s", b->port);
 	}
 	return 0;

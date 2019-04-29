@@ -292,6 +292,7 @@ char * obj_print_switch(int state)
 int obj_set_attribute(struct config_pair *c, int actionable)
 {
 	int ret;
+	int status;
 	syslog(LOG_DEBUG, "%s():%d: actionable is %d", __FUNCTION__, __LINE__, actionable);
 
 	switch (c->level) {
@@ -306,11 +307,11 @@ int obj_set_attribute(struct config_pair *c, int actionable)
 		break;
 	case LEVEL_BCKS:
 		if (actionable)
-			bck_pre_actionable(c);
+			status = bck_pre_actionable(c);
 
 		ret = backend_set_attribute(c);
 
-		if (actionable)
+		if (actionable && status == 0)
 			bck_pos_actionable(c);
 		break;
 	case LEVEL_FARMPOLICY:

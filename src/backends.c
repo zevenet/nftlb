@@ -83,7 +83,12 @@ static int backend_delete(struct backend *b)
 
 	if (backend_is_available(b)) {
 		f->bcks_available--;
+		if (f->bcks_available < 0)
+			f->bcks_available = 0;
+
 		f->total_weight -= b->weight;
+		if (f->total_weight < 0)
+			f->total_weight = 0;
 	}
 	f->total_bcks--;
 	farm_set_action(f, ACTION_RELOAD);
@@ -193,7 +198,12 @@ static int backend_set_priority(struct backend *b, int new_value)
 	if (backend_is_available(b) &&
 	    new_value > f->priority) {
 		f->bcks_available--;
+		if (f->bcks_available < 0)
+			f->bcks_available = 0;
+
 		f->total_weight -= b->weight;
+		if (f->total_weight < 0)
+			f->total_weight = 0;
 	}
 
 	else if (old_value > f->priority &&
@@ -457,7 +467,13 @@ static int backend_switch(struct backend *b, int new_state)
 		b->action = ACTION_START;
 	} else {
 		f->total_weight -= b->weight;
+		if (f->total_weight < 0)
+			f->total_weight = 0;
+
 		f->bcks_available--;
+		if (f->bcks_available < 0)
+			f->bcks_available = 0;
+
 		b->action = ACTION_STOP;
 	}
 
@@ -561,14 +577,15 @@ int bck_pre_actionable(struct config_pair *c)
 
 	syslog(LOG_DEBUG, "%s():%d: pre actionable backend %s of farm %s with param %d", __FUNCTION__, __LINE__, b->name, f->name, c->key);
 
-	if (!backend_is_available(b))
-		return 0;
+	if (b->state != VALUE_STATE_UP && c->key != KEY_STATE)
+		return 1;
 
 	switch (c->key) {
 	case KEY_NAME:
 		break;
 	case KEY_ETHADDR:
 	case KEY_IPADDR:
+	case KEY_PORT:
 	case KEY_PRIORITY:
 
 		if (backend_set_action(b, ACTION_STOP) &&
@@ -602,14 +619,12 @@ int bck_pos_actionable(struct config_pair *c)
 
 	syslog(LOG_DEBUG, "%s():%d: pos actionable backend %s of farm %s with param %d", __FUNCTION__, __LINE__, b->name, f->name, c->key);
 
-	if (!backend_is_available(b) && c->key != KEY_STATE)
-		return 0;
-
 	switch (c->key) {
 	case KEY_NAME:
 		break;
 	case KEY_ETHADDR:
 	case KEY_IPADDR:
+	case KEY_PORT:
 	case KEY_PRIORITY:
 
 		if (backend_set_action(b, ACTION_START) &&
@@ -620,6 +635,7 @@ int bck_pos_actionable(struct config_pair *c)
 		break;
 	case KEY_STATE:
 	case KEY_MARK:
+	case KEY_ESTCONNLIMIT:
 	case KEY_WEIGHT:
 
 		farm_set_action(f, ACTION_RELOAD);
