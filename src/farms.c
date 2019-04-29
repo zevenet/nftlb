@@ -288,6 +288,10 @@ static int farm_set_sched(struct farm *f, int new_value)
 		f->schedparam = VALUE_META_SRCIP;
 	}
 
+	if (f->scheduler != VALUE_SCHED_HASH) {
+		f->schedparam = VALUE_META_NONE;
+	}
+
 	return 0;
 }
 
