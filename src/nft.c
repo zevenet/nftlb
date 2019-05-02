@@ -123,7 +123,8 @@ enum map_modes {
 	BCK_MAP_NAME,
 	BCK_MAP_SRCIPADDR,
 	BCK_MAP_BCK_IPADDR,
-	BCK_MAP_BCK_IPADDR_F_PORT
+	BCK_MAP_BCK_IPADDR_F_PORT,
+	BCK_MAP_BCK_IPADDR_BF_PORT
 };
 
 struct if_base_rule {
@@ -666,7 +667,7 @@ static int run_farm_rules_gen_srv(struct sbuffer *buf, struct farm *f, char *nft
 	/* avoid port in cases of listening from all protocols */
 	if (f->protocol == VALUE_PROTO_ALL && key_mode == BCK_MAP_IPADDR_PORT)
 		key_mode = BCK_MAP_IPADDR;
-	if (f->protocol == VALUE_PROTO_ALL && key_mode == BCK_MAP_BCK_IPADDR_F_PORT)
+	if (f->protocol == VALUE_PROTO_ALL && (key_mode == BCK_MAP_BCK_IPADDR_F_PORT || key_mode == BCK_MAP_BCK_IPADDR_BF_PORT))
 		key_mode = BCK_MAP_BCK_IPADDR;
 
 	switch (key_mode) {
@@ -689,13 +690,38 @@ static int run_farm_rules_gen_srv(struct sbuffer *buf, struct farm *f, char *nft
 		break;
 	case BCK_MAP_BCK_IPADDR_F_PORT:
 		nports = get_array_ports(port_list, f);
+
 		for (i = 0; i < nports; i++) {
 			list_for_each_entry(b, &f->backends, list) {
-				if (b->action == ACTION_STOP || b->action == ACTION_DELETE)
+				if (b->action == ACTION_STOP || b->action == ACTION_DELETE || b->action == ACTION_RELOAD) {
 					concat_buf(buf, " ; delete element %s %s %s { %s . %d }", nft_family, NFTLB_TABLE_NAME, service, b->ipaddr, port_list[i]);
+				}
 				if(!backend_is_available(b))
 					continue;
 				concat_buf(buf, " ; %s element %s %s %s { %s . %d %s}", action_str, nft_family, NFTLB_TABLE_NAME, service, b->ipaddr, port_list[i], data_str);
+			}
+		}
+		break;
+	case BCK_MAP_BCK_IPADDR_BF_PORT:
+
+		list_for_each_entry(b, &f->backends, list) {
+			if (strcmp(b->port, DEFAULT_PORT) == 0) {
+
+				nports = get_array_ports(port_list, f);
+				for (i = 0; i < nports; i++) {
+					if (b->action == ACTION_STOP || b->action == ACTION_DELETE || b->action == ACTION_RELOAD)
+						concat_buf(buf, " ; delete element %s %s %s { %s . %d }", nft_family, NFTLB_TABLE_NAME, service, b->ipaddr, port_list[i]);
+					if(!backend_is_available(b))
+						continue;
+					concat_buf(buf, " ; %s element %s %s %s { %s . %d %s}", action_str, nft_family, NFTLB_TABLE_NAME, service, b->ipaddr, port_list[i], data_str);
+				}
+
+			} else {
+				if (b->action == ACTION_STOP || b->action == ACTION_DELETE || b->action == ACTION_RELOAD)
+					concat_buf(buf, " ; delete element %s %s %s { %s . %s }", nft_family, NFTLB_TABLE_NAME, service, b->ipaddr, b->port);
+				if(!backend_is_available(b))
+					continue;
+				concat_buf(buf, " ; %s element %s %s %s { %s . %s %s}", action_str, nft_family, NFTLB_TABLE_NAME, service, b->ipaddr, b->port, data_str);
 			}
 		}
 		break;
@@ -716,7 +742,7 @@ static int run_farm_snat(struct sbuffer *buf, struct farm *f, int family, int ac
 
 	sprintf(name, "%s-back", print_nft_service(family, f->protocol));
 
-	run_farm_rules_gen_srv(buf, f, print_nft_table_family(family, f->mode), name, name, action, BCK_MAP_BCK_IPADDR_F_PORT, BCK_MAP_SRCIPADDR);
+	run_farm_rules_gen_srv(buf, f, print_nft_table_family(family, f->mode), name, name, action, BCK_MAP_BCK_IPADDR_BF_PORT, BCK_MAP_SRCIPADDR);
 
 	return 0;
 }
