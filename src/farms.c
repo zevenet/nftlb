@@ -276,6 +276,16 @@ static int farm_set_mode(struct farm *f, int new_value)
 	return 0;
 }
 
+static int farm_set_port(struct farm *f, char *new_value)
+{
+	syslog(LOG_DEBUG, "%s():%d: farm %s old port %s new port %s", __FUNCTION__, __LINE__, f->name, f->virtports, new_value);
+
+	if (strcmp(new_value, DEFAULT_PORT) != 0 && strcmp(new_value, "0") != 0)
+		obj_set_attribute_string(new_value, &f->virtports);
+
+	return 0;
+}
+
 static int farm_set_sched(struct farm *f, int new_value)
 {
 	int old_value = f->scheduler;
@@ -626,7 +636,7 @@ int farm_set_attribute(struct config_pair *c)
 		farm_set_netinfo(f);
 		break;
 	case KEY_VIRTPORTS:
-		obj_set_attribute_string(c->str_value, &f->virtports);
+		farm_set_port(f, c->str_value);
 		break;
 	case KEY_SRCADDR:
 		obj_set_attribute_string(c->str_value, &f->srcaddr);
