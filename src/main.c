@@ -69,7 +69,7 @@ static const struct option options[] = {
 
 static void nftlb_sighandler(int signo)
 {
-	syslog(LOG_INFO, "shuting down %s, bye", PACKAGE);
+	syslog(LOG_INFO, "shutting down %s, bye", PACKAGE);
 	server_fini();
 	exit(EXIT_SUCCESS);
 }
