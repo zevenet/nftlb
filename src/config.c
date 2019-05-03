@@ -561,7 +561,7 @@ int config_buffer(const char *buf)
 	json_t		*root;
 	int		ret = PARSER_OK;
 
-	syslog(LOG_DEBUG, "%s():%d: received buffer %d : %s", __FUNCTION__, __LINE__, (int)strlen(buf), buf);
+	syslog(LOG_NOTICE, "%s():%d: received buffer %d : %s", __FUNCTION__, __LINE__, (int)strlen(buf), buf);
 
 	root = json_loadb(buf, strlen(buf), JSON_ALLOW_NUL, &error);
 
