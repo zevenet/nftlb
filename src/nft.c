@@ -140,6 +140,8 @@ unsigned int filter_base_rules = 0;
 
 static int exec_cmd(struct nft_ctx *ctx, char *cmd)
 {
+	if (strlen(cmd) == 0 || strcmp(cmd, "") == 0)
+		return 0;
 	syslog(LOG_NOTICE, "Executing: nft << %s", cmd);
 	return nft_run_cmd_from_buffer(ctx, cmd, strlen(cmd));
 }
