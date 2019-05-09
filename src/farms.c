@@ -280,7 +280,7 @@ static int farm_set_port(struct farm *f, char *new_value)
 {
 	syslog(LOG_DEBUG, "%s():%d: farm %s old port %s new port %s", __FUNCTION__, __LINE__, f->name, f->virtports, new_value);
 
-	if (strcmp(new_value, DEFAULT_PORT) != 0 && strcmp(new_value, "0") != 0)
+	if (strcmp(new_value, "0") != 0)
 		obj_set_attribute_string(new_value, &f->virtports);
 
 	return 0;
