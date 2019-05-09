@@ -538,6 +538,7 @@ int farm_pre_actionable(struct config_pair *c)
 	case KEY_FAMILY:
 	case KEY_VIRTADDR:
 	case KEY_VIRTPORTS:
+	case KEY_SRCADDR:
 	case KEY_MODE:
 	case KEY_PROTO:
 	case KEY_PERSISTENCE:
@@ -571,6 +572,7 @@ int farm_pos_actionable(struct config_pair *c)
 	case KEY_FAMILY:
 	case KEY_VIRTADDR:
 	case KEY_VIRTPORTS:
+	case KEY_SRCADDR:
 	case KEY_MODE:
 	case KEY_PROTO:
 	case KEY_PERSISTENCE:
