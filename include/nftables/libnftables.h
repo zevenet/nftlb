@@ -14,6 +14,10 @@
 #include <stdio.h>
 #include <stdbool.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct nft_ctx;
 
 enum nft_debug_level {
@@ -26,13 +30,6 @@ enum nft_debug_level {
 	NFT_DEBUG_SEGTREE		= 0x40,
 };
 
-enum nft_numeric_level {
-	NFT_NUMERIC_NONE,
-	NFT_NUMERIC_ADDR,
-	NFT_NUMERIC_PORT,
-	NFT_NUMERIC_ALL,
-};
-
 /**
  * Possible flags to pass to nft_ctx_new()
  */
@@ -43,24 +40,47 @@ void nft_ctx_free(struct nft_ctx *ctx);
 
 bool nft_ctx_get_dry_run(struct nft_ctx *ctx);
 void nft_ctx_set_dry_run(struct nft_ctx *ctx, bool dry);
-enum nft_numeric_level nft_ctx_output_get_numeric(struct nft_ctx *ctx);
-void nft_ctx_output_set_numeric(struct nft_ctx *ctx, enum nft_numeric_level level);
-bool nft_ctx_output_get_stateless(struct nft_ctx *ctx);
-void nft_ctx_output_set_stateless(struct nft_ctx *ctx, bool val);
-bool nft_ctx_output_get_ip2name(struct nft_ctx *ctx);
-void nft_ctx_output_set_ip2name(struct nft_ctx *ctx, bool val);
+
+enum {
+	NFT_CTX_OUTPUT_REVERSEDNS	= (1 << 0),
+	NFT_CTX_OUTPUT_SERVICE		= (1 << 1),
+	NFT_CTX_OUTPUT_STATELESS	= (1 << 2),
+	NFT_CTX_OUTPUT_HANDLE		= (1 << 3),
+	NFT_CTX_OUTPUT_JSON		= (1 << 4),
+	NFT_CTX_OUTPUT_ECHO		= (1 << 5),
+	NFT_CTX_OUTPUT_GUID		= (1 << 6),
+	NFT_CTX_OUTPUT_NUMERIC_PROTO	= (1 << 7),
+	NFT_CTX_OUTPUT_NUMERIC_PRIO     = (1 << 8),
+	NFT_CTX_OUTPUT_NUMERIC_SYMBOL	= (1 << 9),
+	NFT_CTX_OUTPUT_NUMERIC_ALL	= (NFT_CTX_OUTPUT_NUMERIC_PROTO |
+					   NFT_CTX_OUTPUT_NUMERIC_PRIO |
+					   NFT_CTX_OUTPUT_NUMERIC_SYMBOL),
+};
+
+unsigned int nft_ctx_output_get_flags(struct nft_ctx *ctx);
+void nft_ctx_output_set_flags(struct nft_ctx *ctx, unsigned int flags);
+
 unsigned int nft_ctx_output_get_debug(struct nft_ctx *ctx);
 void nft_ctx_output_set_debug(struct nft_ctx *ctx, unsigned int mask);
-bool nft_ctx_output_get_handle(struct nft_ctx *ctx);
-void nft_ctx_output_set_handle(struct nft_ctx *ctx, bool val);
-bool nft_ctx_output_get_echo(struct nft_ctx *ctx);
-void nft_ctx_output_set_echo(struct nft_ctx *ctx, bool val);
 
 FILE *nft_ctx_set_output(struct nft_ctx *ctx, FILE *fp);
+int nft_ctx_buffer_output(struct nft_ctx *ctx);
+int nft_ctx_unbuffer_output(struct nft_ctx *ctx);
+const char *nft_ctx_get_output_buffer(struct nft_ctx *ctx);
+
+FILE *nft_ctx_set_error(struct nft_ctx *ctx, FILE *fp);
+int nft_ctx_buffer_error(struct nft_ctx *ctx);
+int nft_ctx_unbuffer_error(struct nft_ctx *ctx);
+const char *nft_ctx_get_error_buffer(struct nft_ctx *ctx);
+
 int nft_ctx_add_include_path(struct nft_ctx *ctx, const char *path);
 void nft_ctx_clear_include_paths(struct nft_ctx *ctx);
 
-int nft_run_cmd_from_buffer(struct nft_ctx *nft, char *buf, size_t buflen);
+int nft_run_cmd_from_buffer(struct nft_ctx *nft, const char *buf);
 int nft_run_cmd_from_filename(struct nft_ctx *nft, const char *filename);
+
+#ifdef __cplusplus
+} /* extern "C" */
+#endif
 
 #endif /* LIB_NFTABLES_H */

@@ -31,7 +31,7 @@
 #include "sbuffer.h"
 
 #include <stdlib.h>
-#include <nftables/nftables.h>
+#include <nftables/libnftables.h>
 #include <syslog.h>
 #include <string.h>
 
@@ -138,12 +138,27 @@ unsigned int nat_base_rules = 0;
 unsigned int filter_base_rules = 0;
 
 
-static int exec_cmd(struct nft_ctx *ctx, char *cmd)
+static int exec_cmd(char *cmd)
 {
+	struct nft_ctx *ctx;
+	int error;
+
 	if (strlen(cmd) == 0 || strcmp(cmd, "") == 0)
 		return 0;
-	syslog(LOG_NOTICE, "Executing: nft << %s", cmd);
-	return nft_run_cmd_from_buffer(ctx, cmd, strlen(cmd));
+	syslog(LOG_NOTICE, "nft command exec : %s", cmd);
+
+	ctx = nft_ctx_new(0);
+	nft_ctx_buffer_error(ctx);
+
+	error = nft_run_cmd_from_buffer(ctx, cmd);
+
+	if (error)
+		syslog(LOG_ERR, "nft command error : %s", nft_ctx_get_error_buffer(ctx));
+
+	nft_ctx_unbuffer_error(ctx);
+	nft_ctx_free(ctx);
+
+	return error;
 }
 
 static char * print_nft_service(int family, int proto)
@@ -1369,16 +1384,13 @@ static int nft_actions_done(struct farm *f)
 
 int nft_reset(void)
 {
-	struct nft_ctx *ctx = nft_ctx_new(0);
 	struct sbuffer buf;
 	int ret = 0;
 
 	create_buf(&buf);
 	concat_buf(&buf, "flush ruleset");
-	exec_cmd(ctx, get_buf_data(&buf));
+	exec_cmd(get_buf_data(&buf));
 	clean_buf(&buf);
-
-	nft_ctx_free(ctx);
 
 	reset_ndv_base();
 	n_ndv_base_rules = 0;
@@ -1389,7 +1401,6 @@ int nft_reset(void)
 
 int nft_rulerize(struct farm *f)
 {
-	struct nft_ctx *ctx = nft_ctx_new(0);
 	struct sbuffer buf;
 	int ret = 0;
 
@@ -1409,9 +1420,8 @@ int nft_rulerize(struct farm *f)
 		break;
 	}
 
-	exec_cmd(ctx, get_buf_data(&buf));
+	exec_cmd(get_buf_data(&buf));
 	clean_buf(&buf);
-	nft_ctx_free(ctx);
 	nft_actions_done(f);
 
 	return ret;
@@ -1442,33 +1452,26 @@ static int run_set_elements(struct sbuffer *buf, struct policy *p)
 	return 0;
 }
 
-static int run_policy_set(struct nft_ctx *ctx, struct policy *p)
+static int run_policy_set(struct sbuffer *buf, struct policy *p)
 {
-	struct sbuffer buf;
-
-	create_buf(&buf);
-
 	switch (p->action) {
 	case ACTION_START:
-		run_base_table(&buf, NFTLB_NETDEV_FAMILY);
-		concat_buf(&buf, " ; add set %s %s %s { type ipv4_addr ; flags interval ; }", NFTLB_NETDEV_FAMILY, NFTLB_TABLE_NAME, p->name);
-		run_set_elements(&buf, p);
+		run_base_table(buf, NFTLB_NETDEV_FAMILY);
+		concat_buf(buf, " ; add set %s %s %s { type ipv4_addr ; flags interval ; }", NFTLB_NETDEV_FAMILY, NFTLB_TABLE_NAME, p->name);
+		run_set_elements(buf, p);
 		break;
 	case ACTION_RELOAD:
-		run_set_elements(&buf, p);
+		run_set_elements(buf, p);
 		break;
 	case ACTION_STOP:
 	case ACTION_DELETE:
-		concat_buf(&buf, " ; flush set %s %s %s", NFTLB_NETDEV_FAMILY, NFTLB_TABLE_NAME, p->name);
-		concat_buf(&buf, " ; delete set %s %s %s", NFTLB_NETDEV_FAMILY, NFTLB_TABLE_NAME, p->name);
+		concat_buf(buf, " ; flush set %s %s %s", NFTLB_NETDEV_FAMILY, NFTLB_TABLE_NAME, p->name);
+		concat_buf(buf, " ; delete set %s %s %s", NFTLB_NETDEV_FAMILY, NFTLB_TABLE_NAME, p->name);
 		break;
 	case ACTION_NONE:
 	default:
 		break;
 	}
-
-	exec_cmd(ctx, get_buf_data(&buf));
-	clean_buf(&buf);
 
 	p->action = ACTION_NONE;
 
@@ -1477,12 +1480,15 @@ static int run_policy_set(struct nft_ctx *ctx, struct policy *p)
 
 int nft_rulerize_policies(struct policy *p)
 {
-	struct nft_ctx *ctx = nft_ctx_new(0);
+	struct sbuffer buf;
 	int ret = 0;
 
-	run_policy_set(ctx, p);
+	create_buf(&buf);
 
-	nft_ctx_free(ctx);
+	run_policy_set(&buf, p);
+	exec_cmd(get_buf_data(&buf));
+
+	clean_buf(&buf);
 
 	return ret;
 }
