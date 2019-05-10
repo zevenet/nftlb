@@ -283,6 +283,9 @@ static int farm_set_port(struct farm *f, char *new_value)
 	if (strcmp(new_value, "0") != 0)
 		obj_set_attribute_string(new_value, &f->virtports);
 
+	if (strcmp(new_value, "") == 0)
+		f->protocol = VALUE_PROTO_ALL;
+
 	return 0;
 }
 
