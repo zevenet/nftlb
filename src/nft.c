@@ -356,7 +356,8 @@ static int need_filter(struct farm *f)
 {
 	return (f->helper != DEFAULT_HELPER || (!farm_is_ingress_mode(f) && f->bcks_are_marked) || f->mark != DEFAULT_MARK || farm_get_masquerade(f) ||
 			f->newrtlimit != DEFAULT_NEWRTLIMIT || f->rstrtlimit != DEFAULT_RSTRTLIMIT || f->estconnlimit != DEFAULT_ESTCONNLIMIT ||
-			f->tcpstrict != DEFAULT_TCPSTRICT || f->queue != DEFAULT_QUEUE || f->persistence != DEFAULT_PERSIST);
+			f->tcpstrict != DEFAULT_TCPSTRICT || f->queue != DEFAULT_QUEUE || f->persistence != DEFAULT_PERSIST ||
+			f->srcaddr != DEFAULT_SRCADDR || strcmp(f->srcaddr, "") == 0);
 }
 
 static int run_base_table(struct sbuffer *buf, char *family_str)
