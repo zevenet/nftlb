@@ -173,12 +173,13 @@ static int get_request(int fd, struct sbuffer *buf, struct nftlb_http_state *sta
 
 		used = times + ((DEFAULT_BUFFER_SIZE - used) / EXTRA_SIZE);
 
-		for (int i = 0; i < used ; i++) {
+		for (int i = 0; i < used + 1 ; i++) {
 			size = recv(fd, get_buf_next(buf), EXTRA_SIZE, 0);
 			if (size < 0)
 				break;
 			buf->next += size;
 		}
+
 		concat_buf(buf, "\0");
 	}
 
