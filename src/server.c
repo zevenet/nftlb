@@ -110,7 +110,7 @@ static int get_request(int fd, struct sbuffer *buf, struct nftlb_http_state *sta
 	char strkey[SRV_MAX_IDENT] = {0};
 	int contlength;
 	int times = 0;
-	int used = 0;
+	int total_read_size = 0;
 	char *ptr;
 	int size;
 	int head;
@@ -158,8 +158,6 @@ static int get_request(int fd, struct sbuffer *buf, struct nftlb_http_state *sta
 	if ((ptr = strstr(get_buf_data(buf), "Content-Length: ")) != NULL) {
 		sscanf(ptr, "Content-Length: %i[^\r\n]", &contlength);
 
-		used = get_buf_next(buf) - get_buf_data(buf);
-
 		if (head + contlength >= get_buf_size(buf))
 			times = ((head + contlength - get_buf_size(buf)) / EXTRA_SIZE) + 1;
 		if (times == 0)
@@ -171,13 +169,12 @@ static int get_request(int fd, struct sbuffer *buf, struct nftlb_http_state *sta
 			return -1;
 		}
 
-		used = times + ((DEFAULT_BUFFER_SIZE - used) / EXTRA_SIZE);
-
-		for (int i = 0; i < used ; i++) {
+		while (total_read_size < contlength) {
 			size = recv(fd, get_buf_next(buf), EXTRA_SIZE, 0);
 			if (size < 0)
 				break;
 			buf->next += size;
+			total_read_size += size;
 		}
 
 		concat_buf(buf, "\0");
