@@ -1075,8 +1075,11 @@ static int run_farm_rules_gen_meter_per_bck(struct sbuffer *buf, struct farm *f,
 			concat_buf(buf, " ; delete set %s %s %s ; ", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, meter_str);
 			break;
 		case ACTION_RELOAD:
-			if (b->action == ACTION_START && backend_is_available(b) && b->estconnlimit != 0)
+			if (b->action == ACTION_START && backend_is_available(b) && b->estconnlimit != 0) {
 				concat_buf(buf, " ; add set %s %s %s { type %s ; flags dynamic ; } ;", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, meter_str, print_nft_family_type(family));
+				concat_buf(buf, " ; add rule %s %s %s ct mark 0x%x add @%s { ip saddr ct count over %d } log prefix \"%s\" drop",
+								print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain, b->mark | offset, meter_str, b->estconnlimit, meter_str);
+			}
 			if ((b->action == ACTION_STOP || b->action == ACTION_DELETE) && b->estconnlimit != 0)
 				concat_buf(buf, " ; delete set %s %s %s ; ", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, meter_str);
 			if (b->action == ACTION_NONE && backend_is_available(b) && b->estconnlimit != 0)
