@@ -1096,7 +1096,7 @@ static int run_farm_rules_filter_marks(struct sbuffer *buf, struct farm *f, int 
 	if (!f->bcks_are_marked && mark == DEFAULT_MARK)
 		return 0;
 
-	if (action == ACTION_START || (action == ACTION_RELOAD && f->bcks_available != 0)) {
+	if ((action == ACTION_START || action == ACTION_RELOAD ) && f->bcks_available != 0) {
 		concat_buf(buf, " ; add rule %s %s %s", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain);
 		if (f->bcks_are_marked) {
 			concat_buf(buf, " ct mark set");

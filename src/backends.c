@@ -187,6 +187,21 @@ static int backend_set_weight(struct backend *b, int new_value)
 	return 0;
 }
 
+static int backend_set_estconnlimit(struct backend *b, int new_value)
+{
+	int old_value = b->estconnlimit;
+
+	syslog(LOG_DEBUG, "%s():%d: current value is %d, but new value will be %d",
+	       __FUNCTION__, __LINE__, old_value, new_value);
+
+	if (new_value == old_value)
+		return 0;
+
+	b->estconnlimit = new_value;
+
+	return 0;
+}
+
 static int backend_set_priority(struct backend *b, int new_value)
 {
 	struct farm *f = b->parent;
@@ -442,7 +457,7 @@ int backend_set_attribute(struct config_pair *c)
 		backend_set_state(b, c->int_value);
 		break;
 	case KEY_ESTCONNLIMIT:
-		b->estconnlimit = c->int_value;
+		backend_set_estconnlimit(b, c->int_value);
 		break;
 	case KEY_ACTION:
 		backend_set_action(b, c->int_value);
@@ -587,6 +602,7 @@ int bck_pre_actionable(struct config_pair *c)
 	case KEY_IPADDR:
 	case KEY_PORT:
 	case KEY_PRIORITY:
+	case KEY_ESTCONNLIMIT:
 
 		if (backend_set_action(b, ACTION_STOP) &&
 			farm_set_action(f, ACTION_RELOAD)) {
@@ -596,7 +612,6 @@ int bck_pre_actionable(struct config_pair *c)
 		break;
 	case KEY_STATE:
 	case KEY_MARK:
-	case KEY_ESTCONNLIMIT:
 	case KEY_WEIGHT:
 	default:
 		break;
@@ -626,6 +641,7 @@ int bck_pos_actionable(struct config_pair *c)
 	case KEY_IPADDR:
 	case KEY_PORT:
 	case KEY_PRIORITY:
+	case KEY_ESTCONNLIMIT:
 
 		if (backend_set_action(b, ACTION_START) &&
 			farm_set_action(f, ACTION_RELOAD)) {
@@ -635,7 +651,6 @@ int bck_pos_actionable(struct config_pair *c)
 		break;
 	case KEY_STATE:
 	case KEY_MARK:
-	case KEY_ESTCONNLIMIT:
 	case KEY_WEIGHT:
 
 		farm_set_action(f, ACTION_RELOAD);
