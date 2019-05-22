@@ -114,6 +114,7 @@ static int get_request(int fd, struct sbuffer *buf, struct nftlb_http_state *sta
 	char *ptr;
 	int size;
 	int head;
+	int bytes_left;
 
 	if ((ptr = strstr(get_buf_data(buf), "Key: ")) == NULL) {
 		state->status_code = WS_HTTP_401;
@@ -170,13 +171,17 @@ static int get_request(int fd, struct sbuffer *buf, struct nftlb_http_state *sta
 		}
 
 		while (total_read_size < contlength) {
-			size = recv(fd, get_buf_next(buf), EXTRA_SIZE, 0);
-			if (size < 0)
-				break;
+			bytes_left = EXTRA_SIZE;
+			if (contlength - total_read_size < EXTRA_SIZE)
+				bytes_left = contlength - total_read_size;
+			size = recv(fd, get_buf_next(buf), bytes_left, 0);
+			if (size <= 0) {
+				goto final;
+			}
 			buf->next += size;
 			total_read_size += size;
 		}
-
+final:
 		concat_buf(buf, "\0");
 	}
 
