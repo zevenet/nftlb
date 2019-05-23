@@ -108,13 +108,14 @@ static int get_request(int fd, struct sbuffer *buf, struct nftlb_http_state *sta
 {
 	char method[SRV_MAX_IDENT] = {0};
 	char strkey[SRV_MAX_IDENT] = {0};
-	int contlength;
+	int contlength = 0;
 	int times = 0;
 	int total_read_size = 0;
 	char *ptr;
 	int size;
 	int head;
 	int bytes_left;
+	int cont_100 = 0;
 
 	if ((ptr = strstr(get_buf_data(buf), "Key: ")) == NULL) {
 		state->status_code = WS_HTTP_401;
@@ -156,34 +157,44 @@ static int get_request(int fd, struct sbuffer *buf, struct nftlb_http_state *sta
 	state->body += 4;
 	head = state->body - get_buf_data(buf);
 
+	if ((ptr = strstr(get_buf_data(buf), "Expect: 100-continue")) != NULL) {
+		cont_100 = 1;
+		send(fd, "HTTP/1.1 100 Continue\r\n\r\n", 25, 0);
+	}
+
 	if ((ptr = strstr(get_buf_data(buf), "Content-Length: ")) != NULL) {
 		sscanf(ptr, "Content-Length: %i[^\r\n]", &contlength);
 
 		if (head + contlength >= get_buf_size(buf))
 			times = ((head + contlength - get_buf_size(buf)) / EXTRA_SIZE) + 1;
 		if (times == 0)
-			return 0;
+			goto receive;
 
 		if (resize_buf(buf, times)) {
 			syslog(LOG_ERR, "Error resizing the buffer %d times from a size of %d!", times, get_buf_size(buf));
 			state->status_code = WS_HTTP_500;
 			return -1;
 		}
-
-		while (total_read_size < contlength) {
-			bytes_left = EXTRA_SIZE;
-			if (contlength - total_read_size < EXTRA_SIZE)
-				bytes_left = contlength - total_read_size;
-			size = recv(fd, get_buf_next(buf), bytes_left, 0);
-			if (size <= 0) {
-				goto final;
-			}
-			buf->next += size;
-			total_read_size += size;
-		}
-final:
-		concat_buf(buf, "\0");
 	}
+
+receive:
+	total_read_size = get_buf_next(buf) - state->body;
+	while ((total_read_size < contlength) || cont_100) {
+		cont_100 = 0;
+		bytes_left = EXTRA_SIZE;
+		if (contlength - total_read_size < EXTRA_SIZE)
+			bytes_left = contlength - total_read_size;
+		if (bytes_left <= 0)
+			goto final;
+		size = recv(fd, get_buf_next(buf), bytes_left, 0);
+		if (size <= 0)
+			goto final;
+		buf->next += size;
+		total_read_size += size;
+	}
+
+final:
+	concat_buf(buf, "\0");
 
 	state->body = get_buf_data(buf) + head;
 
