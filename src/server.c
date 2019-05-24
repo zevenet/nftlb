@@ -178,6 +178,7 @@ static int get_request(int fd, struct sbuffer *buf, struct nftlb_http_state *sta
 	}
 
 receive:
+	state->body = get_buf_data(buf) + head;
 	total_read_size = get_buf_next(buf) - state->body;
 	while ((total_read_size < contlength) || cont_100) {
 		cont_100 = 0;
@@ -195,8 +196,6 @@ receive:
 
 final:
 	concat_buf(buf, "\0");
-
-	state->body = get_buf_data(buf) + head;
 
 	return 0;
 }

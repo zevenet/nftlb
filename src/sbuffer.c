@@ -64,13 +64,13 @@ int create_buf(struct sbuffer *buf)
 	buf->size = 0;
 	buf->next = 0;
 
-	buf->data = (char *) calloc(1, DEFAULT_BUFFER_SIZE + 1);
+	buf->data = (char *) calloc(1, DEFAULT_BUFFER_SIZE);
 	if (!buf->data) {
 		return 1;
 	}
 
 	*buf->data = '\0';
-	buf->size = DEFAULT_BUFFER_SIZE + 1;
+	buf->size = DEFAULT_BUFFER_SIZE;
 	return 0;
 }
 
