@@ -764,9 +764,7 @@ int config_set_farm_action(const char *name, const char *value)
 	if (!f)
 		return -1;
 
-	farm_set_action(f, config_value_action(value));
-
-	return 0;
+	return farm_set_action(f, config_value_action(value));
 }
 
 int config_set_backend_action(const char *fname, const char *bname, const char *value)
@@ -788,9 +786,7 @@ int config_set_backend_action(const char *fname, const char *bname, const char *
 	if (!b)
 		return -1;
 
-	backend_set_action(b, config_value_action(value));
-
-	return 0;
+	return backend_set_action(b, config_value_action(value));
 }
 
 int config_set_fpolicy_action(const char *fname, const char *fpname, const char *value)

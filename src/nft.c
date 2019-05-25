@@ -1052,6 +1052,20 @@ static int run_farm_rules_filter_persistence(struct sbuffer *buf, struct farm *f
 	return 0;
 }
 
+static void run_farm_meter(struct sbuffer *buf, struct farm *f, int family, char *name, int action)
+{
+	switch (action) {
+	case ACTION_START:
+		concat_buf(buf, " ; add set %s %s %s { type %s ; flags dynamic ; } ;", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, name, print_nft_family_type(family));
+		break;
+	case ACTION_STOP:
+		concat_buf(buf, " ; delete set %s %s %s ; ", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, name);
+		break;
+	default:
+		break;
+	}
+}
+
 static int run_farm_rules_gen_meter_per_bck(struct sbuffer *buf, struct farm *f, int family, char *chain, int action)
 {
 	struct backend *b;
@@ -1059,36 +1073,24 @@ static int run_farm_rules_gen_meter_per_bck(struct sbuffer *buf, struct farm *f,
 	char meter_str[255] = {};
 
 	list_for_each_entry(b, &f->backends, list) {
+		if (b->estconnlimit == 0)
+			continue;
+
 		sprintf(meter_str, "%s-%s-%s", CONFIG_KEY_ESTCONNLIMIT, f->name, b->name);
-		switch (action) {
-		case ACTION_START:
-			if(!backend_is_available(b) || b->estconnlimit == 0)
-				continue;
-			concat_buf(buf, " ; add set %s %s %s { type %s ; flags dynamic ; } ;", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, meter_str, print_nft_family_type(family));
+
+		if (b->action == ACTION_START)
+			run_farm_meter(buf, f, family, meter_str, ACTION_START);
+
+		if ((b->action == ACTION_STOP) || ((action == ACTION_STOP || action == ACTION_DELETE) && backend_is_available(b))) {
+			run_farm_meter(buf, f, family, meter_str, ACTION_STOP);
+			continue;
+		}
+
+		if (backend_is_available(b))
 			concat_buf(buf, " ; add rule %s %s %s ct mark 0x%x add @%s { ip saddr ct count over %d } log prefix \"%s\" drop",
 						print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain, b->mark | offset, meter_str, b->estconnlimit, meter_str);
-			break;
-		case ACTION_DELETE:
-		case ACTION_STOP:
-			if (b->estconnlimit == 0)
-				continue;
-			concat_buf(buf, " ; delete set %s %s %s ; ", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, meter_str);
-			break;
-		case ACTION_RELOAD:
-			if (b->action == ACTION_START && backend_is_available(b) && b->estconnlimit != 0) {
-				concat_buf(buf, " ; add set %s %s %s { type %s ; flags dynamic ; } ;", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, meter_str, print_nft_family_type(family));
-				concat_buf(buf, " ; add rule %s %s %s ct mark 0x%x add @%s { ip saddr ct count over %d } log prefix \"%s\" drop",
-								print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain, b->mark | offset, meter_str, b->estconnlimit, meter_str);
-			}
-			if ((b->action == ACTION_STOP || b->action == ACTION_DELETE) && b->estconnlimit != 0)
-				concat_buf(buf, " ; delete set %s %s %s ; ", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, meter_str);
-			if (b->action == ACTION_NONE && backend_is_available(b) && b->estconnlimit != 0)
-				concat_buf(buf, " ; add rule %s %s %s ct mark 0x%x add @%s { ip saddr ct count over %d } log prefix \"%s\" drop",
-								print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain, b->mark | offset, meter_str, b->estconnlimit, meter_str);
-		default:
-			break;
-		}
 	}
+
 	return 0;
 }
 

@@ -79,19 +79,7 @@ static int backend_delete_node(struct backend *b)
 
 static int backend_delete(struct backend *b)
 {
-	struct farm *f = b->parent;
-
-	if (backend_is_available(b)) {
-		f->bcks_available--;
-		if (f->bcks_available < 0)
-			f->bcks_available = 0;
-
-		f->total_weight -= b->weight;
-		if (f->total_weight < 0)
-			f->total_weight = 0;
-	}
-	f->total_bcks--;
-	farm_set_action(f, ACTION_RELOAD);
+	// TODO: Stop backend && reload farm && rulerize()
 
 	backend_delete_node(b);
 
@@ -339,30 +327,42 @@ int backend_is_available(struct backend *b)
 
 int backend_set_action(struct backend *b, int action)
 {
+	int is_actionated = 0;
+
+	syslog(LOG_DEBUG, "%s():%d: bck %s action %d state %d - new action %d",
+	       __FUNCTION__, __LINE__, b->name, b->action, b->state, action);
+
 	if (action == ACTION_DELETE) {
 		backend_delete(b);
 		return 1;
 	}
 
 	if (action == ACTION_STOP) {
-		b->action = action;
+		if (b->state == VALUE_STATE_UP)
+		{
+			b->action = action;
+			is_actionated = 1;
+		}
 		backend_set_state(b, VALUE_STATE_OFF);
-		return 1;
+		return is_actionated;
 	}
 
 	if (action == ACTION_START) {
-		b->action = action;
+		if (b->state != VALUE_STATE_UP)
+		{
+			b->action = action;
+			is_actionated = 1;
+		}
 		backend_set_state(b, VALUE_STATE_UP);
-		return 1;
+		return is_actionated;
 	}
-
 
 	if (b->action > action) {
 		b->action = action;
 		return 1;
 	}
 
-	return 0;
+	return is_actionated;
 }
 
 int backend_s_set_action(struct farm *f, int action)

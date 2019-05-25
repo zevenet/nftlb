@@ -713,7 +713,10 @@ int farm_set_attribute(struct config_pair *c)
 
 int farm_set_action(struct farm *f, int action)
 {
-	syslog(LOG_DEBUG, "%s():%d: farm %s set action %d", __FUNCTION__, __LINE__, f->name, action);
+	syslog(LOG_DEBUG, "%s():%d: farm %s action is %d - new action %d", __FUNCTION__, __LINE__, f->name, f->action, action);
+
+	if (action == ACTION_STOP && f->state != VALUE_STATE_UP)
+		return 0;
 
 	if (action != ACTION_NONE && action != ACTION_RELOAD && f->policies_used != 0)
 		f->policies_action = action;
