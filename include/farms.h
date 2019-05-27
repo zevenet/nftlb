@@ -91,9 +91,18 @@ enum states {
 #define VALUE_LOG_FORWARD		(1 << 1)
 #define VALUE_LOG_OUTPUT		(1 << 2)
 
+#define VALUE_RLD_NONE					0
+#define VALUE_RLD_NEWRTLIMIT_START		(1 << 0)
+#define VALUE_RLD_NEWRTLIMIT_STOP		(1 << 1)
+#define VALUE_RLD_RSTRTLIMIT_START		(1 << 2)
+#define VALUE_RLD_RSTRTLIMIT_STOP		(1 << 3)
+#define VALUE_RLD_ESTCONNLIMIT_START	(1 << 4)
+#define VALUE_RLD_ESTCONNLIMIT_STOP		(1 << 5)
+
 struct farm {
 	struct list_head	list;
 	int			action;
+	int			reload_action;
 	char			*name;
 	char			*fqdn;
 	char			*iface;

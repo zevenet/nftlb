@@ -302,7 +302,7 @@ int obj_set_attribute(struct config_pair *c, int actionable)
 
 		ret = farm_set_attribute(c);
 
-		if (actionable)
+		if (actionable && ret == PARSER_OK)
 			farm_pos_actionable(c);
 		break;
 	case LEVEL_BCKS:

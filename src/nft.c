@@ -934,50 +934,6 @@ static int run_farm_rules_gen_bck_map(struct sbuffer *buf, struct farm *f, enum 
 	return 0;
 }
 
-static int run_farm_rules_filter_policies(struct sbuffer *buf, struct farm *f, int family, char *chain)
-{
-	char meter_str[255] = {};
-	char burst_str[255] = {};
-
-	if (f->tcpstrict == VALUE_SWITCH_ON) {
-		sprintf(meter_str, "%s-%s", CONFIG_KEY_TCPSTRICT, f->name);
-		concat_buf(buf, " ; add rule %s %s %s ct state invalid log prefix \"%s\" drop",
-					print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain, meter_str);
-	}
-
-	if (f->newrtlimitbst > 0)
-		sprintf(burst_str, "burst %d packets ", f->newrtlimitbst);
-
-	if (f->newrtlimit > 0) {
-		sprintf(meter_str, "%s-%s", CONFIG_KEY_NEWRTLIMIT, f->name);
-		concat_buf(buf, " ; add rule %s %s %s ct state new meter %s { ip saddr limit rate over %d/second %s} log prefix \"%s\" drop",
-					print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain, meter_str, f->newrtlimit, burst_str, meter_str);
-	}
-
-	if (f->rstrtlimitbst > 0)
-		sprintf(burst_str, "burst %d packets ", f->rstrtlimitbst);
-
-	if (f->rstrtlimit > 0) {
-		sprintf(meter_str, "%s-%s", CONFIG_KEY_RSTRTLIMIT, f->name);
-		concat_buf(buf, " ; add rule %s %s %s tcp flags rst meter %s { ip saddr limit rate over %d/second %s} log prefix \"%s\" drop",
-					print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain, meter_str, f->rstrtlimit, burst_str, meter_str);
-	}
-
-	if (f->estconnlimit > 0) {
-		sprintf(meter_str, "%s-%s", CONFIG_KEY_ESTCONNLIMIT, f->name);
-		concat_buf(buf, " ; add rule %s %s %s ct state new meter %s { ip saddr ct count over %d } log prefix \"%s\" drop",
-					print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain, meter_str, f->estconnlimit, meter_str);
-	}
-
-	if (f->queue != DEFAULT_QUEUE) {
-		sprintf(meter_str, "%s-%s", CONFIG_KEY_QUEUE, f->name);
-		concat_buf(buf, " ; add rule %s %s %s tcp flags syn queue num %d bypass log prefix \"%s\"",
-					print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain, f->queue, meter_str);
-	}
-
-	return 0;
-}
-
 static void run_farm_helper(struct sbuffer *buf, struct farm *f, int family, int action, char *protocol)
 {
 	switch (action) {
@@ -1066,6 +1022,59 @@ static void run_farm_meter(struct sbuffer *buf, struct farm *f, int family, char
 	}
 }
 
+static int run_farm_rules_filter_policies(struct sbuffer *buf, struct farm *f, int family, char *chain, int action)
+{
+	char meter_str[255] = {};
+	char burst_str[255] = {};
+
+	if ((action == ACTION_START || action == ACTION_RELOAD) && f->tcpstrict == VALUE_SWITCH_ON) {
+		sprintf(meter_str, "%s-%s", CONFIG_KEY_TCPSTRICT, f->name);
+		concat_buf(buf, " ; add rule %s %s %s ct state invalid log prefix \"%s\" drop",
+					print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain, meter_str);
+	}
+
+	sprintf(meter_str, "%s-%s", CONFIG_KEY_NEWRTLIMIT, f->name);
+	if ((action == ACTION_START && f->newrtlimit != DEFAULT_NEWRTLIMIT) || (f->reload_action & VALUE_RLD_NEWRTLIMIT_START))
+		run_farm_meter(buf, f, family, meter_str, ACTION_START);
+	if (((action == ACTION_STOP || action == ACTION_DELETE) && f->newrtlimit != DEFAULT_NEWRTLIMIT) || (f->reload_action & VALUE_RLD_NEWRTLIMIT_STOP))
+		run_farm_meter(buf, f, family, meter_str, ACTION_STOP);
+	if ((action == ACTION_START || action == ACTION_RELOAD) && f->newrtlimit != DEFAULT_NEWRTLIMIT) {
+		if (f->newrtlimitbst != DEFAULT_RTLIMITBURST)
+			sprintf(burst_str, "burst %d packets ", f->newrtlimitbst);
+		concat_buf(buf, " ; add rule %s %s %s ct state new add @%s { ip saddr limit rate over %d/second %s} log prefix \"%s\" drop",
+					print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain, meter_str, f->newrtlimit, burst_str, meter_str);
+	}
+
+	sprintf(meter_str, "%s-%s", CONFIG_KEY_RSTRTLIMIT, f->name);
+	if ((action == ACTION_START && f->rstrtlimit != DEFAULT_RSTRTLIMIT) || (f->reload_action & VALUE_RLD_RSTRTLIMIT_START))
+		run_farm_meter(buf, f, family, meter_str, ACTION_START);
+	if (((action == ACTION_STOP || action == ACTION_DELETE) && f->rstrtlimit != DEFAULT_RSTRTLIMIT) || (f->reload_action & VALUE_RLD_RSTRTLIMIT_STOP))
+		run_farm_meter(buf, f, family, meter_str, ACTION_STOP);
+	if ((action == ACTION_START || action == ACTION_RELOAD) && f->rstrtlimit != DEFAULT_RSTRTLIMIT) {
+		if (f->rstrtlimitbst != DEFAULT_RTLIMITBURST)
+			sprintf(burst_str, "burst %d packets ", f->rstrtlimitbst);
+		concat_buf(buf, " ; add rule %s %s %s tcp flags rst add @%s { ip saddr limit rate over %d/second %s} log prefix \"%s\" drop",
+					print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain, meter_str, f->rstrtlimit, burst_str, meter_str);
+	}
+
+	sprintf(meter_str, "%s-%s", CONFIG_KEY_ESTCONNLIMIT, f->name);
+	if ((action == ACTION_START && f->estconnlimit != DEFAULT_ESTCONNLIMIT) || (f->reload_action & VALUE_RLD_ESTCONNLIMIT_START))
+		run_farm_meter(buf, f, family, meter_str, ACTION_START);
+	if (((action == ACTION_STOP || action == ACTION_DELETE) && f->estconnlimit != DEFAULT_ESTCONNLIMIT) || (f->reload_action & VALUE_RLD_ESTCONNLIMIT_STOP))
+		run_farm_meter(buf, f, family, meter_str, ACTION_STOP);
+	if ((action == ACTION_START || action == ACTION_RELOAD) && f->estconnlimit != DEFAULT_ESTCONNLIMIT)
+		concat_buf(buf, " ; add rule %s %s %s ct state new add @%s { ip saddr ct count over %d } log prefix \"%s\" drop",
+					print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain, meter_str, f->estconnlimit, meter_str);
+
+	if ((action == ACTION_START || action == ACTION_RELOAD) && f->queue != DEFAULT_QUEUE) {
+		sprintf(meter_str, "%s-%s", CONFIG_KEY_QUEUE, f->name);
+		concat_buf(buf, " ; add rule %s %s %s tcp flags syn queue num %d bypass log prefix \"%s\"",
+					print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain, f->queue, meter_str);
+	}
+
+	return 0;
+}
+
 static int run_farm_rules_gen_meter_per_bck(struct sbuffer *buf, struct farm *f, int family, char *chain, int action)
 {
 	struct backend *b;
@@ -1078,7 +1087,7 @@ static int run_farm_rules_gen_meter_per_bck(struct sbuffer *buf, struct farm *f,
 
 		sprintf(meter_str, "%s-%s-%s", CONFIG_KEY_ESTCONNLIMIT, f->name, b->name);
 
-		if (b->action == ACTION_START)
+		if (action == ACTION_START || b->action == ACTION_START)
 			run_farm_meter(buf, f, family, meter_str, ACTION_START);
 
 		if ((b->action == ACTION_STOP) || ((action == ACTION_STOP || action == ACTION_DELETE) && backend_is_available(b))) {
@@ -1132,7 +1141,7 @@ static int run_farm_rules_filter(struct sbuffer *buf, struct farm *f, int family
 	case ACTION_START:
 	case ACTION_RELOAD:
 		run_farm_rules_gen_chains(buf, print_nft_table_family(family, f->mode), chain, action);
-		run_farm_rules_filter_policies(buf, f, family, chain);
+		run_farm_rules_filter_policies(buf, f, family, chain, action);
 		run_farm_rules_filter_helper(buf, f, family, chain, action);
 		run_farm_rules_filter_marks(buf, f, family, chain, action);
 		run_farm_rules_filter_persistence(buf, f, family, chain, action);
@@ -1146,6 +1155,7 @@ static int run_farm_rules_filter(struct sbuffer *buf, struct farm *f, int family
 		run_farm_rules_filter_persistence(buf, f, family, chain, action);
 		run_farm_rules_filter_marks(buf, f, family, chain, action);
 		run_farm_rules_filter_helper(buf, f, family, chain, action);
+		run_farm_rules_filter_policies(buf, f, family, chain, action);
 		break;
 	default:
 		break;
@@ -1301,13 +1311,13 @@ static int run_farm_rules(struct sbuffer *buf, struct farm *f, int family, int a
 	default:
 		sprintf(chain, "%s-%s", NFTLB_TYPE_NAT, f->name);
 		sprintf(service, "%s-%s", NFTLB_TYPE_NAT, print_nft_service(family, f->protocol));
+		run_base_nat(buf, f);
 		if (need_filter(f)) {
 			run_base_filter(buf, f);
 			run_farm_rules_filter(buf, f, family, action);
 		}
 		if (farm_needs_policies(f))
 			run_farm_ingress_policies(buf, f, family, action);
-		run_base_nat(buf, f);
 		run_farm_rules_gen_chains(buf, print_nft_table_family(family, f->mode), chain, action);
 		run_farm_rules_gen_logs(buf, f, family, chain, action);
 		run_farm_rules_gen_nat(buf, f, family, chain);
@@ -1406,6 +1416,7 @@ static int nft_actions_done(struct farm *f)
 		b->action = ACTION_NONE;
 
 	f->action = ACTION_NONE;
+	f->reload_action = VALUE_RLD_NONE;
 
 	return 0;
 }

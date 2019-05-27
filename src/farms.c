@@ -68,6 +68,7 @@ static struct farm * farm_create(char *name)
 	pfarm->mark = DEFAULT_MARK;
 	pfarm->state = DEFAULT_FARM_STATE;
 	pfarm->action = DEFAULT_ACTION;
+	pfarm->reload_action = VALUE_RLD_NONE;
 
 	init_list_head(&pfarm->backends);
 	init_list_head(&pfarm->policies);
@@ -394,11 +395,54 @@ static void farm_print(struct farm *f)
 	syslog(LOG_DEBUG,"    *[policies_action] %d", f->policies_action);
 	syslog(LOG_DEBUG,"    *[policies_used] %d", f->policies_used);
 	syslog(LOG_DEBUG,"    *[%s] %d", CONFIG_KEY_ACTION, f->action);
+	syslog(LOG_DEBUG,"    *[reload_action] %x", f->reload_action);
 
 	if (f->total_bcks != 0)
 		backend_s_print(f);
 
 	farmpolicy_s_print(f);
+}
+
+static int farm_set_newrtlimit(struct farm *f, int new_value)
+{
+	if (f->newrtlimit == new_value)
+		return PARSER_IDEM_VALUE;
+
+	if (new_value == 0)
+		f->reload_action |= VALUE_RLD_NEWRTLIMIT_STOP;
+	else
+		f->reload_action |= VALUE_RLD_NEWRTLIMIT_START;
+
+	f->newrtlimit = new_value;
+	return PARSER_OK;
+}
+
+static int farm_set_rstrtlimit(struct farm *f, int new_value)
+{
+	if (f->rstrtlimit == new_value)
+		return PARSER_IDEM_VALUE;
+
+	if (new_value == 0)
+		f->reload_action |= VALUE_RLD_RSTRTLIMIT_STOP;
+	else
+		f->reload_action |= VALUE_RLD_RSTRTLIMIT_START;
+
+	f->rstrtlimit = new_value;
+	return PARSER_OK;
+}
+
+static int farm_set_estconnlimit(struct farm *f, int new_value)
+{
+	if (f->estconnlimit == new_value)
+		return PARSER_IDEM_VALUE;
+
+	if (new_value == 0)
+		f->reload_action |= VALUE_RLD_ESTCONNLIMIT_STOP;
+	else
+		f->reload_action |= VALUE_RLD_ESTCONNLIMIT_START;
+
+	f->estconnlimit = new_value;
+	return PARSER_OK;
 }
 
 void farm_s_print(void)
@@ -597,6 +641,7 @@ int farm_set_attribute(struct config_pair *c)
 	struct obj_config *cur = obj_get_current_object();
 	struct farm *f;
 	struct farm *nf;
+	int ret = PARSER_FAILED;
 
 	if (c->key != KEY_NAME && !cur->fptr)
 		return PARSER_OBJ_UNKNOWN;
@@ -612,6 +657,7 @@ int farm_set_attribute(struct config_pair *c)
 				return -1;
 		}
 		cur->fptr = f;
+		ret = PARSER_OK;
 		break;
 	case KEY_NEWNAME:
 		nf = farm_lookup_by_name(c->str_value);
@@ -619,96 +665,109 @@ int farm_set_attribute(struct config_pair *c)
 			free(f->name);
 			obj_set_attribute_string(c->str_value, &f->name);
 		}
+		ret = PARSER_OK;
 		break;
 	case KEY_FQDN:
-		obj_set_attribute_string(c->str_value, &f->fqdn);
+		ret = obj_set_attribute_string(c->str_value, &f->fqdn);
 		break;
 	case KEY_IFACE:
-		obj_set_attribute_string(c->str_value, &f->iface);
+		ret = obj_set_attribute_string(c->str_value, &f->iface);
 		farm_strim_netface(f->iface);
 		break;
 	case KEY_OFACE:
-		obj_set_attribute_string(c->str_value, &f->oface);
+		ret = obj_set_attribute_string(c->str_value, &f->oface);
 		farm_strim_netface(f->oface);
 		break;
 	case KEY_FAMILY:
 		f->family = c->int_value;
+		ret = PARSER_OK;
 		break;
 	case KEY_ETHADDR:
-		obj_set_attribute_string(c->str_value, &f->iethaddr);
+		ret = obj_set_attribute_string(c->str_value, &f->iethaddr);
 		break;
 	case KEY_VIRTADDR:
-		obj_set_attribute_string(c->str_value, &f->virtaddr);
+		ret = obj_set_attribute_string(c->str_value, &f->virtaddr);
 		farm_set_netinfo(f);
 		break;
 	case KEY_VIRTPORTS:
-		farm_set_port(f, c->str_value);
+		ret = farm_set_port(f, c->str_value);
 		break;
 	case KEY_SRCADDR:
-		obj_set_attribute_string(c->str_value, &f->srcaddr);
+		ret = obj_set_attribute_string(c->str_value, &f->srcaddr);
 		break;
 	case KEY_MODE:
-		farm_set_mode(f, c->int_value);
+		ret = farm_set_mode(f, c->int_value);
 		break;
 	case KEY_PROTO:
 		f->protocol = c->int_value;
+		ret = PARSER_OK;
 		break;
 	case KEY_SCHED:
-		farm_set_sched(f, c->int_value);
+		ret = farm_set_sched(f, c->int_value);
 		break;
 	case KEY_SCHEDPARAM:
 		f->schedparam = c->int_value;
+		ret = PARSER_OK;
 		break;
 	case KEY_PERSISTENCE:
 		f->persistence = c->int_value;
+		ret = PARSER_OK;
 		break;
 	case KEY_PERSISTTM:
 		f->persistttl = c->int_value;
+		ret = PARSER_OK;
 		break;
 	case KEY_PRIORITY:
 		f->priority = c->int_value;
+		ret = PARSER_OK;
 		break;
 	case KEY_HELPER:
 		f->helper = c->int_value;
+		ret = PARSER_OK;
 		break;
 	case KEY_LOG:
 		f->log = c->int_value;
+		ret = PARSER_OK;
 		break;
 	case KEY_MARK:
-		farm_set_mark(f, c->int_value);
+		ret = farm_set_mark(f, c->int_value);
 		break;
 	case KEY_STATE:
-		farm_set_state(f, c->int_value);
+		ret = farm_set_state(f, c->int_value);
 		break;
 	case KEY_ACTION:
-		farm_set_action(f, c->int_value);
+		ret = farm_set_action(f, c->int_value);
 		break;
 	case KEY_NEWRTLIMIT:
-		f->newrtlimit = c->int_value;
+		ret = farm_set_newrtlimit(f, c->int_value);
 		break;
 	case KEY_NEWRTLIMITBURST:
 		f->newrtlimitbst = c->int_value;
+		ret = PARSER_OK;
 		break;
 	case KEY_RSTRTLIMIT:
-		f->rstrtlimit = c->int_value;
+		ret = farm_set_rstrtlimit(f, c->int_value);
 		break;
 	case KEY_RSTRTLIMITBURST:
 		f->rstrtlimitbst = c->int_value;
+		ret = PARSER_OK;
 		break;
 	case KEY_ESTCONNLIMIT:
-		f->estconnlimit = c->int_value;
+		ret = farm_set_estconnlimit(f, c->int_value);
 		break;
 	case KEY_TCPSTRICT:
 		f->tcpstrict = c->int_value;
+		ret = PARSER_OK;
 		break;
 	case KEY_QUEUE:
 		f->queue = c->int_value;
+		ret = PARSER_OK;
 		break;
 	default:
 		return PARSER_STRUCT_FAILED;
 	}
 
-	return PARSER_OK;
+	return ret;
 }
 
 int farm_set_action(struct farm *f, int action)

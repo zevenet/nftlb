@@ -242,59 +242,86 @@ static int config_value_type(const char *value)
 
 static int config_value(const char *value)
 {
-	int ret = 0;
+	int ret = PARSER_VALID_FAILED;
+	int new_int_value;
 
 	switch(c.key) {
 	case KEY_FAMILY:
 		c.int_value = config_value_family(value);
+		ret = PARSER_OK;
 		break;
 	case KEY_MODE:
 		c.int_value = config_value_mode(value);
+		ret = PARSER_OK;
 		break;
 	case KEY_PROTO:
 		c.int_value = config_value_proto(value);
+		ret = PARSER_OK;
 		break;
 	case KEY_SCHED:
 		c.int_value = config_value_sched(value);
+		ret = PARSER_OK;
 		break;
 	case KEY_SCHEDPARAM:
-		c.int_value = config_value_meta(value);
-		break;
 	case KEY_PERSISTENCE:
 		c.int_value = config_value_meta(value);
+		ret = PARSER_OK;
 		break;
 	case KEY_HELPER:
 		c.int_value = config_value_helper(value);
+		ret = PARSER_OK;
 		break;
 	case KEY_LOG:
 		c.int_value = config_value_log(value);
+		ret = PARSER_OK;
 		break;
 	case KEY_MARK:
 		c.int_value = (int)strtol(value, NULL, 16);
+		ret = PARSER_OK;
 		break;
 	case KEY_STATE:
 		c.int_value = config_value_state(value);
+		ret = PARSER_OK;
 		break;
 	case KEY_WEIGHT:
 	case KEY_PRIORITY:
+		new_int_value = atoi(value);
+		if (new_int_value >= 1) {
+			c.int_value = new_int_value;
+			ret = PARSER_OK;
+		}
+		break;
 	case KEY_PERSISTTM:
 	case KEY_NEWRTLIMIT:
 	case KEY_NEWRTLIMITBURST:
 	case KEY_RSTRTLIMIT:
 	case KEY_RSTRTLIMITBURST:
 	case KEY_ESTCONNLIMIT:
-	case KEY_QUEUE:
 	case KEY_TIMEOUT:
-		c.int_value = atoi(value);
+		new_int_value = atoi(value);
+		if (new_int_value >= 0) {
+			c.int_value = new_int_value;
+			ret = PARSER_OK;
+		}
+		break;
+	case KEY_QUEUE:
+		new_int_value = atoi(value);
+		if (new_int_value >= -1) {
+			c.int_value = new_int_value;
+			ret = PARSER_OK;
+		}
 		break;
 	case KEY_ACTION:
 		c.int_value = config_value_action(value);
+		ret = PARSER_OK;
 		break;
 	case KEY_TCPSTRICT:
 		c.int_value = config_value_switch(value);
+		ret = PARSER_OK;
 		break;
 	case KEY_TYPE:
 		c.int_value = config_value_type(value);
+		ret = PARSER_OK;
 		break;
 	case KEY_NAME:
 	case KEY_NEWNAME:
@@ -308,10 +335,11 @@ static int config_value(const char *value)
 	case KEY_PORT:
 	case KEY_DATA:
 		c.str_value = (char *)value;
+		ret = PARSER_OK;
 		break;
 	default:
 		syslog(LOG_ERR, "%s():%d: unknown parsed key %d", __FUNCTION__, __LINE__, c.key);
-		ret = -1;
+		ret = PARSER_OBJ_UNKNOWN;
 		break;
 	}
 
@@ -460,7 +488,7 @@ static int config_json_string(json_t *element, int level, int source)
 
 	ret = config_value(json_string_value(element));
 
-	if (ret)
+	if (ret != PARSER_OK)
 		return ret;
 
 	syslog(LOG_DEBUG, "%s():%d: %d(level) %d(key) %s(value) %d(value)", __FUNCTION__, __LINE__, c.level, c.key, c.str_value, c.int_value);
