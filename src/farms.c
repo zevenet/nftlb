@@ -139,8 +139,7 @@ static int farm_validate(struct farm *f)
 	}
 
 	if (farm_is_ingress_mode(f) &&
-		(!f->iface || (strcmp(f->iface, "") == 0) ||
-		!f->oface || (strcmp(f->oface, "") == 0))) {
+		(!f->iface || (strcmp(f->iface, "") == 0))) {
 		return 0;
 	}
 
@@ -860,6 +859,8 @@ int farm_rulerize(struct farm *f)
 {
 	syslog(LOG_DEBUG, "%s():%d: rulerize farm %s", __FUNCTION__, __LINE__, f->name);
 
+	farm_print(f);
+
 	if ((f->action == ACTION_START || f->action == ACTION_RELOAD) &&
 		!farm_is_available(f)) {
 		syslog(LOG_INFO, "%s():%d: farm %s won't be rulerized", __FUNCTION__, __LINE__, f->name);
@@ -868,7 +869,6 @@ int farm_rulerize(struct farm *f)
 		return -1;
 	}
 
-	farm_print(f);
 	return nft_rulerize(f);
 }
 

@@ -392,9 +392,11 @@ int backend_s_delete(struct farm *f)
 int backend_s_validate(struct farm *f)
 {
 	struct backend *b, *next;
+	int valid = 0;
 
 	list_for_each_entry_safe(b, next, &f->backends, list) {
-		if (b->state == VALUE_STATE_CONFERR && backend_validate(b))
+		valid = backend_validate(b);
+		if (b->state == VALUE_STATE_CONFERR && valid)
 			backend_set_state(b, VALUE_STATE_UP);
 	}
 
@@ -436,6 +438,8 @@ int backend_set_attribute(struct config_pair *c)
 		    backend_set_ipaddr_from_ether(b) == -1) {
 			syslog(LOG_DEBUG, "%s():%d: backend %s comes to OFF", __FUNCTION__, __LINE__, b->name);
 			backend_set_state(b, VALUE_STATE_CONFERR);
+		} else {
+			backend_validate(b);
 		}
 		break;
 	case KEY_ETHADDR:
