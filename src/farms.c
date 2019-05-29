@@ -223,12 +223,12 @@ static int farm_set_mark(struct farm *f, int new_value)
 
 	if (f->mode != VALUE_MODE_DNAT && f->mode != VALUE_MODE_SNAT) {
 		syslog(LOG_ERR, "%s():%d: mark for farm %s not available for the current mode %d", __FUNCTION__, __LINE__, f->name, f->mode);
-		return -1;
+		return 0;
 	}
 
 	if (new_value & NFTLB_POSTROUTING_MARK) {
 		syslog(LOG_ERR, "%s():%d: mark 0x%x for farm %s conflicts with the POSTROUTING mark 0x%x", __FUNCTION__, __LINE__, f->mark, f->name, NFTLB_POSTROUTING_MARK);
-		return -1;
+		return 0;
 	}
 
 	f->mark = new_value;
@@ -474,7 +474,7 @@ int farm_is_ingress_mode(struct farm *f)
 
 int farm_needs_policies(struct farm *f)
 {
-	return (!farm_is_ingress_mode(f) && f->policies_used > 0) || (f->policies_action != ACTION_NONE);
+	return (f->policies_used > 0) || (f->policies_action != ACTION_NONE);
 }
 
 int farm_set_ifinfo(struct farm *f, int key)
@@ -776,7 +776,7 @@ int farm_set_action(struct farm *f, int action)
 	if (action == ACTION_STOP && f->state != VALUE_STATE_UP)
 		return 0;
 
-	if (action != ACTION_NONE && action != ACTION_RELOAD && f->policies_used != 0)
+	if ((action != ACTION_NONE || action != ACTION_RELOAD) && f->policies_used != 0)
 		f->policies_action = action;
 
 	if (action == ACTION_DELETE) {

@@ -1164,15 +1164,18 @@ static int run_farm_rules_filter(struct sbuffer *buf, struct farm *f, int family
 	return 0;
 }
 
-static int run_farm_rules_ingress_policies(struct sbuffer *buf, struct farm *f, int family, char *chain, int action)
+static int run_farm_rules_ingress_policies(struct sbuffer *buf, struct farm *f, int family, char *chain)
 {
 	struct farmpolicy *fp;
 	char prefix[255];
 
+	if (f->policies_action != ACTION_START && f->policies_action != ACTION_RELOAD)
+		return 0;
+
 	list_for_each_entry(fp, &f->policies, list) {
 		sprintf(prefix, "policy-%s-%s-%s", print_nft_prefix_policy(fp->policy->type), fp->policy->name, f->name);
 		concat_buf(buf, " ; add rule %s %s %s %s saddr @%s log prefix \"%s\" %s",
-					NFTLB_NETDEV_FAMILY, NFTLB_TABLE_NAME, chain, print_nft_table_family(family, f->mode), fp->policy->name, prefix, print_nft_verdict(fp->policy->type));
+					NFTLB_NETDEV_FAMILY, NFTLB_TABLE_NAME, chain, print_nft_family(family), fp->policy->name, prefix, print_nft_verdict(fp->policy->type));
 		fp->action = ACTION_NONE;
 	}
 
@@ -1184,22 +1187,28 @@ static int run_farm_ingress_policies(struct sbuffer *buf, struct farm *f, int fa
 	char chain[255] = {0};
 	char service[255] = {0};
 
+	if (!farm_needs_policies(f))
+		return 0;
+
 	sprintf(chain, "%s", f->name);
 	sprintf(service, "%s-%s", print_nft_service(f->family, f->protocol), f->iface);
 
-
 	if (f->policies_action == ACTION_START) {
-		run_base_chain_ndv(buf, f, KEY_IFACE);
-		run_farm_rules_gen_chains(buf, NFTLB_NETDEV_FAMILY, chain, ACTION_START);
-		run_farm_rules_gen_srv(buf, f, NFTLB_NETDEV_FAMILY, chain, service, f->policies_action, BCK_MAP_IPADDR_PORT, BCK_MAP_NAME);
-		run_farm_rules_ingress_policies(buf, f, family, chain, ACTION_START);
-	} else if (f->policies_action == ACTION_STOP) {
+		if (!farm_is_ingress_mode(f)) {
+			run_base_chain_ndv(buf, f, KEY_IFACE);
+			run_farm_rules_gen_chains(buf, NFTLB_NETDEV_FAMILY, chain, ACTION_START);
+			run_farm_rules_gen_srv(buf, f, NFTLB_NETDEV_FAMILY, chain, service, f->policies_action, BCK_MAP_IPADDR_PORT, BCK_MAP_NAME);
+		}
+		run_farm_rules_ingress_policies(buf, f, family, chain);
+	} else if (f->policies_action == ACTION_STOP && !farm_is_ingress_mode(f)) {
 		run_farm_rules_gen_srv(buf, f, NFTLB_NETDEV_FAMILY, chain, service, f->policies_action, BCK_MAP_IPADDR_PORT, BCK_MAP_NAME);
 		run_farm_rules_gen_chains(buf, NFTLB_NETDEV_FAMILY, chain, ACTION_DELETE);
 	} else if (f->policies_action == ACTION_RELOAD) {
-		run_base_chain_ndv(buf, f, KEY_IFACE);
-		run_farm_rules_gen_chains(buf, NFTLB_NETDEV_FAMILY, chain, ACTION_RELOAD);
-		run_farm_rules_ingress_policies(buf, f, family, chain, ACTION_START);
+		if (!farm_is_ingress_mode(f)) {
+			run_base_chain_ndv(buf, f, KEY_IFACE);
+			run_farm_rules_gen_chains(buf, NFTLB_NETDEV_FAMILY, chain, ACTION_RELOAD);
+		}
+		run_farm_rules_ingress_policies(buf, f, family, chain);
 	} else {
 	}
 
@@ -1292,9 +1301,9 @@ static int run_farm_rules(struct sbuffer *buf, struct farm *f, int family, int a
 		sprintf(service, "%s-%s", print_nft_service(family, f->protocol), f->iface);
 		run_base_table(buf, NFTLB_NETDEV_FAMILY);
 		run_base_chain_ndv(buf, f, KEY_OFACE);
-		run_base_table(buf, NFTLB_NETDEV_FAMILY);
 		run_base_chain_ndv(buf, f, KEY_IFACE);
 		run_farm_rules_gen_chains(buf, print_nft_table_family(family, f->mode), chain, action);
+		run_farm_ingress_policies(buf, f, family, action);
 		run_farm_rules_gen_logs(buf, f, family, chain, action);
 		run_farm_rules_gen_nat(buf, f, family, chain);
 		run_farm_stlsnat(buf, f, family, action);
@@ -1305,6 +1314,7 @@ static int run_farm_rules(struct sbuffer *buf, struct farm *f, int family, int a
 		run_base_table(buf, NFTLB_NETDEV_FAMILY);
 		run_base_chain_ndv(buf, f, KEY_IFACE);
 		run_farm_rules_gen_chains(buf, print_nft_table_family(family, f->mode), chain, action);
+		run_farm_ingress_policies(buf, f, family, action);
 		run_farm_rules_gen_logs(buf, f, family, chain, action);
 		run_farm_rules_gen_nat(buf, f, family, chain);
 		break;
@@ -1316,8 +1326,7 @@ static int run_farm_rules(struct sbuffer *buf, struct farm *f, int family, int a
 			run_base_filter(buf, f);
 			run_farm_rules_filter(buf, f, family, action);
 		}
-		if (farm_needs_policies(f))
-			run_farm_ingress_policies(buf, f, family, action);
+		run_farm_ingress_policies(buf, f, family, action);
 		run_farm_rules_gen_chains(buf, print_nft_table_family(family, f->mode), chain, action);
 		run_farm_rules_gen_logs(buf, f, family, chain, action);
 		run_farm_rules_gen_nat(buf, f, family, chain);
@@ -1376,14 +1385,12 @@ static int del_farm(struct sbuffer *buf, struct farm *f)
 	int ret = 0;
 
 	if ((f->family == VALUE_FAMILY_IPV4) || (f->family == VALUE_FAMILY_INET)) {
-		if (farm_needs_policies(f))
-			run_farm_ingress_policies(buf, f, VALUE_FAMILY_IPV4, ACTION_STOP);
+		run_farm_ingress_policies(buf, f, VALUE_FAMILY_IPV4, ACTION_STOP);
 		del_farm_rules(buf, f, VALUE_FAMILY_IPV4);
 	}
 
 	if ((f->family == VALUE_FAMILY_IPV6) || (f->family == VALUE_FAMILY_INET)) {
-		if (farm_needs_policies(f))
-			run_farm_ingress_policies(buf, f, VALUE_FAMILY_IPV6, ACTION_STOP);
+		run_farm_ingress_policies(buf, f, VALUE_FAMILY_IPV6, ACTION_STOP);
 		del_farm_rules(buf, f, VALUE_FAMILY_IPV6);
 	}
 
