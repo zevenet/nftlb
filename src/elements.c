@@ -100,6 +100,8 @@ struct element * element_lookup_by_name(struct policy *p, const char *data)
 
 int element_set_action(struct element *e, int action)
 {
+	syslog(LOG_DEBUG, "%s():%d: element %s action is %d - new action %d", __FUNCTION__, __LINE__, f->data, e->action, action);
+
 	if (action == ACTION_DELETE) {
 		element_delete(e);
 		return 1;
