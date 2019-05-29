@@ -852,9 +852,7 @@ int config_set_policy_action(const char *name, const char *value)
 	if (!p)
 		return -1;
 
-	policy_set_action(p, config_value_action(value));
-
-	return 0;
+	return policy_set_action(p, config_value_action(value));
 }
 
 int config_set_element_action(const char *pname, const char *edata, const char *value)
@@ -876,9 +874,7 @@ int config_set_element_action(const char *pname, const char *edata, const char *
 	if (!e)
 		return -1;
 
-	element_set_action(e, config_value_action(value));
-
-	return 0;
+	return element_set_action(e, config_value_action(value));
 }
 
 void config_print_response(char **buf, const char *message)
