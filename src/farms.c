@@ -776,7 +776,10 @@ int farm_set_action(struct farm *f, int action)
 	if (action == ACTION_STOP && f->state != VALUE_STATE_UP)
 		return 0;
 
-	if ((action != ACTION_NONE || action != ACTION_RELOAD) && f->policies_used != 0)
+	if (action == ACTION_RELOAD && f->state != VALUE_STATE_UP)
+		action = ACTION_START;
+
+	if (action != ACTION_NONE && action != ACTION_RELOAD && f->policies_used != 0)
 		f->policies_action = action;
 
 	if (action == ACTION_DELETE) {
