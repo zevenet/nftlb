@@ -1197,6 +1197,19 @@ static int run_farm_rules_ingress_policies(struct sbuffer *buf, struct farm *f, 
 		return 0;
 
 	list_for_each_entry(fp, &f->policies, list) {
+		if (fp->policy->type != VALUE_TYPE_WHITE)
+			continue;
+
+		sprintf(prefix, "policy-%s-%s-%s", print_nft_prefix_policy(fp->policy->type), fp->policy->name, f->name);
+		concat_buf(buf, " ; add rule %s %s %s %s saddr @%s log prefix \"%s\" %s",
+					NFTLB_NETDEV_FAMILY, NFTLB_TABLE_NAME, chain, print_nft_family(family), fp->policy->name, prefix, print_nft_verdict(fp->policy->type));
+		fp->action = ACTION_NONE;
+	}
+
+	list_for_each_entry(fp, &f->policies, list) {
+		if (fp->policy->type != VALUE_TYPE_BLACK)
+			continue;
+
 		sprintf(prefix, "policy-%s-%s-%s", print_nft_prefix_policy(fp->policy->type), fp->policy->name, f->name);
 		concat_buf(buf, " ; add rule %s %s %s %s saddr @%s log prefix \"%s\" %s",
 					NFTLB_NETDEV_FAMILY, NFTLB_TABLE_NAME, chain, print_nft_family(family), fp->policy->name, prefix, print_nft_verdict(fp->policy->type));
