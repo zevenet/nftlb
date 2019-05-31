@@ -853,7 +853,8 @@ static int run_farm_rules_gen_sched(struct sbuffer *buf, struct farm *f, int fam
 		concat_buf(buf, " mod %d", f->total_weight);
 		break;
 	case VALUE_SCHED_SYMHASH:
-		concat_buf(buf, " symhash mod %d", f->total_weight);
+		if (f->bcks_available != 1)	// FIXME: Control bug in nftables
+			concat_buf(buf, " symhash mod %d", f->total_weight);
 		break;
 	default:
 		return -1;
@@ -879,6 +880,29 @@ static int run_farm_rules_gen_bck_map(struct sbuffer *buf, struct farm *f, enum 
 	int i = 0;
 	int last = 0;
 	int new;
+
+	// FIXME: Control bug in nftables
+	if (f->scheduler == VALUE_SCHED_SYMHASH && f->bcks_available == 1) {
+		list_for_each_entry(b, &f->backends, list) {
+			if(!backend_is_available(b))
+				continue;
+
+			switch (data_mode) {
+			case BCK_MAP_MARK:
+				concat_buf(buf, " 0x%x", b->mark | offset);
+				break;
+			case BCK_MAP_ETHADDR:
+				concat_buf(buf, " %s", b->ethaddr);
+				break;
+			case BCK_MAP_IPADDR:
+				concat_buf(buf, " %s", b->ipaddr);
+				break;
+			default:
+				break;
+			}
+		}
+		return 0;
+	}
 
 	concat_buf(buf, " map {");
 
