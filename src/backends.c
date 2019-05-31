@@ -522,7 +522,7 @@ int backend_set_state(struct backend *b, int new_value)
 	if (new_value == VALUE_STATE_UP) {
 
 		if (!backend_validate(b))
-			b->state = VALUE_STATE_CONFERR;
+			backend_switch(b, VALUE_STATE_CONFERR);
 
 		if (backend_is_available(b))
 			backend_switch(b, new_value);
