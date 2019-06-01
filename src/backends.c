@@ -288,6 +288,28 @@ static int backend_set_port(struct backend *b, char *new_value)
 	return 0;
 }
 
+static int backend_set_ipaddr(struct backend *b, char *new_value)
+{
+	char *old_value = b->ipaddr;
+
+	syslog(LOG_DEBUG, "%s():%d: current value is %s, but new value will be %s",
+	       __FUNCTION__, __LINE__, old_value, new_value);
+
+	obj_set_attribute_string(new_value, &b->ipaddr);
+	obj_set_attribute_string("", &b->ethaddr);
+
+	if (farm_set_ifinfo(b->parent, KEY_OFACE) == -1 ||
+	    backend_set_ipaddr_from_ether(b) == -1) {
+		syslog(LOG_DEBUG, "%s():%d: backend %s comes to OFF", __FUNCTION__, __LINE__, b->name);
+		backend_set_state(b, VALUE_STATE_CONFERR);
+	} else {
+		if (b->state == VALUE_STATE_CONFERR)
+			backend_set_state(b, VALUE_STATE_UP);
+	}
+
+	return 0;
+}
+
 static int backend_validate(struct backend *b)
 {
 	struct farm *f = b->parent;
@@ -433,14 +455,7 @@ int backend_set_attribute(struct config_pair *c)
 		obj_set_attribute_string(c->str_value, &b->fqdn);
 		break;
 	case KEY_IPADDR:
-		obj_set_attribute_string(c->str_value, &b->ipaddr);
-		if (farm_set_ifinfo(b->parent, KEY_OFACE) == -1 ||
-		    backend_set_ipaddr_from_ether(b) == -1) {
-			syslog(LOG_DEBUG, "%s():%d: backend %s comes to OFF", __FUNCTION__, __LINE__, b->name);
-			backend_set_state(b, VALUE_STATE_CONFERR);
-		} else {
-			backend_validate(b);
-		}
+		backend_set_ipaddr(b, c->str_value);
 		break;
 	case KEY_ETHADDR:
 		obj_set_attribute_string(c->str_value, &b->ethaddr);
@@ -484,6 +499,7 @@ static int backend_switch(struct backend *b, int new_state)
 		f->total_weight += b->weight;
 		f->bcks_available++;
 		b->action = ACTION_START;
+		farm_set_action(f, ACTION_RELOAD);
 	} else {
 		f->total_weight -= b->weight;
 		if (f->total_weight < 0)
@@ -494,6 +510,7 @@ static int backend_switch(struct backend *b, int new_state)
 			f->bcks_available = 0;
 
 		b->action = ACTION_STOP;
+		farm_set_action(f, ACTION_RELOAD);
 	}
 
 	return 0;
@@ -509,23 +526,23 @@ int backend_set_state(struct backend *b, int new_value)
 	if (old_value == new_value)
 		return 0;
 
-	if (backend_is_available(b) &&
-	    new_value != VALUE_STATE_UP) {
-
+	switch (new_value) {
+	case VALUE_STATE_UP:
 		b->state = new_value;
-		backend_switch(b, new_value);
-		return 0;
-	}
-
-	b->state = new_value;
-
-	if (new_value == VALUE_STATE_UP) {
-
-		if (!backend_validate(b))
-			backend_switch(b, VALUE_STATE_CONFERR);
-
-		if (backend_is_available(b))
+		if (!backend_validate(b)) {
+			b->state = VALUE_STATE_CONFERR;
+			return 0;
+		}
+		if (backend_is_usable(b))
 			backend_switch(b, new_value);
+		break;
+	default:
+		if (backend_is_usable(b)) {
+			b->state = new_value;
+			backend_switch(b, new_value);
+		} else
+			b->state = new_value;
+		break;
 	}
 
 	return 0;
