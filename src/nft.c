@@ -694,8 +694,11 @@ static int run_farm_rules_gen_srv(struct sbuffer *buf, struct farm *f, char *nft
 		break;
 	case BCK_MAP_BCK_IPADDR:
 		list_for_each_entry(b, &f->backends, list) {
-			if (b->action == ACTION_STOP || b->action == ACTION_DELETE)
+			if (b->action == ACTION_STOP || b->action == ACTION_DELETE) {
+				if (action == ACTION_START)
+					continue;
 				concat_buf(buf, " ; delete element %s %s %s { %s }", nft_family, NFTLB_TABLE_NAME, service, b->ipaddr);
+			}
 			if(!backend_is_available(b))
 				continue;
 			concat_buf(buf, " ; %s element %s %s %s { %s %s}", action_str, nft_family, NFTLB_TABLE_NAME, service, b->ipaddr, data_str);
@@ -712,6 +715,8 @@ static int run_farm_rules_gen_srv(struct sbuffer *buf, struct farm *f, char *nft
 		for (i = 0; i < nports; i++) {
 			list_for_each_entry(b, &f->backends, list) {
 				if (b->action == ACTION_STOP || b->action == ACTION_DELETE || b->action == ACTION_RELOAD) {
+					if (action == ACTION_START)
+						continue;
 					concat_buf(buf, " ; delete element %s %s %s { %s . %d }", nft_family, NFTLB_TABLE_NAME, service, b->ipaddr, port_list[i]);
 				}
 				if(!backend_is_available(b))
@@ -727,16 +732,22 @@ static int run_farm_rules_gen_srv(struct sbuffer *buf, struct farm *f, char *nft
 
 				nports = get_array_ports(port_list, f);
 				for (i = 0; i < nports; i++) {
-					if (b->action == ACTION_STOP || b->action == ACTION_DELETE || b->action == ACTION_RELOAD)
+					if (b->action == ACTION_STOP || b->action == ACTION_DELETE || b->action == ACTION_RELOAD) {
+						if (action == ACTION_START)
+							continue;
 						concat_buf(buf, " ; delete element %s %s %s { %s . %d }", nft_family, NFTLB_TABLE_NAME, service, b->ipaddr, port_list[i]);
+					}
 					if(!backend_is_available(b))
 						continue;
 					concat_buf(buf, " ; %s element %s %s %s { %s . %d %s}", action_str, nft_family, NFTLB_TABLE_NAME, service, b->ipaddr, port_list[i], data_str);
 				}
 
 			} else {
-				if (b->action == ACTION_STOP || b->action == ACTION_DELETE || b->action == ACTION_RELOAD)
+				if (b->action == ACTION_STOP || b->action == ACTION_DELETE || b->action == ACTION_RELOAD) {
+					if (action == ACTION_START)
+						continue;
 					concat_buf(buf, " ; delete element %s %s %s { %s . %s }", nft_family, NFTLB_TABLE_NAME, service, b->ipaddr, b->port);
+				}
 				if(!backend_is_available(b))
 					continue;
 				concat_buf(buf, " ; %s element %s %s %s { %s . %s %s}", action_str, nft_family, NFTLB_TABLE_NAME, service, b->ipaddr, b->port, data_str);
