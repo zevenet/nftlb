@@ -88,8 +88,9 @@ Where every farm object has the following attributes:
 	"mark": "<hexadecimal mark>",			*Set mark mask for the farm (none by default)*
 	"priority": "<number>",				*Priority availability for backends > 0 (1 by default)*
 	"new-rtlimit": "<number>",				*Number of new connections per second per service (disabled by default)*
-	"new-rtlimit-burst": "<number>",				*Number of burst packets (disabled by default)*
+	"new-rtlimit-burst": "<number>",			*Number of burst packets (disabled by default)*
 	"rst-rtlimit": "<number>",				*Number of tcp resets per second allowed (disabled by default)*
+	"rst-rtlimit-burst": "<number>",			*Number of burst RST packets (disabled by default)*
 	"est-connlimit": "<number>",				*Number of established connections allowed (disabled by default)*
 	"tcp-strict": "<on | off>",				*Option to avoid bogus TCP attacks (disabled by default)*
 	"queue": "<number>",				*Number of the queue to send the packets to userspace (disabled by default)*
