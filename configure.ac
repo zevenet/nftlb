@@ -1,4 +1,4 @@
-AC_INIT([nftlb], [0.4], [netfilter-devel@vger.kernel.org])
+AC_INIT([nftlb], [0.5], [netfilter-devel@vger.kernel.org])
 
 AC_CONFIG_AUX_DIR([build-aux])
 AC_CONFIG_MACRO_DIR([m4])
@@ -16,7 +16,7 @@ AC_PROG_INSTALL
 AC_PROG_LN_S
 AC_PROG_SED
 
-PKG_CHECK_MODULES([LIBNFTABLES], [libnftables >= 0.8.5])
+PKG_CHECK_MODULES([LIBNFTABLES], [libnftables >= 0.9])
 PKG_CHECK_MODULES([LIBJSON], [jansson >= 2.3])
 PKG_CHECK_MODULES([LIBMNL], [libmnl >= 1.0.4])
 
