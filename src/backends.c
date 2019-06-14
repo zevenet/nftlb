@@ -45,6 +45,7 @@ static struct backend * backend_create(struct farm *f, char *name)
 	b->ethaddr = DEFAULT_ETHADDR;
 	b->ipaddr = DEFAULT_IPADDR;
 	b->port = DEFAULT_PORT;
+	b->srcaddr = DEFAULT_SRCADDR;
 	b->weight = DEFAULT_WEIGHT;
 	b->priority = DEFAULT_PRIORITY;
 	b->mark = DEFAULT_MARK;
@@ -71,6 +72,8 @@ static int backend_delete_node(struct backend *b)
 		free(b->ethaddr);
 	if (b->port && strcmp(b->port, "") != 0)
 		free(b->port);
+	if (b->srcaddr && strcmp(b->srcaddr, "") != 0)
+		free(b->srcaddr);
 
 	free(b);
 
@@ -105,6 +108,9 @@ void backend_s_print(struct farm *f)
 
 		if (b->port)
 			syslog(LOG_DEBUG,"       [%s] %s", CONFIG_KEY_PORT, b->port);
+
+		if (b->srcaddr)
+			syslog(LOG_DEBUG,"       [%s] %s", CONFIG_KEY_SRCADDR, b->srcaddr);
 
 		syslog(LOG_DEBUG,"       [%s] 0x%x", CONFIG_KEY_MARK, b->mark);
 		syslog(LOG_DEBUG,"       [%s] %d", CONFIG_KEY_ESTCONNLIMIT, b->estconnlimit);
@@ -463,6 +469,9 @@ int backend_set_attribute(struct config_pair *c)
 	case KEY_PORT:
 		backend_set_port(b, c->str_value);
 		break;
+	case KEY_SRCADDR:
+		obj_set_attribute_string(c->str_value, &b->srcaddr);
+		break;
 	case KEY_WEIGHT:
 		backend_set_weight(b, c->int_value);
 		break;
@@ -622,6 +631,7 @@ int bck_pre_actionable(struct config_pair *c)
 	case KEY_ETHADDR:
 	case KEY_IPADDR:
 	case KEY_PORT:
+	case KEY_SRCADDR:
 	case KEY_PRIORITY:
 	case KEY_ESTCONNLIMIT:
 

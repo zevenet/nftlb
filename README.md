@@ -115,6 +115,7 @@ Where every backend object has the following attributes:
 	"ether-addr": "<mac address>",			*Physical address of the backend (only required for DSR)*
 	"ip-addr": "<ip address>",			*IP address for the backend (required, except for DSR)*
 	"port": "<number>",				*Backend port to redirect the connections*
+	"source-addr": "<ip address>",			*Source IP address for a certain backend instead of masquerading or virtual service source address*
 	"weight": "<number>",				*Weight of the backend (1 by default)*
 	"priority": "<number>",				*Priority availability for the backend > 0 (1 by default)*
 	"mark": "<hexadecimal mark>",			*Set mark mask for the backend (none by default)*

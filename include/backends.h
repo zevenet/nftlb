@@ -33,6 +33,7 @@ struct backend {
 	char			*ipaddr;
 	char			*ethaddr;
 	char			*port;
+	char			*srcaddr;
 	int			weight;
 	int			priority;
 	int			mark;

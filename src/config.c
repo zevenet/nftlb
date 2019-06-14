@@ -696,6 +696,7 @@ static void add_dump_list(json_t *obj, const char *objname, int object,
 			add_dump_obj(item, CONFIG_KEY_NAME, b->name);
 			add_dump_obj(item, CONFIG_KEY_IPADDR, b->ipaddr);
 			add_dump_obj(item, CONFIG_KEY_PORT, b->port);
+			add_dump_obj(item, CONFIG_KEY_SRCADDR, b->srcaddr);
 			config_dump_int(value, b->weight);
 			add_dump_obj(item, CONFIG_KEY_WEIGHT, value);
 			config_dump_int(value, b->priority);

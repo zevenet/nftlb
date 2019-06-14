@@ -124,7 +124,8 @@ enum map_modes {
 	BCK_MAP_SRCIPADDR,
 	BCK_MAP_BCK_IPADDR,
 	BCK_MAP_BCK_IPADDR_F_PORT,
-	BCK_MAP_BCK_IPADDR_BF_PORT
+	BCK_MAP_BCK_IPADDR_BF_PORT,
+	BCK_MAP_BCK_BF_SRCIPADDR
 };
 
 struct if_base_rule {
@@ -649,14 +650,43 @@ next:
 	return index;
 }
 
+static int run_farm_rules_gen_srv_data(char **buf, struct farm *f, struct backend *b, char *chain, enum map_modes data_mode)
+{
+	switch (data_mode) {
+	case BCK_MAP_SRCIPADDR:
+		if (f != NULL)
+			sprintf(*buf, ": %s ", f->srcaddr);
+		break;
+	case BCK_MAP_NAME:
+		sprintf(*buf, ": goto %s ", chain);
+		break;
+	case BCK_MAP_BCK_BF_SRCIPADDR:
+		if (b != NULL && b->srcaddr != DEFAULT_SRCADDR && strcmp(b->srcaddr, "") != 0)
+			sprintf(*buf, ": %s ", b->srcaddr);
+		else if (f != NULL && f->srcaddr != DEFAULT_SRCADDR && strcmp(f->srcaddr, "") != 0)
+			sprintf(*buf, ": %s ", f->srcaddr);
+		break;
+	default:
+		break;
+	}
+
+	return 0;
+}
+
 static int run_farm_rules_gen_srv(struct sbuffer *buf, struct farm *f, char *nft_family, char *chain, char *service, int action, enum map_modes key_mode, enum map_modes data_mode)
 {
 	int port_list[65535] = { 0 };
 	char action_str[255] = { 0 };
-	char data_str[255] = { 0 };
+	char *data_str;
 	struct backend *b;
 	int nports;
 	int i;
+
+	data_str = calloc(1, 255);
+	if (!data_str) {
+		syslog(LOG_ERR, "%s():%d: memory allocation error", __FUNCTION__, __LINE__);
+		return -1;
+	}
 
 	switch (action) {
 	case ACTION_RELOAD:
@@ -671,17 +701,6 @@ static int run_farm_rules_gen_srv(struct sbuffer *buf, struct farm *f, char *nft
 		break;
 	}
 
-	switch (data_mode) {
-	case BCK_MAP_SRCIPADDR:
-		sprintf(data_str, ": %s ", f->srcaddr);
-		break;
-	case BCK_MAP_NAME:
-		sprintf(data_str, ": goto %s ", chain);
-		break;
-	default:
-		break;
-	}
-
 	/* avoid port in cases of listening from all protocols */
 	if (f->protocol == VALUE_PROTO_ALL && key_mode == BCK_MAP_IPADDR_PORT)
 		key_mode = BCK_MAP_IPADDR;
@@ -690,6 +709,7 @@ static int run_farm_rules_gen_srv(struct sbuffer *buf, struct farm *f, char *nft
 
 	switch (key_mode) {
 	case BCK_MAP_IPADDR:
+		run_farm_rules_gen_srv_data((char **) &data_str, f, NULL, chain, data_mode);
 		concat_buf(buf, " ; %s element %s %s %s { %s %s}", action_str, nft_family, NFTLB_TABLE_NAME, service, f->virtaddr, data_str);
 		break;
 	case BCK_MAP_BCK_IPADDR:
@@ -701,17 +721,18 @@ static int run_farm_rules_gen_srv(struct sbuffer *buf, struct farm *f, char *nft
 			}
 			if(!backend_is_available(b))
 				continue;
+			run_farm_rules_gen_srv_data((char **) &data_str, f, b, chain, data_mode);
 			concat_buf(buf, " ; %s element %s %s %s { %s %s}", action_str, nft_family, NFTLB_TABLE_NAME, service, b->ipaddr, data_str);
 		}
 		break;
 	case BCK_MAP_IPADDR_PORT:
+		run_farm_rules_gen_srv_data((char **) &data_str, f, NULL, chain, data_mode);
 		nports = get_array_ports(port_list, f);
 		for (i = 0; i < nports; i++)
 			concat_buf(buf, " ; %s element %s %s %s { %s . %d %s}", action_str, nft_family, NFTLB_TABLE_NAME, service, f->virtaddr, port_list[i], data_str);
 		break;
 	case BCK_MAP_BCK_IPADDR_F_PORT:
 		nports = get_array_ports(port_list, f);
-
 		for (i = 0; i < nports; i++) {
 			list_for_each_entry(b, &f->backends, list) {
 				if (b->action == ACTION_STOP || b->action == ACTION_DELETE || b->action == ACTION_RELOAD) {
@@ -721,6 +742,7 @@ static int run_farm_rules_gen_srv(struct sbuffer *buf, struct farm *f, char *nft
 				}
 				if(!backend_is_available(b))
 					continue;
+				run_farm_rules_gen_srv_data((char **) &data_str, f, b, chain, data_mode);
 				concat_buf(buf, " ; %s element %s %s %s { %s . %d %s}", action_str, nft_family, NFTLB_TABLE_NAME, service, b->ipaddr, port_list[i], data_str);
 			}
 		}
@@ -728,6 +750,7 @@ static int run_farm_rules_gen_srv(struct sbuffer *buf, struct farm *f, char *nft
 	case BCK_MAP_BCK_IPADDR_BF_PORT:
 
 		list_for_each_entry(b, &f->backends, list) {
+			run_farm_rules_gen_srv_data((char **) &data_str, f, b, chain, data_mode);
 			if (strcmp(b->port, DEFAULT_PORT) == 0) {
 
 				nports = get_array_ports(port_list, f);
@@ -771,7 +794,7 @@ static int run_farm_snat(struct sbuffer *buf, struct farm *f, int family, int ac
 
 	sprintf(name, "%s-back", print_nft_service(family, f->protocol));
 
-	run_farm_rules_gen_srv(buf, f, print_nft_table_family(family, f->mode), name, name, action, BCK_MAP_BCK_IPADDR_BF_PORT, BCK_MAP_SRCIPADDR);
+	run_farm_rules_gen_srv(buf, f, print_nft_table_family(family, f->mode), name, name, action, BCK_MAP_BCK_IPADDR_BF_PORT, BCK_MAP_BCK_BF_SRCIPADDR);
 
 	return 0;
 }
