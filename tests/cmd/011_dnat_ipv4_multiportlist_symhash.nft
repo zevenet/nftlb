@@ -23,6 +23,10 @@ table ip nftlb {
 		type ipv4_addr . inet_service : ipv4_addr
 	}
 
+	map tcp-services-m-back {
+		type mark : ipv4_addr
+	}
+
 	chain prerouting {
 		type nat hook prerouting priority filter; policy accept;
 		ip daddr . tcp dport vmap @nat-tcp-services
@@ -32,6 +36,7 @@ table ip nftlb {
 		type nat hook postrouting priority srcnat; policy accept;
 		ct mark 0x80000000/1 masquerade
 		snat to ip daddr . tcp dport map @tcp-services-back
+		snat to ct mark map @tcp-services-m-back
 	}
 
 	chain nat-lb01 {

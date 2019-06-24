@@ -9,6 +9,15 @@ table ip nftlb {
 		elements = { 192.168.0.10 : 192.168.0.101, 192.168.0.11 : 192.168.0.101 }
 	}
 
+	map services-m-back {
+		type mark : ipv4_addr
+	}
+
+	map filter-services {
+		type ipv4_addr : verdict
+		elements = { 192.168.0.100 : goto filter-lb01 }
+	}
+
 	chain prerouting {
 		type nat hook prerouting priority filter; policy accept;
 		ip daddr vmap @nat-services
@@ -18,6 +27,16 @@ table ip nftlb {
 		type nat hook postrouting priority srcnat; policy accept;
 		ct mark 0x80000000/1 masquerade
 		snat to ip daddr map @services-back
+		snat to ct mark map @services-m-back
+	}
+
+	chain filter {
+		type filter hook prerouting priority mangle; policy accept;
+		meta mark set ct mark
+		ip daddr vmap @filter-services
+	}
+
+	chain filter-lb01 {
 	}
 
 	chain nat-lb01 {
