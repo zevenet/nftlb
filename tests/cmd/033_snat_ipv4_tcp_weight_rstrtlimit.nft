@@ -42,7 +42,7 @@ table ip nftlb {
 	}
 
 	chain filter-lb01 {
-		tcp flags rst add @rst-rtlimit-lb01 { ip saddr limit rate over 5/second } log prefix "rst-rtlimit-lb01" drop
+		tcp flags rst add @rst-rtlimit-lb01 { ip saddr limit rate over 5/second } log prefix "rst-rtlimit-lb01 " drop
 		ct mark set 0x80000000
 	}
 

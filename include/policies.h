@@ -38,6 +38,7 @@ struct policy {
 	int					priority;
 	int					total_elem;
 	int					used;
+	char				*logprefix;
 	int					action;
 	struct list_head	elements;
 };

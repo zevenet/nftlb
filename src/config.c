@@ -334,6 +334,11 @@ static int config_value(const char *value)
 	case KEY_SRCADDR:
 	case KEY_PORT:
 	case KEY_DATA:
+	case KEY_LOGPREFIX:
+	case KEY_NEWRTLIMIT_LOGPREFIX:
+	case KEY_RSTRTLIMIT_LOGPREFIX:
+	case KEY_ESTCONNLIMIT_LOGPREFIX:
+	case KEY_TCPSTRICT_LOGPREFIX:
 		c.str_value = (char *)value;
 		ret = PARSER_OK;
 		break;
@@ -390,6 +395,8 @@ static int config_key(const char *key)
 		return KEY_HELPER;
 	if (strcmp(key, CONFIG_KEY_LOG) == 0)
 		return KEY_LOG;
+	if (strcmp(key, CONFIG_KEY_LOGPREFIX) == 0)
+		return KEY_LOGPREFIX;
 	if (strcmp(key, CONFIG_KEY_MARK) == 0)
 		return KEY_MARK;
 	if (strcmp(key, CONFIG_KEY_STATE) == 0)
@@ -406,14 +413,22 @@ static int config_key(const char *key)
 		return KEY_NEWRTLIMIT;
 	if (strcmp(key, CONFIG_KEY_NEWRTLIMITBURST) == 0)
 		return KEY_NEWRTLIMITBURST;
+	if (strcmp(key, CONFIG_KEY_NEWRTLIMIT_LOGPREFIX) == 0)
+		return KEY_NEWRTLIMIT_LOGPREFIX;
 	if (strcmp(key, CONFIG_KEY_RSTRTLIMIT) == 0)
 		return KEY_RSTRTLIMIT;
 	if (strcmp(key, CONFIG_KEY_RSTRTLIMITBURST) == 0)
 		return KEY_RSTRTLIMITBURST;
+	if (strcmp(key, CONFIG_KEY_RSTRTLIMIT_LOGPREFIX) == 0)
+		return KEY_RSTRTLIMIT_LOGPREFIX;
 	if (strcmp(key, CONFIG_KEY_ESTCONNLIMIT) == 0)
 		return KEY_ESTCONNLIMIT;
+	if (strcmp(key, CONFIG_KEY_ESTCONNLIMIT_LOGPREFIX) == 0)
+		return KEY_ESTCONNLIMIT_LOGPREFIX;
 	if (strcmp(key, CONFIG_KEY_TCPSTRICT) == 0)
 		return KEY_TCPSTRICT;
+	if (strcmp(key, CONFIG_KEY_TCPSTRICT_LOGPREFIX) == 0)
+		return KEY_TCPSTRICT_LOGPREFIX;
 	if (strcmp(key, CONFIG_KEY_QUEUE) == 0)
 		return KEY_QUEUE;
 	if (strcmp(key, CONFIG_KEY_POLICIES) == 0)
@@ -661,6 +676,8 @@ static void add_dump_list(json_t *obj, const char *objname, int object,
 
 			obj_print_log(f->log, (char *)buf);
 			add_dump_obj(item, CONFIG_KEY_LOG, buf);
+			if (f->logprefix && strcmp(f->logprefix, DEFAULT_LOG_LOGPREFIX) != 0)
+				add_dump_obj(item, CONFIG_KEY_LOGPREFIX, f->logprefix);
 
 			config_dump_hex(value, f->mark);
 			add_dump_obj(item, CONFIG_KEY_MARK, value);
@@ -672,14 +689,24 @@ static void add_dump_list(json_t *obj, const char *objname, int object,
 			add_dump_obj(item, CONFIG_KEY_NEWRTLIMIT, value);
 			config_dump_int(value, f->newrtlimitbst);
 			add_dump_obj(item, CONFIG_KEY_NEWRTLIMITBURST, value);
+			if (f->newrtlimit_logprefix && strcmp(f->newrtlimit_logprefix, DEFAULT_LOGPREFIX) != 0)
+				add_dump_obj(item, CONFIG_KEY_NEWRTLIMIT_LOGPREFIX, f->newrtlimit_logprefix);
+
 			config_dump_int(value, f->rstrtlimit);
 			add_dump_obj(item, CONFIG_KEY_RSTRTLIMIT, value);
 			config_dump_int(value, f->rstrtlimitbst);
 			add_dump_obj(item, CONFIG_KEY_RSTRTLIMITBURST, value);
+			if (f->rstrtlimit_logprefix && strcmp(f->rstrtlimit_logprefix, DEFAULT_LOGPREFIX) != 0)
+				add_dump_obj(item, CONFIG_KEY_RSTRTLIMIT_LOGPREFIX, f->rstrtlimit_logprefix);
+
 			config_dump_int(value, f->estconnlimit);
 			add_dump_obj(item, CONFIG_KEY_ESTCONNLIMIT, value);
+			if (f->estconnlimit_logprefix && strcmp(f->estconnlimit_logprefix, DEFAULT_LOGPREFIX) != 0)
+				add_dump_obj(item, CONFIG_KEY_ESTCONNLIMIT_LOGPREFIX, f->estconnlimit_logprefix);
 
 			add_dump_obj(item, CONFIG_KEY_TCPSTRICT, obj_print_switch(f->tcpstrict));
+			if (f->tcpstrict_logprefix && strcmp(f->tcpstrict_logprefix, DEFAULT_LOGPREFIX) != 0)
+				add_dump_obj(item, CONFIG_KEY_TCPSTRICT_LOGPREFIX, f->tcpstrict_logprefix);
 
 			config_dump_int(value, f->queue);
 			add_dump_obj(item, CONFIG_KEY_QUEUE, value);
@@ -705,6 +732,9 @@ static void add_dump_list(json_t *obj, const char *objname, int object,
 			add_dump_obj(item, CONFIG_KEY_MARK, value);
 			config_dump_int(value, b->estconnlimit);
 			add_dump_obj(item, CONFIG_KEY_ESTCONNLIMIT, value);
+			if (b->estconnlimit_logprefix && strcmp(b->estconnlimit_logprefix, DEFAULT_B_ESTCONNLIMIT_LOGPREFIX) != 0)
+				add_dump_obj(item, CONFIG_KEY_ESTCONNLIMIT_LOGPREFIX, b->estconnlimit_logprefix);
+
 			add_dump_obj(item, CONFIG_KEY_STATE, obj_print_state(b->state));
 			json_array_append_new(jarray, item);
 		}
@@ -728,6 +758,9 @@ static void add_dump_list(json_t *obj, const char *objname, int object,
 			add_dump_obj(item, "timeout", value);
 			config_dump_int(value, p->priority);
 			add_dump_obj(item, "priority", value);
+			if (p->logprefix && strcmp(p->logprefix, DEFAULT_POLICY_LOGPREFIX) != 0)
+				add_dump_obj(item, CONFIG_KEY_LOGPREFIX, p->logprefix);
+
 			config_dump_int(value, p->used);
 			add_dump_obj(item, "used", value);
 			add_dump_list(item, CONFIG_KEY_ELEMENTS, LEVEL_ELEMENTS, &p->elements, NULL);

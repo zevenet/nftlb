@@ -85,14 +85,19 @@ Where every farm object has the following attributes:
 	"persist-ttl": "<number>",	*Stickiness timeout in seconds (60 by default)*
 	"helper": "<none | amanda | ftp | h323 | irc | netbios-ns | pptp | sane | sip | snmp | tftp>",	*L7 helper to be used (none by default)*
 	"log": "<none | input | forward | output>",	*Enable logging (none by default)*
+	"log-prefix": "<string|KNAME|TYPE|FNAME>",	*Farm log prefix (default "TYPE-FNAME")*
 	"mark": "<hexadecimal mark>",			*Set mark mask for the farm (none by default)*
 	"priority": "<number>",				*Priority availability for backends > 0 (1 by default)*
 	"new-rtlimit": "<number>",				*Number of new connections per second per service (disabled by default)*
 	"new-rtlimit-burst": "<number>",			*Number of burst packets (disabled by default)*
+	"new-rtlimit-log-prefix": "<string|KNAME|TYPE|FNAME>",	*Farm new rtlimit log prefix (default "KNAME-TYPE-FNAME")*
 	"rst-rtlimit": "<number>",				*Number of tcp resets per second allowed (disabled by default)*
 	"rst-rtlimit-burst": "<number>",			*Number of burst RST packets (disabled by default)*
+	"rst-rtlimit-log-prefix": "<string|KNAME|TYPE|FNAME>",	*Farm reset rtlimit log prefix (default "KNAME-TYPE-FNAME")*
 	"est-connlimit": "<number>",				*Number of established connections allowed (disabled by default)*
+	"est-connlimit-log-prefix": "<string|KNAME|TYPE|FNAME>",	*Farm established connlimit log prefix (default "KNAME-TYPE-FNAME")*
 	"tcp-strict": "<on | off>",				*Option to avoid bogus TCP attacks (disabled by default)*
+	"tcp-strict-log-prefix": "<string|KNAME|TYPE|FNAME>",	*Farm TCP strict log prefix (default "KNAME-TYPE-FNAME")*
 	"queue": "<number>",				*Number of the queue to send the packets to userspace (disabled by default)*
 	"state": "<up | down | off>",			*Set the status of the virtual service (up by default)*
 	"backends" : [					*List of backends*
@@ -120,6 +125,7 @@ Where every backend object has the following attributes:
 	"priority": "<number>",				*Priority availability for the backend > 0 (1 by default)*
 	"mark": "<hexadecimal mark>",			*Set mark mask for the backend (none by default)*
 	"est-connlimit": "<number>",			*Number of established connections allowed per backend (disabled by default)*
+	"est-connlimit-log-prefix": "<string|KNAME|TYPE|FNAME|BNAME>",	*Backend established connections log prefix (default "KNAME-FNAME-BNAME")*
 	"state": "<up | down | off>",			*Set the status of the backend (up by default)*
 }
 ```
@@ -128,6 +134,7 @@ Where every policy object has the following attributes:
 {
 	"name" : "<string>",				*Name of the policy (required)*
 	"type": "<blacklist | whitelist>",			*Policy type*
+	"log-prefix": "<string|KNAME|TYPE|FNAME|PNAME>",	*Policy established connections log prefix (default "KNAME-TYPE-PNAME-FNAME")*
 	"elements" : [					*List of IPs or networks*
 		{
 			"data" : "<ip or network>"

@@ -65,6 +65,7 @@ static struct farm * farm_create(char *name)
 	pfarm->persistttl = DEFAULT_PERSISTTM;
 	pfarm->helper = DEFAULT_HELPER;
 	pfarm->log = DEFAULT_LOG;
+	pfarm->logprefix = DEFAULT_LOG_LOGPREFIX;
 	pfarm->mark = DEFAULT_MARK;
 	pfarm->state = DEFAULT_FARM_STATE;
 	pfarm->action = DEFAULT_ACTION;
@@ -77,10 +78,14 @@ static struct farm * farm_create(char *name)
 	pfarm->priority = DEFAULT_PRIORITY;
 	pfarm->newrtlimit = DEFAULT_NEWRTLIMIT;
 	pfarm->newrtlimitbst = DEFAULT_RTLIMITBURST;
+	pfarm->newrtlimit_logprefix = DEFAULT_LOGPREFIX;
 	pfarm->rstrtlimit = DEFAULT_RSTRTLIMIT;
 	pfarm->rstrtlimitbst = DEFAULT_RTLIMITBURST;
+	pfarm->rstrtlimit_logprefix = DEFAULT_LOGPREFIX;
 	pfarm->estconnlimit = DEFAULT_ESTCONNLIMIT;
+	pfarm->estconnlimit_logprefix = DEFAULT_LOGPREFIX;
 	pfarm->tcpstrict = DEFAULT_TCPSTRICT;
+	pfarm->tcpstrict_logprefix = DEFAULT_LOGPREFIX;
 	pfarm->queue = DEFAULT_QUEUE;
 
 	pfarm->total_bcks = 0;
@@ -118,6 +123,16 @@ static int farm_delete(struct farm *pfarm)
 		free(pfarm->virtaddr);
 	if (pfarm->virtports && strcmp(pfarm->virtports, "") != 0)
 		free(pfarm->virtports);
+	if (pfarm->logprefix && strcmp(pfarm->logprefix, DEFAULT_LOG_LOGPREFIX) != 0)
+		free(pfarm->logprefix);
+	if (pfarm->newrtlimit_logprefix && strcmp(pfarm->newrtlimit_logprefix, DEFAULT_LOGPREFIX) != 0)
+		free(pfarm->newrtlimit_logprefix);
+	if (pfarm->rstrtlimit_logprefix && strcmp(pfarm->rstrtlimit_logprefix, DEFAULT_LOGPREFIX) != 0)
+		free(pfarm->rstrtlimit_logprefix);
+	if (pfarm->estconnlimit_logprefix && strcmp(pfarm->estconnlimit_logprefix, DEFAULT_LOGPREFIX) != 0)
+		free(pfarm->estconnlimit_logprefix);
+	if (pfarm->tcpstrict_logprefix && strcmp(pfarm->tcpstrict_logprefix, DEFAULT_LOGPREFIX) != 0)
+		free(pfarm->tcpstrict_logprefix);
 
 	free(pfarm);
 	obj_set_total_farms(obj_get_total_farms() - 1);
@@ -373,6 +388,8 @@ static void farm_print(struct farm *f)
 
 	obj_print_log(f->log, (char *)buf);
 	syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_LOG, buf);
+	if (f->logprefix)
+		syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_LOGPREFIX, f->logprefix);
 
 	syslog(LOG_DEBUG,"    [%s] 0x%x", CONFIG_KEY_MARK, f->mark);
 	syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_STATE, obj_print_state(f->state));
@@ -380,10 +397,22 @@ static void farm_print(struct farm *f)
 
 	syslog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_NEWRTLIMIT, f->newrtlimit);
 	syslog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_NEWRTLIMITBURST, f->newrtlimitbst);
+	if (f->newrtlimit_logprefix)
+		syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_NEWRTLIMIT_LOGPREFIX, f->newrtlimit_logprefix);
+
 	syslog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_RSTRTLIMIT, f->rstrtlimit);
 	syslog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_RSTRTLIMITBURST, f->rstrtlimitbst);
+	if (f->rstrtlimit_logprefix)
+		syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_RSTRTLIMIT_LOGPREFIX, f->rstrtlimit_logprefix);
+
 	syslog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_ESTCONNLIMIT, f->estconnlimit);
+	if (f->estconnlimit_logprefix)
+		syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_ESTCONNLIMIT_LOGPREFIX, f->estconnlimit_logprefix);
+
 	syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_TCPSTRICT, obj_print_switch(f->tcpstrict));
+	if (f->tcpstrict_logprefix)
+		syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_TCPSTRICT_LOGPREFIX, f->tcpstrict_logprefix);
+
 	syslog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_QUEUE, f->queue);
 
 	syslog(LOG_DEBUG,"    *[total_weight] %d", f->total_weight);
@@ -761,6 +790,21 @@ int farm_set_attribute(struct config_pair *c)
 	case KEY_QUEUE:
 		f->queue = c->int_value;
 		ret = PARSER_OK;
+		break;
+	case KEY_LOGPREFIX:
+		ret = obj_set_attribute_string(c->str_value, &f->logprefix);
+		break;
+	case KEY_NEWRTLIMIT_LOGPREFIX:
+		ret = obj_set_attribute_string(c->str_value, &f->newrtlimit_logprefix);
+		break;
+	case KEY_RSTRTLIMIT_LOGPREFIX:
+		ret = obj_set_attribute_string(c->str_value, &f->rstrtlimit_logprefix);
+		break;
+	case KEY_ESTCONNLIMIT_LOGPREFIX:
+		ret = obj_set_attribute_string(c->str_value, &f->estconnlimit_logprefix);
+		break;
+	case KEY_TCPSTRICT_LOGPREFIX:
+		ret = obj_set_attribute_string(c->str_value, &f->tcpstrict_logprefix);
 		break;
 	default:
 		return PARSER_STRUCT_FAILED;

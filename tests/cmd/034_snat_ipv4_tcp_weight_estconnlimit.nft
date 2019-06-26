@@ -42,7 +42,7 @@ table ip nftlb {
 	}
 
 	chain filter-lb01 {
-		ct state new add @est-connlimit-lb01 { ip saddr ct count over 20  } log prefix "est-connlimit-lb01" drop
+		ct state new add @est-connlimit-lb01 { ip saddr ct count over 20  } log prefix "est-connlimit-lb01 " drop
 		ct mark set 0x80000000
 	}
 

@@ -47,6 +47,7 @@ static struct policy * policy_create(char *name)
 	p->timeout = DEFAULT_POLICY_TIMEOUT;
 	p->priority = DEFAULT_POLICY_PRIORITY;
 	p->used = 0;
+	p->logprefix = DEFAULT_POLICY_LOGPREFIX;
 	p->action = DEFAULT_ACTION;
 
 	init_list_head(&p->elements);
@@ -65,6 +66,8 @@ static int policy_delete(struct policy *p)
 
 	if (p->name && strcmp(p->name, "") != 0)
 		free(p->name);
+	if (p->logprefix && strcmp(p->logprefix, DEFAULT_POLICY_LOGPREFIX) != 0)
+		free(p->logprefix);
 
 	free(p);
 	obj_set_total_policies(obj_get_total_policies() - 1);
@@ -79,6 +82,9 @@ static void policy_print(struct policy *p)
 	syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_TYPE, obj_print_policy_type(p->type));
 	syslog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_TIMEOUT, p->timeout);
 	syslog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_PRIORITY, p->priority);
+	if (p->logprefix)
+		syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_LOGPREFIX, p->logprefix);
+
 	syslog(LOG_DEBUG,"    *[used] %d", p->used);
 	syslog(LOG_DEBUG,"    *[total_elem] %d", p->total_elem);
 	syslog(LOG_DEBUG,"    *[%s] %d", CONFIG_KEY_ACTION, p->action);
@@ -141,6 +147,9 @@ int policy_set_attribute(struct config_pair *c)
 		break;
 	case KEY_ACTION:
 		policy_set_action(p, c->int_value);
+		break;
+	case KEY_LOGPREFIX:
+		obj_set_attribute_string(c->str_value, &p->logprefix);
 		break;
 	default:
 		return PARSER_STRUCT_FAILED;

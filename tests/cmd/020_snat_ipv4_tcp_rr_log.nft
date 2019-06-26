@@ -40,7 +40,7 @@ table ip nftlb {
 	}
 
 	chain nat-lb01 {
-		log prefix "INPUT-nat-lb01 "
+		log prefix "IN-lb01 "
 		dnat to numgen inc mod 10 map { 0-4 : 192.168.0.10, 5-9 : 192.168.0.11 }
 	}
 }

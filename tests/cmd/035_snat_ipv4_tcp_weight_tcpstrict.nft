@@ -36,7 +36,7 @@ table ip nftlb {
 	}
 
 	chain filter-lb01 {
-		ct state invalid log prefix "tcp-strict-lb01" drop
+		ct state invalid log prefix "tcp-strict-lb01 " drop
 		ct mark set 0x80000000
 	}
 

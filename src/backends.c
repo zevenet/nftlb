@@ -50,6 +50,7 @@ static struct backend * backend_create(struct farm *f, char *name)
 	b->priority = DEFAULT_PRIORITY;
 	b->mark = DEFAULT_MARK;
 	b->estconnlimit = DEFAULT_ESTCONNLIMIT;
+	b->estconnlimit_logprefix = DEFAULT_B_ESTCONNLIMIT_LOGPREFIX;
 	b->state = DEFAULT_BACKEND_STATE;
 	b->action = DEFAULT_ACTION;
 
@@ -74,6 +75,8 @@ static int backend_delete_node(struct backend *b)
 		free(b->port);
 	if (b->srcaddr && strcmp(b->srcaddr, "") != 0)
 		free(b->srcaddr);
+	if (b->estconnlimit_logprefix && strcmp(b->estconnlimit_logprefix, DEFAULT_LOGPREFIX) != 0)
+		free(b->estconnlimit_logprefix);
 
 	free(b);
 
@@ -114,6 +117,9 @@ void backend_s_print(struct farm *f)
 
 		syslog(LOG_DEBUG,"       [%s] 0x%x", CONFIG_KEY_MARK, b->mark);
 		syslog(LOG_DEBUG,"       [%s] %d", CONFIG_KEY_ESTCONNLIMIT, b->estconnlimit);
+		if (b->estconnlimit_logprefix && strcmp(b->estconnlimit_logprefix, DEFAULT_B_ESTCONNLIMIT_LOGPREFIX) != 0)
+			syslog(LOG_DEBUG,"       [%s] %s", CONFIG_KEY_ESTCONNLIMIT_LOGPREFIX, b->estconnlimit_logprefix);
+
 		syslog(LOG_DEBUG,"       [%s] %d", CONFIG_KEY_WEIGHT, b->weight);
 		syslog(LOG_DEBUG,"       [%s] %d", CONFIG_KEY_PRIORITY, b->priority);
 		syslog(LOG_DEBUG,"       [%s] %s", CONFIG_KEY_STATE, obj_print_state(b->state));
@@ -490,6 +496,9 @@ int backend_set_attribute(struct config_pair *c)
 	case KEY_ACTION:
 		backend_set_action(b, c->int_value);
 		break;
+	case KEY_ESTCONNLIMIT_LOGPREFIX:
+		obj_set_attribute_string(c->str_value, &b->estconnlimit_logprefix);
+		break;
 	default:
 		return -1;
 	}
@@ -641,9 +650,6 @@ int bck_pre_actionable(struct config_pair *c)
 		}
 
 		break;
-	case KEY_STATE:
-	case KEY_MARK:
-	case KEY_WEIGHT:
 	default:
 		break;
 	}
@@ -683,6 +689,7 @@ int bck_pos_actionable(struct config_pair *c)
 	case KEY_STATE:
 	case KEY_MARK:
 	case KEY_WEIGHT:
+	case KEY_ESTCONNLIMIT_LOGPREFIX:
 
 		farm_set_action(f, ACTION_RELOAD);
 

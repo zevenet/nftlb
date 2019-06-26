@@ -38,6 +38,7 @@ struct backend {
 	int			priority;
 	int			mark;
 	int			estconnlimit;
+	char		*estconnlimit_logprefix;
 	int			state;
 };
 
