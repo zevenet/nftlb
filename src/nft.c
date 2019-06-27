@@ -823,12 +823,12 @@ static int run_farm_rules_gen_srv(struct sbuffer *buf, struct farm *f, char *nft
 			if (b->action == ACTION_STOP || b->action == ACTION_DELETE) {
 				if (action == ACTION_START)
 					continue;
-				concat_buf(buf, " ; delete element %s %s %s { %s }", nft_family, NFTLB_TABLE_NAME, service, b->mark);
+				concat_buf(buf, " ; delete element %s %s %s { 0x%x }", nft_family, NFTLB_TABLE_NAME, service, b->mark);
 			}
 			if(!backend_is_available(b))
 				continue;
 			run_farm_rules_gen_srv_data((char **) &data_str, f, b, chain, data_mode);
-			concat_buf(buf, " ; %s element %s %s %s { %x %s }", action_str, nft_family, NFTLB_TABLE_NAME, service, b->mark, data_str);
+			concat_buf(buf, " ; %s element %s %s %s { 0x%x %s }", action_str, nft_family, NFTLB_TABLE_NAME, service, b->mark, data_str);
 		}
 		break;
 	case BCK_MAP_IPADDR_PORT:
