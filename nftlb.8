@@ -1,0 +1,216 @@
+.\"
+.\" (C) Copyright 2018, Arturo Borrero Gonzalez <arturo@debian.org>
+.\"
+.TH NFTLB 8 "May 9, 2018"
+
+.SH NAME
+nftlb \- nftables load balancer
+
+.SH SYNOPSIS
+\fBnftlb\fP [option]
+
+.SH DESCRIPTION
+\fBnftlb\fP is a \fBnftables(8)\fP rules manager to create virtual services for
+load balancing at layer 2, layer 3 and layer 4, minimizing the number of rules
+and using structures to match efficiently the packets. It’s also provided with
+an easy \fBJSON API\fP service to have the flexibility to interact with
+\fBnftlb\fP programmatically and to meet automation. So you can use your
+preferred health checker to be integrated with \fBnftlb\fP very easily.
+
+The philosophy of \fBnftlb\fP is to maintain the data path into the kernel, in
+order to achieve the most performance possible, but the control plane and heath
+checks into user space to have the flexibility to change the behavior easily
+but also to be compatible with the rest of the linux stack.
+
+.SH USAGE
+These are the options you may use when running \fBnftlb\fP:
+
+.TP
+.BI "-h | --help"
+Show the command help.
+.TP
+.BI "-l <LEVEL> | --log <LEVEL>"
+Verbosity of the logs. They will be sent to \fBsyslog\fP.
+Valid values are from 0 to 7 (default is 5).
+.TP
+.BI "-c <FILE> | --config <FILE>"
+Initial configuration file.
+.TP
+.BI "-k <KEY> | --key <KEY>"
+The authentication key for the web service can be set with this option.
+If not specified, it will be automatically generated and printed to stdout.
+.TP
+.BI "-e | --exit"
+This option results in \fBnftlb\fP loading the generated ruleset into
+\fBnftables(8)\fP and then exit. The web server won't be available.
+.TP
+.BI "-6 | --ipv6"
+Enable IPv6 support for the web server.
+.TP
+.BI "-H <HOST> | --host <HOST>"
+Set the host for the web service (all interfaces by default).
+.TP
+.BI "-P <PORT> | --port <PORT>"
+Set the TCP port for the web service (5555 by default).
+
+.SH API USAGE
+Once \fBnftlb\fP is launched you can manage it through the API:
+
+.TP
+.BI "Virtual service listing"
+
+curl -H "Key: <MYKEY>" http://<NFTLB IP>:5555/farms
+
+.TP
+.BI "Setup a new virtual service"
+
+curl -H "Key: <MYKEY>" -X POST http://<NFTLB IP>:5555/farms -d "@tests/008_snat_ipv4_all_rr.json"
+
+.TP
+.BI "Delete a virtual service"
+
+curl -H "Key: <MYKEY>" -X DELETE http://<NFTLB IP>:5555/farms/lb01
+
+.TP
+.BI "Delete a backend of a virtual service"
+
+curl -H "Key: <MYKEY>" -X DELETE http://<NFTLB IP>:5555/farms/lb01/backends/bck1
+
+.SH CONFIGURATION
+Configuration files have this format (JSON):
+
+.nf
+{
+	"farms" : [
+		{ <object farm 1> },
+		{ <object farm 2> },
+		{ ... }
+	]
+}
+.fi
+
+The farm objects have the following attributes:
+
+.nf
+{
+	"name" : "<string>",				*Name of the service (required)*
+	"iface"	: "<interface name>",			*Input interface (only required for DSR)*
+	"oface"	: "<interface name>",			*Output interface (only required for DSR)*
+	"family": "<ipv4 | ipv6 | dual>",		*Family of the virtual service (ipv4 by default)*
+	"ether-addr": "<mac address>",			*Physical address of the virtual service (only required for DSR)*
+	"virtual-addr": "<ip address>",			*IP address for the virtual service (required)*
+	"virtual-ports": "<port list>",			*Port list separated by commas or ranges separated by a hyphen*
+	"mode": "<snat | dnat | dsr>",			*Topology to be implemented (required)*
+	"protocol": "<tcp | udp | sctp | all>",		*Protocol to be used by the virtual service (tcp by default)*
+	"scheduler": "<weight | rr | hash | symhash>",	*Scheduler to be used (round robin by default)*
+	"priority": "<number>",				*Priority availability for backends > 0 (1 by default)*
+	"state": "<up | down | off>",			*Set the status of the virtual service (up by default)*
+	"backends" : [					*List of backends*
+		{<object backend 1>},
+		{<object backend 2>},
+		{...}
+	]
+}
+.fi
+
+The backend objects have the following attributes:
+
+.nf
+{
+	"name" : "<string>",				*Name of the backend (required)*
+	"ether-addr": "<mac address>",			*Physical address of the backend (only required for DSR)*
+	"ip-addr": "<ip address>",			*IP address for the backend (required, except for DSR)*
+	"weight": "<number>",				*Weight of the backend (1 by default)*
+	"priority": "<number>",				*Priority availability for the backend > 0 (1 by default)*
+	"state": "<up | down | off>",			*Set the status of the backend (up by default)*
+}
+.fi
+
+.SH CONFIG EXAMPLES
+TCP IPv4 SNAT with weights:
+
+.nf
+{
+    "farms" : [
+        {
+            "name" : "lb01",
+            "family" : "ipv4",
+            "virtual-addr" : "192.168.0.100",
+            "virtual-ports" : "80",
+            "mode" : "snat",
+            "protocol" : "tcp",
+            "scheduler" : "weight",
+            "state" : "up",
+            "backends" : [
+                {
+                    "name" : "bck0",
+                    "ip-addr" : "192.168.0.10",
+                    "weight" : "5",
+                    "priority" : "1",
+                    "state" : "up"
+                },
+                {
+                    "name" : "bck1",
+                    "ip-addr" : "192.168.0.11",
+                    "weight" : "5",
+                    "priority" : "1",
+                    "state" : "up"
+                }
+            ]
+        }
+    ]
+}
+.fi
+
+TCP IPv4 with DSR using symhash:
+
+.nf
+{
+    "farms" : [
+        {
+            "name" : "lb01",
+            "family" : "ipv4",
+            "iface" : "enp0s3",
+            "oface" : "enp0s8",
+            "virtual-addr" : "192.168.0.100",
+            "ether-addr" : "01:01:01:01:01:01",
+            "virtual-ports" : "80-88",
+            "mode" : "dsr",
+            "protocol" : "tcp",
+            "scheduler" : "symhash",
+            "state" : "up",
+            "backends" : [
+                {
+                    "name" : "bck0",
+                    "ip-addr" : "192.168.0.10",
+                    "ether-addr" : "02:02:02:02:02:02",
+                    "weight" : "5",
+                    "priority" : "1",
+                    "state" : "up"
+                },
+                {
+                    "name" : "bck1",
+                    "ip-addr" : "192.168.0.11",
+                    "ether-addr" : "03:03:03:03:03:03",
+                    "weight" : "5",
+                    "priority" : "1",
+                    "state" : "up"
+                }
+            ]
+        }
+    ]
+}
+.fi
+
+.SH SEE ALSO
+For \fBnftlb\fP information, please head to
+\fBhttps://github.com/zevenet/nftlb\fP.
+
+To get up-to-date information about \fBnftables(8)\fP, please head to
+\fBhttp://wiki.nftables.org/\fP.
+
+.SH AUTHORS
+\fBnftlb\fP was written by Laura García @ Zevenet (https://www.zevenet.com).
+
+This manual page was written by Arturo Borrero Gonzalez
+<arturo@debian.org> for the Debian project (but may be used by others).
