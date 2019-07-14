@@ -43,6 +43,7 @@ Here is the list of options:
 **[ -c &lt;FILE&gt; | --config &lt;FILE&gt; ]**: Initial configuration file, this argument is optional.<br />
 **[ -k &lt;KEY&gt; | --key &lt;KEY&gt; ]**: The authentication key for the web service can be set by command line, or automatically generated. If it's automatically generated, it'll be shown by command line.<br />
 **[ -e | --exit ]**: This option executes the configuration file into nftables rules and then exit, so the web server won't be available.<br />
+**[ -d | --daemon ]**: Run nftlb as a daemon in background.<br />
 **[ -6 | --ipv6 ]**: Enable IPv6 support for the web service listening port.<br />
 **[ -H &lt;HOST&gt; | --host &lt;HOST&gt; ]**: Set the host for the web service (all interfaces by default).<br />
 **[ -P &lt;PORT&gt; | --port &lt;PORT&gt; ]**: Set the TCP port for the web service (5555 by default).<br />

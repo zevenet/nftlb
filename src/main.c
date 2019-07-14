@@ -34,6 +34,8 @@
 #include "network.h"
 
 #define NFTLB_SERVER_MODE		0
+#define NFTLB_FG_MODE			0
+#define NFTLB_BG_MODE			1
 #define NFTLB_EXIT_MODE			1
 
 #define NFTLB_LOGLEVEL_DEFAULT		LOG_NOTICE
@@ -49,6 +51,7 @@ static void print_usage(const char *prog_name)
 		"  [ -c <FILE> | --config <FILE> ]	Launch with the given configuration file\n"
 		"  [ -k <KEY> | --key <KEY> ]		Set the authentication key, otherwise it'll be generated\n"
 		"  [ -e | --exit ]			Don't execute the server\n"
+		"  [ -d | --daemon ]		Run in daemon mode\n"
 		"  [ -6 | --ipv6 ]			Enable IPv6 listening port\n"
 		"  [ -H <HOST> | --host <HOST> ]		Set the host for the listening port\n"
 		"  [ -P <PORT> | --port <PORT> ]		Set the port for the listening port\n"
@@ -61,6 +64,7 @@ static const struct option options[] = {
 	{ .name = "config",	.has_arg = 1,	.val = 'c' },
 	{ .name = "key",	.has_arg = 1,	.val = 'k' },
 	{ .name = "exit",	.has_arg = 0,	.val = 'e' },
+	{ .name = "daemon",	.has_arg = 0,	.val = 'd' },
 	{ .name = "ipv6",	.has_arg = 0,	.val = '6' },
 	{ .name = "host",	.has_arg = 1,	.val = 'H' },
 	{ .name = "port",	.has_arg = 1,	.val = 'P' },
@@ -77,11 +81,12 @@ static void nftlb_sighandler(int signo)
 int main(int argc, char *argv[])
 {
 	int		mode = NFTLB_SERVER_MODE;
+	int		run_mode = NFTLB_FG_MODE;
 	int		c;
 	int		loglevel = NFTLB_LOGLEVEL_DEFAULT;
 	const char	*config = NULL;
 
-	while ((c = getopt_long(argc, argv, "hl:c:k:e6H:P:", options, NULL)) != -1) {
+	while ((c = getopt_long(argc, argv, "hl:c:k:ed6H:P:", options, NULL)) != -1) {
 		switch (c) {
 		case 'h':
 			print_usage(argv[0]);
@@ -98,6 +103,9 @@ int main(int argc, char *argv[])
 			break;
 		case 'e':
 			mode = NFTLB_EXIT_MODE;
+			break;
+		case 'd':
+			run_mode = NFTLB_BG_MODE;
 			break;
 		case '6':
 			server_set_ipv6();
@@ -140,6 +148,18 @@ int main(int argc, char *argv[])
 	if (server_init() != 0) {
 		fprintf(stderr, "Cannot start server-ev: %s\n", strerror(errno));
 		return EXIT_FAILURE;
+	}
+
+	if ( run_mode ){
+		switch (fork()) {
+			case 0:
+				break;
+			case -1:
+				syslog(LOG_ERR, "Daemon mode aborted: %s", strerror(errno));
+				return EXIT_FAILURE;
+			default:
+				return EXIT_SUCCESS;
+		}
 	}
 
 	loop_run();

@@ -16,7 +16,7 @@ OUTPUT=0
 OUT_FILE="out"
 
 $NFTBIN flush ruleset
-$NFTLBIN -k "$APISRV_KEY" -H $APISRV_ADDR -P $APISRV_PORT -l $DEBUG > /dev/null &
+$NFTLBIN -d -k "$APISRV_KEY" -H $APISRV_ADDR -P $APISRV_PORT -l $DEBUG > /dev/null
 sleep 1s
 
 for DIRTEST in `ls -d */`; do

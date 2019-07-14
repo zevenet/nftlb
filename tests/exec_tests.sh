@@ -25,7 +25,7 @@ fi
 
 if [ $APISERVER -eq 1 ]; then
 	$NFTBIN flush ruleset
-	$NFTLBIN -k "$APISRV_KEY" -l 7 > /dev/null &
+	$NFTLBIN -d -k "$APISRV_KEY" -l 7 > /dev/null
 fi
 
 echo "-- Executing configuration files tests"
