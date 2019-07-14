@@ -1630,6 +1630,7 @@ int nft_reset(void)
 	reset_ndv_base();
 	n_ndv_base_rules = 0;
 	nat_base_rules = 0;
+	filter_base_rules = 0;
 
 	return ret;
 }
