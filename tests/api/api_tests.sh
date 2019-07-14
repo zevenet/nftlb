@@ -19,8 +19,10 @@ $NFTBIN flush ruleset
 $NFTLBIN -k "$APISRV_KEY" -H $APISRV_ADDR -P $APISRV_PORT -l $DEBUG > /dev/null &
 sleep 1s
 
-for testcase in `ls *_req.api`; do
-	source $testcase
+for DIRTEST in `ls -d */`; do
+	cd ${DIRTEST}/
+	TESTCASE=`ls *.api`
+	source $TESTCASE
 	INDEX_OUT=`printf %03d $INDEX`
 	echo -n "$INDEX - $DESC "
 
@@ -82,6 +84,8 @@ for testcase in `ls *_req.api`; do
 
 	CURL_ARGS=
 	INDEX=$(($INDEX+1));
+	cd ../
 done
 
+$NFTBIN flush ruleset
 kill `pidof nftlb`
