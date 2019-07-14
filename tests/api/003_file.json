@@ -1,0 +1,18 @@
+{
+	"farms" : [
+		{
+			"name" : "lb01",
+			"backends" : [
+				{
+					"name" : "bck1",
+					"ip-addr" : "172.16.138.204",
+					"port" : "80",
+					"weight" : "5",
+					"mark" : "0x0000003",
+					"priority" : "1",
+					"state" : "up"
+				}
+			]
+		}
+	]
+}

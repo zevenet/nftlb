@@ -28,6 +28,8 @@ if [ $APISERVER -eq 1 ]; then
 	$NFTLBIN -k "$APISRV_KEY" -l 7 > /dev/null &
 fi
 
+echo "-- Executing configuration files tests"
+
 for file in `ls ${FILES}`; do
 	echo -n "Executing test: ${file}... "
 
@@ -66,3 +68,10 @@ done
 if [ $APISERVER -eq 1 ]; then
 	kill `pidof nftlb`
 fi
+
+# execute api specific test
+echo "-- Executing API specific tests"
+
+cd api/
+./api_tests.sh
+cd ..

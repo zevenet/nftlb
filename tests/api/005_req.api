@@ -1,0 +1,3 @@
+VERB="DELETE"
+URI="farms/lb01/backends/bck1"
+DESC="Deleting down backend bck1... "
