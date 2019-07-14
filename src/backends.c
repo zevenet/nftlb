@@ -75,7 +75,7 @@ static int backend_delete_node(struct backend *b)
 		free(b->port);
 	if (b->srcaddr && strcmp(b->srcaddr, "") != 0)
 		free(b->srcaddr);
-	if (b->estconnlimit_logprefix && strcmp(b->estconnlimit_logprefix, DEFAULT_LOGPREFIX) != 0)
+	if (b->estconnlimit_logprefix && strcmp(b->estconnlimit_logprefix, DEFAULT_B_ESTCONNLIMIT_LOGPREFIX) != 0)
 		free(b->estconnlimit_logprefix);
 
 	free(b);
