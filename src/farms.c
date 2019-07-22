@@ -921,16 +921,14 @@ int farm_rulerize(struct farm *f)
 
 int farm_s_rulerize(void)
 {
-	struct farm *f;
+	struct list_head *farms = obj_get_farms();
+	struct farm *f, *next;
 	int ret = 0;
 
 	syslog(LOG_DEBUG, "%s():%d: rulerize everything", __FUNCTION__, __LINE__);
 
-	struct list_head *farms = obj_get_farms();
-
-	list_for_each_entry(f, farms, list) {
-			ret = ret || farm_rulerize(f);
-	}
+	list_for_each_entry_safe(f, next, farms, list)
+		ret = ret || farm_rulerize(f);
 
 	return ret;
 }
