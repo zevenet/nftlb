@@ -1,0 +1,3 @@
+VERB="DELETE"
+URI="farms/lb0"
+DESC="Deleting farm lb0... "

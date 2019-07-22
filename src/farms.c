@@ -103,6 +103,9 @@ static struct farm * farm_create(char *name)
 
 static int farm_delete(struct farm *pfarm)
 {
+	syslog(LOG_DEBUG, "%s():%d: deleting farm %s",
+	       __FUNCTION__, __LINE__, pfarm->name);
+
 	backend_s_delete(pfarm);
 	farmpolicy_s_delete(pfarm);
 	list_del(&pfarm->list);

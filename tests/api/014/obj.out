@@ -16,7 +16,7 @@
                         "log": "none",
                         "mark": "0x0",
                         "priority": "2",
-                        "state": "down",
+                        "state": "up",
                         "new-rtlimit": "0",
                         "new-rtlimit-burst": "0",
                         "rst-rtlimit": "0",
@@ -79,7 +79,7 @@
                         "policies": []
                 },
                 {
-                        "name": "lb011",
+                        "name": "lb0",
                         "family": "ipv4",
                         "virtual-addr": "200.1.1.2",
                         "virtual-ports": "8080",
@@ -94,7 +94,7 @@
                         "log": "none",
                         "mark": "0x0",
                         "priority": "1",
-                        "state": "up",
+                        "state": "down",
                         "new-rtlimit": "0",
                         "new-rtlimit-burst": "0",
                         "rst-rtlimit": "0",

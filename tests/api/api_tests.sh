@@ -69,7 +69,8 @@ for DIRTEST in `ls -d */`; do
 
 	# check nftlb objects
 	CURL_OUTPUT="report-${INDEX_OUT}-obj.out"
-	$CURL -H "Key: $APISRV_KEY" -X GET http://$APISRV_ADDR:$APISRV_PORT/$URI -o "$CURL_OUTPUT" 2> /dev/null
+	OBJ=`echo $URI | awk -F'/' '{ printf $1 }'`
+	$CURL -H "Key: $APISRV_KEY" -X GET http://$APISRV_ADDR:$APISRV_PORT/$OBJ -o "$CURL_OUTPUT" 2> /dev/null
 
 	CHECK_OUTPUT="obj.out"
 	echo -n "(objects:"

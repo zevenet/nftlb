@@ -1,7 +1,7 @@
 {
 	"farms" : [
 		{
-			"name" : "lb011",
+			"name" : "lb0",
 			"family" : "ipv4",
 			"virtual-addr" : "200.1.1.2",
 			"virtual-ports" : "8080",
