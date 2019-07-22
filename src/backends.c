@@ -83,13 +83,36 @@ static int backend_delete_node(struct backend *b)
 	return 0;
 }
 
+static int backend_s_gen_priority(struct farm *f)
+{
+	struct backend *b, *next;
+	int are_down = 0;
+	int old_prio = f->priority;
+
+	syslog(LOG_DEBUG, "%s():%d: farm %s", __FUNCTION__, __LINE__, f->name);
+
+	list_for_each_entry_safe(b, next, &f->backends, list) {
+		if (b->priority <= f->priority && b->state != VALUE_STATE_UP)
+			are_down++;
+	}
+
+	f->priority = DEFAULT_PRIORITY + are_down;
+
+	syslog(LOG_DEBUG, "%s():%d: priority is %d",
+		   __FUNCTION__, __LINE__, f->priority);
+
+	return f->priority != old_prio;
+}
+
 static int backend_delete(struct backend *b)
 {
 	struct farm *f = b->parent;
 	backend_set_action(b, ACTION_STOP);
 
-	if (backend_s_gen_priority(f))
+	if (f->priority >= 1 && b->priority <= f->priority) {
+		f->priority--;
 		obj_rulerize();
+	}
 
 	backend_delete_node(b);
 
@@ -221,27 +244,6 @@ static void backend_s_update_counters(struct farm *f)
 			f->total_weight += bp->weight;
 		}
 	}
-}
-
-static void backend_s_gen_priority(struct farm *f)
-{
-	struct backend *b, *next;
-	int are_down = 0;
-	int old_prio = f->priority;
-
-	syslog(LOG_DEBUG, "%s():%d: farm %s", __FUNCTION__, __LINE__, f->name);
-
-	list_for_each_entry_safe(b, next, &f->backends, list) {
-		if (b->priority <= f->priority && b->state != VALUE_STATE_UP)
-			are_down++;
-	}
-
-	f->priority = DEFAULT_PRIORITY + are_down;
-
-	syslog(LOG_DEBUG, "%s():%d: priority is %d",
-		   __FUNCTION__, __LINE__, f->priority);
-
-	return f->priority != old_prio;
 }
 
 static int backend_set_priority(struct backend *b, int new_value)
