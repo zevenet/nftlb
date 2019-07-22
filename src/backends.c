@@ -85,7 +85,11 @@ static int backend_delete_node(struct backend *b)
 
 static int backend_delete(struct backend *b)
 {
-	// TODO: Stop backend && reload farm && rulerize()
+	struct farm *f = b->parent;
+	backend_set_action(b, ACTION_STOP);
+
+	if (backend_s_gen_priority(f))
+		obj_rulerize();
 
 	backend_delete_node(b);
 
@@ -202,6 +206,44 @@ static int backend_set_estconnlimit(struct backend *b, int new_value)
 	return 0;
 }
 
+static void backend_s_update_counters(struct farm *f)
+{
+	struct backend *bp, *next;
+
+	syslog(LOG_DEBUG, "%s():%d: farm %s", __FUNCTION__, __LINE__, f->name);
+
+	f->bcks_available = 0;
+	f->total_weight = 0;
+
+	list_for_each_entry_safe(bp, next, &f->backends, list) {
+		if (backend_is_available(bp)) {
+			f->bcks_available++;
+			f->total_weight += bp->weight;
+		}
+	}
+}
+
+static void backend_s_gen_priority(struct farm *f)
+{
+	struct backend *b, *next;
+	int are_down = 0;
+	int old_prio = f->priority;
+
+	syslog(LOG_DEBUG, "%s():%d: farm %s", __FUNCTION__, __LINE__, f->name);
+
+	list_for_each_entry_safe(b, next, &f->backends, list) {
+		if (b->priority <= f->priority && b->state != VALUE_STATE_UP)
+			are_down++;
+	}
+
+	f->priority = DEFAULT_PRIORITY + are_down;
+
+	syslog(LOG_DEBUG, "%s():%d: priority is %d",
+		   __FUNCTION__, __LINE__, f->priority);
+
+	return f->priority != old_prio;
+}
+
 static int backend_set_priority(struct backend *b, int new_value)
 {
 	struct farm *f = b->parent;
@@ -210,24 +252,8 @@ static int backend_set_priority(struct backend *b, int new_value)
 	syslog(LOG_DEBUG, "%s():%d: current value is %d, but new value will be %d",
 	       __FUNCTION__, __LINE__, old_value, new_value);
 
-	if (backend_is_available(b) &&
-	    new_value > f->priority) {
-		f->bcks_available--;
-		if (f->bcks_available < 0)
-			f->bcks_available = 0;
-
-		f->total_weight -= b->weight;
-		if (f->total_weight < 0)
-			f->total_weight = 0;
-	}
-
-	else if (old_value > f->priority &&
-		 backend_is_available(b)) {
-		f->bcks_available++;
-		f->total_weight += b->weight;
-	}
-
 	b->priority = new_value;
+	backend_s_update_counters(f);
 
 	return 0;
 }
@@ -378,6 +404,7 @@ int backend_set_action(struct backend *b, int action)
 			is_actionated = 1;
 		}
 		backend_set_state(b, VALUE_STATE_OFF);
+
 		return is_actionated;
 	}
 
@@ -513,23 +540,17 @@ static int backend_switch(struct backend *b, int new_state)
 	syslog(LOG_DEBUG, "%s():%d: backend %s switched to %s",
 	       __FUNCTION__, __LINE__, b->name, obj_print_state(new_state));
 
+	backend_s_gen_priority(f);
+
 	if (b->state == VALUE_STATE_UP) {
-		f->total_weight += b->weight;
-		f->bcks_available++;
 		b->action = ACTION_START;
 		farm_set_action(f, ACTION_RELOAD);
 	} else {
-		f->total_weight -= b->weight;
-		if (f->total_weight < 0)
-			f->total_weight = 0;
-
-		f->bcks_available--;
-		if (f->bcks_available < 0)
-			f->bcks_available = 0;
-
 		b->action = ACTION_STOP;
 		farm_set_action(f, ACTION_RELOAD);
 	}
+
+	backend_s_update_counters(f);
 
 	return 0;
 }

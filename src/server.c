@@ -251,9 +251,6 @@ static int send_delete_response(struct nftlb_http_state *state)
 
 	if (strcmp(firstlevel, CONFIG_KEY_FARMS) == 0 &&
 		strcmp(thirdlevel, CONFIG_KEY_BCKS) == 0) {
-		ret = config_set_backend_action(secondlevel, fourthlevel, CONFIG_VALUE_ACTION_STOP);
-		if (ret > 0)
-			obj_rulerize();
 		ret = config_set_backend_action(secondlevel, fourthlevel, CONFIG_VALUE_ACTION_DELETE);
 		if (ret < 0) {
 			config_print_response(&state->body_response,
