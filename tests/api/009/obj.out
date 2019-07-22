@@ -1,0 +1,72 @@
+{
+        "farms": [
+                {
+                        "name": "lb01",
+                        "family": "ipv4",
+                        "virtual-addr": "200.1.1.1",
+                        "virtual-ports": "8080",
+                        "source-addr": "",
+                        "mode": "snat",
+                        "protocol": "tcp",
+                        "scheduler": "weight",
+                        "sched-param": "none",
+                        "persistence": "none",
+                        "persist-ttl": "60",
+                        "helper": "none",
+                        "log": "none",
+                        "mark": "0x0",
+                        "priority": "2",
+                        "state": "up",
+                        "new-rtlimit": "0",
+                        "new-rtlimit-burst": "0",
+                        "rst-rtlimit": "0",
+                        "rst-rtlimit-burst": "0",
+                        "est-connlimit": "0",
+                        "tcp-strict": "off",
+                        "queue": "-1",
+                        "backends": [
+                                {
+                                        "name": "bck0",
+                                        "ip-addr": "172.16.138.202",
+                                        "port": "80",
+                                        "weight": "5",
+                                        "priority": "1",
+                                        "mark": "0x1",
+                                        "est-connlimit": "0",
+                                        "state": "up"
+                                },
+                                {
+                                        "name": "bck1",
+                                        "ip-addr": "172.16.138.203",
+                                        "port": "80",
+                                        "weight": "5",
+                                        "priority": "1",
+                                        "mark": "0x2",
+                                        "est-connlimit": "0",
+                                        "state": "down"
+                                },
+                                {
+                                        "name": "bck2",
+                                        "ip-addr": "172.16.138.204",
+                                        "port": "80",
+                                        "weight": "5",
+                                        "priority": "2",
+                                        "mark": "0x3",
+                                        "est-connlimit": "0",
+                                        "state": "up"
+                                },
+                                {
+                                        "name": "bck3",
+                                        "ip-addr": "172.16.138.205",
+                                        "port": "80",
+                                        "weight": "5",
+                                        "priority": "1",
+                                        "mark": "0x4",
+                                        "est-connlimit": "0",
+                                        "state": "up"
+                                }
+                        ],
+                        "policies": []
+                }
+        ]
+}

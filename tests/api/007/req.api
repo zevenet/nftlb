@@ -1,4 +1,4 @@
-FILE="001_file.json"
+FILE="data.json"
 VERB="POST"
 URI="farms"
 DESC="Creating farm lb01... "

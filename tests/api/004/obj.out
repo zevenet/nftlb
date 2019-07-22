@@ -15,7 +15,7 @@
                         "helper": "none",
                         "log": "none",
                         "mark": "0x0",
-                        "priority": "1",
+                        "priority": "2",
                         "state": "up",
                         "new-rtlimit": "0",
                         "new-rtlimit-burst": "0",

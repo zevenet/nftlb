@@ -69,9 +69,11 @@ if [ $APISERVER -eq 1 ]; then
 	kill `pidof nftlb`
 fi
 
-# execute api specific test
-echo "-- Executing API specific tests"
+if [ "$FILES" = "*.json" ]; then
+	# execute api specific test
+	echo "-- Executing API specific tests"
 
-cd api/
-./api_tests.sh
-cd ..
+	cd api/
+	./api_tests.sh
+	cd ..
+fi

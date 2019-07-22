@@ -15,7 +15,7 @@
                         "helper": "none",
                         "log": "none",
                         "mark": "0x0",
-                        "priority": "1",
+                        "priority": "2",
                         "state": "up",
                         "new-rtlimit": "0",
                         "new-rtlimit-burst": "0",
@@ -44,6 +44,36 @@
                                         "mark": "0x2",
                                         "est-connlimit": "0",
                                         "state": "up"
+                                },
+                                {
+                                        "name": "bck2",
+                                        "ip-addr": "172.16.138.204",
+                                        "port": "80",
+                                        "weight": "5",
+                                        "priority": "2",
+                                        "mark": "0x3",
+                                        "est-connlimit": "0",
+                                        "state": "up"
+                                },
+                                {
+                                        "name": "bck3",
+                                        "ip-addr": "172.16.138.205",
+                                        "port": "80",
+                                        "weight": "5",
+                                        "priority": "1",
+                                        "mark": "0x4",
+                                        "est-connlimit": "0",
+                                        "state": "up"
+                                },
+                                {
+                                        "name": "bck4",
+                                        "ip-addr": "172.16.138.206",
+                                        "port": "80",
+                                        "weight": "5",
+                                        "priority": "1",
+                                        "mark": "0x5",
+                                        "est-connlimit": "0",
+                                        "state": "down"
                                 }
                         ],
                         "policies": []

@@ -1,9 +1,9 @@
 {
 	"farms" : [
 		{
-			"name" : "lb01",
+			"name" : "lb011",
 			"family" : "ipv4",
-			"virtual-addr" : "200.1.1.1",
+			"virtual-addr" : "200.1.1.2",
 			"virtual-ports" : "8080",
 			"mode" : "snat",
 			"protocol" : "tcp",
@@ -12,19 +12,19 @@
 			"backends" : [
 				{
 					"name" : "bck0",
-					"ip-addr" : "172.16.138.202",
+					"ip-addr" : "172.16.138.222",
 					"port" : "80",
 					"weight" : "5",
-					"mark" : "0x0000001",
+					"mark" : "0x0000010",
 					"priority" : "1",
 					"state" : "up"
 				},
 				{
 					"name" : "bck1",
-					"ip-addr" : "172.16.138.203",
+					"ip-addr" : "172.16.138.223",
 					"port" : "80",
 					"weight" : "5",
-					"mark" : "0x0000002",
+					"mark" : "0x0000011",
 					"priority" : "1",
 					"state" : "up"
 				}

@@ -24,61 +24,66 @@ for DIRTEST in `ls -d */`; do
 	TESTCASE=`ls *.api`
 	source $TESTCASE
 	INDEX_OUT=`printf %03d $INDEX`
-	echo -n "$INDEX - $DESC "
+	echo -n "$INDEX_OUT - $DESC "
+	logger NFTLB API TESTING $INDEX_OUT - $DESC
 
 	if [ "$VERB" = "POST" ] || [ "$VERB" = "PUT" ]; then
 		CURL_ARGS="-d @${FILE}"
 	fi
 
-	CURL_OUTPUT="${INDEX_OUT}.out"
+	CURL_OUTPUT="report-${INDEX_OUT}-req.out"
 	echo $CURL -H \"Key: $APISRV_KEY\" -X $VERB $CURL_ARGS http://$APISRV_ADDR:$APISRV_PORT/$URI
 	$CURL -H "Key: $APISRV_KEY" -X $VERB $CURL_ARGS http://$APISRV_ADDR:$APISRV_PORT/$URI -o "$CURL_OUTPUT" 2> /dev/null
 
 	# checking curl output
-	CHECK_OUTPUT="${INDEX_OUT}_req.out"
+	CHECK_OUTPUT="req.out"
 	echo -n "(request:"
 	if [ -f "$CHECK_OUTPUT" ] && [ -f "$CURL_OUTPUT" ]; then
 		if [ "`diff -Nru $CHECK_OUTPUT $CURL_OUTPUT`" != "" ]; then
 			echo -n "FAILURE) "
 		else
 			echo -n "OK) "
+			rm -f "$CURL_OUTPUT"
 		fi
 	else
-
 		echo -n "UNKNOWN) "
+		rm -f "$CURL_OUTPUT"
 	fi
 
-	rm -f "$CURL_OUTPUT"
-
 	# check nft output
-	CHECK_OUTPUT="${INDEX_OUT}_nft.out"
+	CHECK_OUTPUT="nft.out"
+	NFT_OUTPUT="report-${INDEX_OUT}-nft.out"
 	echo -n "(nft:"
-	if [ -f "$CHECK_OUTPUT" ]; then
-		if [ "`diff -Nru $CHECK_OUTPUT <($NFTBIN list ruleset)`" != "" ]; then
+	$NFTBIN list ruleset > $NFT_OUTPUT
+	if [ -f "$CHECK_OUTPUT" ] && [ -f  ]; then
+		if [ "`diff -Nru $CHECK_OUTPUT $NFT_OUTPUT`" != "" ]; then
 			echo -n "FAILURE) "
 		else
 			echo -n "OK) "
+			rm -f "$NFT_OUTPUT"
 		fi
 	else
 		echo -n "UNKNOWN) "
+		rm -f "$NFT_OUTPUT"
 	fi
 
 	# check nftlb objects
-	CURL_OUTPUT="${INDEX_OUT}.out"
+	CURL_OUTPUT="report-${INDEX_OUT}-obj.out"
 	$CURL -H "Key: $APISRV_KEY" -X GET http://$APISRV_ADDR:$APISRV_PORT/$URI -o "$CURL_OUTPUT" 2> /dev/null
 
-	CHECK_OUTPUT="${INDEX_OUT}_obj.out"
+	CHECK_OUTPUT="obj.out"
 	echo -n "(objects:"
 	if [ -f "$CHECK_OUTPUT" ] && [ -f "$CURL_OUTPUT" ]; then
 		if [ "`diff -Nru $CHECK_OUTPUT $CURL_OUTPUT`" != "" ]; then
 			echo -n "FAILURE) "
 		else
 			echo -n "OK) "
+			rm -f "$CURL_OUTPUT"
 		fi
 	else
 		echo -n "UNKNOWN) "
+		rm -f "$CURL_OUTPUT"
 	fi
-	rm -f "$CURL_OUTPUT"
 
 	echo ""
 
