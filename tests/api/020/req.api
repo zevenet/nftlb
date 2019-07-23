@@ -1,0 +1,3 @@
+VERB="DELETE"
+URI="policies/mylist"
+DESC="Deleting policy mylist... "

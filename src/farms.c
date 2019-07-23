@@ -92,6 +92,7 @@ static struct farm * farm_create(char *name)
 	pfarm->bcks_available = 0;
 	pfarm->bcks_are_marked = 0;
 	pfarm->bcks_have_port = 0;
+	pfarm->bcks_have_srcaddr = 0;
 	pfarm->policies_used = 0;
 	pfarm->policies_action = ACTION_NONE;
 
@@ -423,6 +424,7 @@ static void farm_print(struct farm *f)
 	syslog(LOG_DEBUG,"    *[bcks_available] %d", f->bcks_available);
 	syslog(LOG_DEBUG,"    *[bcks_are_marked] %d", f->bcks_are_marked);
 	syslog(LOG_DEBUG,"    *[bcks_have_port] %d", f->bcks_have_port);
+	syslog(LOG_DEBUG,"    *[bcks_have_srcaddr] %d", f->bcks_have_srcaddr);
 	syslog(LOG_DEBUG,"    *[policies_action] %d", f->policies_action);
 	syslog(LOG_DEBUG,"    *[policies_used] %d", f->policies_used);
 	syslog(LOG_DEBUG,"    *[%s] %d", CONFIG_KEY_ACTION, f->action);

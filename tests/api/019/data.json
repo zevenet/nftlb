@@ -1,0 +1,13 @@
+{
+	"farms" : [
+		{
+			"name" : "lb01",
+			"backends" : [
+				{
+					"name" : "bck2",
+					"source-addr" : "192.168.105.189"
+				}
+			]
+		}
+	]
+}

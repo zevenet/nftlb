@@ -111,7 +111,7 @@ static int backend_delete(struct backend *b)
 
 	if (f->priority >= 1 && b->priority <= f->priority) {
 		f->priority--;
-		obj_rulerize();
+		obj_rulerize(OBJ_START);
 	}
 
 	backend_delete_node(b);
@@ -294,6 +294,23 @@ static int backend_s_set_ports(struct farm *f)
 	return 0;
 }
 
+static int backend_s_set_srcaddr(struct farm *f)
+{
+	struct backend *b;
+
+	syslog(LOG_DEBUG, "%s():%d: finding backends with srouce address for %s", __FUNCTION__, __LINE__, f->name);
+
+	list_for_each_entry(b, &f->backends, list) {
+		if (b->srcaddr && strcmp(b->srcaddr, "") != 0) {
+			f->bcks_have_srcaddr = 1;
+			return 1;
+		}
+	}
+
+	f->bcks_have_srcaddr = 0;
+	return 0;
+}
+
 static int backend_set_mark(struct backend *b, int new_value)
 {
 	int old_value = b->mark;
@@ -324,6 +341,23 @@ static int backend_set_port(struct backend *b, char *new_value)
 		b->parent->bcks_have_port = 1;
 	else
 		backend_s_set_ports(b->parent);
+
+	return 0;
+}
+
+static int backend_set_srcaddr(struct backend *b, char *new_value)
+{
+	char *old_value = b->srcaddr;
+
+	syslog(LOG_DEBUG, "%s():%d: current value is %s, but new value will be %s",
+	       __FUNCTION__, __LINE__, old_value, new_value);
+
+	obj_set_attribute_string(new_value, &b->srcaddr);
+
+	if (b->srcaddr && strcmp(b->srcaddr, "") != 0)
+		b->parent->bcks_have_srcaddr = 1;
+	else
+		backend_s_set_srcaddr(b->parent);
 
 	return 0;
 }
@@ -505,7 +539,7 @@ int backend_set_attribute(struct config_pair *c)
 		backend_set_port(b, c->str_value);
 		break;
 	case KEY_SRCADDR:
-		obj_set_attribute_string(c->str_value, &b->srcaddr);
+		backend_set_srcaddr(b, c->str_value);
 		break;
 	case KEY_WEIGHT:
 		backend_set_weight(b, c->int_value);
@@ -700,6 +734,7 @@ int bck_pos_actionable(struct config_pair *c)
 	case KEY_ETHADDR:
 	case KEY_IPADDR:
 	case KEY_PORT:
+	case KEY_SRCADDR:
 	case KEY_PRIORITY:
 	case KEY_ESTCONNLIMIT:
 

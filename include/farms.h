@@ -143,6 +143,7 @@ struct farm {
 	int			bcks_available;
 	int			bcks_are_marked;
 	int			bcks_have_port;
+	int			bcks_have_srcaddr;
 	int			policies_action;
 	int			policies_used;
 	struct list_head	backends;
