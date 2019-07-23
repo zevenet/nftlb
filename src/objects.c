@@ -369,12 +369,12 @@ void obj_print(void)
 int obj_rulerize(int mode)
 {
 	obj_config_init();
-	if (OBJ_START) {
-		policy_s_rulerize();
-		return farm_s_rulerize();
-	} else {
+	if (mode == OBJ_START_INV) {
 		farm_s_rulerize();
 		return policy_s_rulerize();
+	} else {
+		policy_s_rulerize();
+		return farm_s_rulerize();
 	}
 }
 
