@@ -1,0 +1,11 @@
+{
+	"farms" : [
+		{
+			"name" : "lb01",
+			"policies" : [ {
+				"name" : "mylist"
+				}
+			]
+		}
+	]
+}

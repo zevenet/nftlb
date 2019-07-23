@@ -1,0 +1,3 @@
+VERB="POST"
+URI="farms"
+DESC="Adding policy mylist into farm lb01... "

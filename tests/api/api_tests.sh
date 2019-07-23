@@ -40,13 +40,13 @@ for DIRTEST in `ls -d */`; do
 	echo -n "(request:"
 	if [ -f "$CHECK_OUTPUT" ] && [ -f "$CURL_OUTPUT" ]; then
 		if [ "`diff -Nru $CHECK_OUTPUT $CURL_OUTPUT`" != "" ]; then
-			echo -n "FAILURE) "
+			echo -en "\e[31mFAILURE\e[0m) "
 		else
-			echo -n "OK) "
+			echo -en "\e[32mOK\e[0m) "
 			rm -f "$CURL_OUTPUT"
 		fi
 	else
-		echo -n "UNKNOWN) "
+		echo -en "\e[33mUNKNOWN\e[0m) "
 		rm -f "$CURL_OUTPUT"
 	fi
 
@@ -57,13 +57,13 @@ for DIRTEST in `ls -d */`; do
 	$NFTBIN list ruleset > $NFT_OUTPUT
 	if [ -f "$CHECK_OUTPUT" ] && [ -f  ]; then
 		if [ "`diff -Nru $CHECK_OUTPUT $NFT_OUTPUT`" != "" ]; then
-			echo -n "FAILURE) "
+			echo -en "\e[31mFAILURE\e[0m) "
 		else
-			echo -n "OK) "
+			echo -en "\e[32mOK\e[0m) "
 			rm -f "$NFT_OUTPUT"
 		fi
 	else
-		echo -n "UNKNOWN) "
+		echo -en "\e[33mUNKNOWN\e[0m) "
 		rm -f "$NFT_OUTPUT"
 	fi
 
@@ -76,13 +76,13 @@ for DIRTEST in `ls -d */`; do
 	echo -n "(objects:"
 	if [ -f "$CHECK_OUTPUT" ] && [ -f "$CURL_OUTPUT" ]; then
 		if [ "`diff -Nru $CHECK_OUTPUT $CURL_OUTPUT`" != "" ]; then
-			echo -n "FAILURE) "
+			echo -en "\e[31mFAILURE\e[0m) "
 		else
-			echo -n "OK) "
+			echo -en "\e[32mOK\e[0m) "
 			rm -f "$CURL_OUTPUT"
 		fi
 	else
-		echo -n "UNKNOWN) "
+		echo -en "\e[33mUNKNOWN\e[0m) "
 		rm -f "$CURL_OUTPUT"
 	fi
 
