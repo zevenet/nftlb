@@ -271,14 +271,14 @@ static int send_delete_response(struct nftlb_http_state *state)
 					      "error stopping farm policy");
 			goto delete_end;
 		}
-		obj_rulerize();
+		obj_rulerize(OBJ_START);
 	} else if (strcmp(firstlevel, CONFIG_KEY_POLICIES) == 0 &&
 			   strcmp(thirdlevel, CONFIG_KEY_ELEMENTS) == 0) {
 		ret = config_set_element_action(secondlevel, fourthlevel, CONFIG_VALUE_ACTION_STOP);
 		if (ret > 0)
 			ret = config_set_policy_action(secondlevel, CONFIG_VALUE_ACTION_RELOAD);
 		if (ret > 0)
-			obj_rulerize();
+			obj_rulerize(OBJ_START);
 		ret = config_set_element_action(secondlevel, fourthlevel, CONFIG_VALUE_ACTION_DELETE);
 		if (ret < 0) {
 			config_print_response(&state->body_response,
@@ -289,7 +289,7 @@ static int send_delete_response(struct nftlb_http_state *state)
 			   strcmp(thirdlevel, "") == 0) {
 		ret = config_set_farm_action(secondlevel, CONFIG_VALUE_ACTION_STOP);
 		if (ret > 0)
-			obj_rulerize();
+			obj_rulerize(OBJ_START);
 		ret = config_set_farm_action(secondlevel, CONFIG_VALUE_ACTION_DELETE);
 		if (ret < 0) {
 			config_print_response(&state->body_response,
@@ -298,13 +298,15 @@ static int send_delete_response(struct nftlb_http_state *state)
 		}
 	} else if (strcmp(firstlevel, CONFIG_KEY_POLICIES) == 0 &&
 			   strcmp(thirdlevel, "") == 0) {
+
 		ret = config_set_policy_action(secondlevel, CONFIG_VALUE_ACTION_STOP);
 		if (ret < 0) {
 			config_print_response(&state->body_response,
 					      "error stopping policy");
 			goto delete_end;
 		}
-		obj_rulerize();
+		obj_rulerize(OBJ_START_INV);
+
 		ret = config_set_policy_action(secondlevel, CONFIG_VALUE_ACTION_DELETE);
 		if (ret < 0) {
 			config_print_response(&state->body_response,
@@ -361,7 +363,7 @@ static int send_post_response(struct nftlb_http_state *state)
 		break;
 	}
 
-	if (obj_rulerize() != 0) {
+	if (obj_rulerize(OBJ_START) != 0) {
 		config_print_response(&state->body_response,
 				      "error generating rules");
 		goto post_end;

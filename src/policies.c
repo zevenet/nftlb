@@ -168,7 +168,10 @@ int policy_set_action(struct policy *p, int action)
 		return 1;
 	}
 
-	if (p->action != action) {
+	if (action == ACTION_STOP)
+		farm_s_lookup_policy_action(p->name, action);
+
+	if (p->action > action) {
 		p->action = action;
 		return 1;
 	}
@@ -201,6 +204,7 @@ int policy_pre_actionable(struct config_pair *c)
 
 	switch (c->key) {
 	case KEY_NAME:
+		break;
 	case KEY_TYPE:
 	case KEY_TIMEOUT:
 		policy_set_action(p, ACTION_STOP);
@@ -227,6 +231,7 @@ int policy_pos_actionable(struct config_pair *c)
 
 	switch (c->key) {
 	case KEY_NAME:
+		break;
 	case KEY_TYPE:
 	case KEY_TIMEOUT:
 		policy_set_action(p, ACTION_START);

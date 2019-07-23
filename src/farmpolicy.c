@@ -138,10 +138,14 @@ int farmpolicy_s_delete(struct farm *f)
 int farmpolicy_s_lookup_policy_action(struct farm *f, char *name, int action)
 {
 	struct farmpolicy *fp;
+	int ret = 0;
 
 	fp = farmpolicy_lookup_by_name(f, name);
 	if (fp)
-		farmpolicy_set_action(fp, action);
+		ret = farmpolicy_set_action(fp, action);
+
+	if (ret)
+		f->action = ACTION_RELOAD;
 
 	return 0;
 }

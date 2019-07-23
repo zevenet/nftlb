@@ -366,11 +366,16 @@ void obj_print(void)
 	policies_s_print();
 }
 
-int obj_rulerize(void)
+int obj_rulerize(int mode)
 {
 	obj_config_init();
-	policy_s_rulerize();
-	return farm_s_rulerize();
+	if (OBJ_START) {
+		policy_s_rulerize();
+		return farm_s_rulerize();
+	} else {
+		farm_s_rulerize();
+		return policy_s_rulerize();
+	}
 }
 
 char * obj_print_policy_type(int type)

@@ -140,7 +140,7 @@ int main(int argc, char *argv[])
 	if (loglevel > NFTLB_LOGLEVEL_DEFAULT)
 		obj_print();
 
-	obj_rulerize();
+	obj_rulerize(OBJ_START);
 
 	if (mode == NFTLB_EXIT_MODE)
 		return EXIT_SUCCESS;

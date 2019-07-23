@@ -62,6 +62,11 @@
 #define DEFAULT_POLICY_LOGPREFIX	"KNAME-TYPE-PNAME-FNAME "
 #define DEFAULT_ELEMENT_TIME		""
 
+enum obj_start {
+	OBJ_START,
+	OBJ_START_INV
+};
+
 enum levels {
 	LEVEL_INIT,
 	LEVEL_FARMS,
@@ -157,7 +162,7 @@ char * obj_print_switch(int value);
 int obj_set_attribute(struct config_pair *c, int actionable);
 int obj_set_attribute_string(char *src, char **dst);
 void obj_print(void);
-int obj_rulerize(void);
+int obj_rulerize(int mode);
 
 struct list_head * obj_get_policies(void);
 int obj_get_total_policies(void);
