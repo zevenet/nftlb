@@ -251,14 +251,16 @@ int policy_s_rulerize(void)
 {
 	struct policy *p;
 	int ret = 0;
+	int output = 0;
 
 	syslog(LOG_DEBUG, "%s():%d: rulerize all policies", __FUNCTION__, __LINE__);
 
 	struct list_head *policies = obj_get_policies();
 
 	list_for_each_entry(p, policies, list) {
-			ret = ret || policy_rulerize(p);
+		ret = policy_rulerize(p);
+		output = output || ret;
 	}
 
-	return ret;
+	return output;
 }
