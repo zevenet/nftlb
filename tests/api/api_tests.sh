@@ -47,7 +47,6 @@ for DIRTEST in `ls -d */`; do
 		fi
 	else
 		echo -en "\e[33mUNKNOWN\e[0m) "
-		rm -f "$CURL_OUTPUT"
 	fi
 
 	# check nft output
@@ -55,7 +54,7 @@ for DIRTEST in `ls -d */`; do
 	NFT_OUTPUT="report-${INDEX_OUT}-nft.out"
 	echo -n "(nft:"
 	$NFTBIN list ruleset > $NFT_OUTPUT
-	if [ -f "$CHECK_OUTPUT" ] && [ -f  ]; then
+	if [ -f "$CHECK_OUTPUT" ] && [ -f "$NFT_OUTPUT" ]; then
 		if [ "`diff -Nru $CHECK_OUTPUT $NFT_OUTPUT`" != "" ]; then
 			echo -en "\e[31mFAILURE\e[0m) "
 		else
@@ -64,7 +63,6 @@ for DIRTEST in `ls -d */`; do
 		fi
 	else
 		echo -en "\e[33mUNKNOWN\e[0m) "
-		rm -f "$NFT_OUTPUT"
 	fi
 
 	# check nftlb objects
@@ -83,7 +81,6 @@ for DIRTEST in `ls -d */`; do
 		fi
 	else
 		echo -en "\e[33mUNKNOWN\e[0m) "
-		rm -f "$CURL_OUTPUT"
 	fi
 
 	echo ""
