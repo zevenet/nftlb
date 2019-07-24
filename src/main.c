@@ -26,6 +26,7 @@
 #include <syslog.h>
 #include <errno.h>
 #include <unistd.h>
+#include <execinfo.h>
 
 #include "config.h"
 #include "objects.h"
@@ -78,6 +79,28 @@ static void nftlb_sighandler(int signo)
 	exit(EXIT_SUCCESS);
 }
 
+static void nftlb_trace() {
+	void *buffer[255];
+	char **str;
+	int i;
+	const int calls = backtrace(buffer, sizeof(buffer) / sizeof(void *));
+
+	syslog(LOG_ERR, "SIGSEGV received!");
+	backtrace_symbols_fd(buffer, calls, 1);
+
+	str = backtrace_symbols(buffer, calls);
+	if (!str) {
+		syslog(LOG_ERR, "No backtrace strings found!");
+		exit(EXIT_FAILURE);
+	}
+
+	for (i = 0; i < calls; i++)
+		syslog(LOG_ERR, "%s", str[i]);
+	free(str);
+
+	exit(EXIT_FAILURE);
+}
+
 int main(int argc, char *argv[])
 {
 	int		mode = NFTLB_SERVER_MODE;
@@ -125,8 +148,12 @@ int main(int argc, char *argv[])
 
 	if (signal(SIGINT, nftlb_sighandler) == SIG_ERR ||
 	    signal(SIGTERM, nftlb_sighandler) == SIG_ERR ||
-	    signal(SIGPIPE, SIG_IGN) == SIG_ERR)
+	    signal(SIGPIPE, SIG_IGN) == SIG_ERR ||
+	    signal(SIGSEGV, nftlb_trace) == SIG_ERR) {
+		fprintf(stderr, "Error assigning signals\n");
+		syslog(LOG_ERR, "Error assigning signals");
 		return EXIT_FAILURE;
+	}
 
 	setlogmask(LOG_UPTO(loglevel));
 
