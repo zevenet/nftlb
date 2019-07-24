@@ -1,0 +1,13 @@
+{
+	"farms" : [
+		{
+			"name" : "lb01",
+			"backends" : [
+				{
+					"name" : "bck2",
+					"port" : "81"
+				}
+			]
+		}
+	]
+}
