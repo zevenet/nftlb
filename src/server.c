@@ -131,6 +131,8 @@ static int get_request(int fd, struct sbuffer *buf, struct nftlb_http_state *sta
 
 	sscanf(get_buf_data(buf), "%199[^ ] %199[^ ] ", method, state->uri);
 
+	syslog(LOG_NOTICE, "%s():%d: request: %s %s", __FUNCTION__, __LINE__, method, state->uri);
+
 	if (strncmp(method, STR_GET_ACTION, 3) == 0) {
 		state->method = WS_GET_ACTION;
 	} else if (strncmp(method, STR_POST_ACTION, 4) == 0) {
