@@ -1,0 +1,1 @@
+{ "farms" : [ { "name" : "lb02", "virtual-addr" : "192.168.105.189", "virtual-ports" : "80", "protocol" : "udp", "mode" : "dnat", "new-rtlimit" : "0" } ] }

@@ -439,7 +439,7 @@ static void farm_print(struct farm *f)
 static int farm_set_newrtlimit(struct farm *f, int new_value)
 {
 	if (f->newrtlimit == new_value)
-		return PARSER_IDEM_VALUE;
+		return PARSER_OK;
 
 	if (new_value == 0)
 		f->reload_action |= VALUE_RLD_NEWRTLIMIT_STOP;
@@ -453,7 +453,7 @@ static int farm_set_newrtlimit(struct farm *f, int new_value)
 static int farm_set_rstrtlimit(struct farm *f, int new_value)
 {
 	if (f->rstrtlimit == new_value)
-		return PARSER_IDEM_VALUE;
+		return PARSER_OK;
 
 	if (new_value == 0)
 		f->reload_action |= VALUE_RLD_RSTRTLIMIT_STOP;
@@ -467,7 +467,7 @@ static int farm_set_rstrtlimit(struct farm *f, int new_value)
 static int farm_set_estconnlimit(struct farm *f, int new_value)
 {
 	if (f->estconnlimit == new_value)
-		return PARSER_IDEM_VALUE;
+		return PARSER_OK;
 
 	if (new_value == 0)
 		f->reload_action |= VALUE_RLD_ESTCONNLIMIT_STOP;
