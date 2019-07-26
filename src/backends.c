@@ -701,8 +701,8 @@ int bck_pre_actionable(struct config_pair *c)
 	case KEY_PRIORITY:
 	case KEY_ESTCONNLIMIT:
 
-		if (backend_set_action(b, ACTION_STOP) &&
-			farm_set_action(f, ACTION_RELOAD)) {
+		if (backend_set_action(b, ACTION_STOP)) {
+			farm_set_action(f, ACTION_RELOAD);
 			farm_rulerize(f);
 		}
 
@@ -738,8 +738,8 @@ int bck_pos_actionable(struct config_pair *c)
 	case KEY_PRIORITY:
 	case KEY_ESTCONNLIMIT:
 
-		if (backend_set_action(b, ACTION_START) &&
-			farm_set_action(f, ACTION_RELOAD)) {
+		if (backend_set_action(b, ACTION_START)) {
+			farm_set_action(f, ACTION_RELOAD);
 			farm_rulerize(f);
 		}
 

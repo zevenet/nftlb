@@ -1,0 +1,78 @@
+table ip nftlb {
+	map nat-tcp-services {
+		type ipv4_addr . inet_service : verdict
+		elements = { 127.0.0.1 . 8080 : goto nat-lb01 }
+	}
+
+	map tcp-services-back {
+		type ipv4_addr . inet_service : ipv4_addr
+	}
+
+	map tcp-services-m-back {
+		type mark : ipv4_addr
+		elements = { 0x00000001 : 192.168.105.188, 0x00000002 : 192.168.105.187, 0x00000003 : 192.168.105.189, 0x00000004 : 192.168.105.188 }
+	}
+
+	map filter-tcp-services {
+		type ipv4_addr . inet_service : verdict
+		elements = { 127.0.0.1 . 8080 : goto filter-lb01 }
+	}
+
+	map nat-udp-services {
+		type ipv4_addr . inet_service : verdict
+		elements = { 192.168.105.189 . 80 : goto nat-lb02 }
+	}
+
+	map udp-services-back {
+		type ipv4_addr . inet_service : ipv4_addr
+	}
+
+	map udp-services-m-back {
+		type mark : ipv4_addr
+	}
+
+	chain prerouting {
+		type nat hook prerouting priority filter; policy accept;
+		ip daddr . tcp dport vmap @nat-tcp-services
+		ip daddr . udp dport vmap @nat-udp-services
+	}
+
+	chain postrouting {
+		type nat hook postrouting priority srcnat; policy accept;
+		ct mark 0x80000000/1 masquerade
+		snat to ip daddr . tcp dport map @tcp-services-back
+		snat to ct mark map @tcp-services-m-back
+		snat to ip daddr . udp dport map @udp-services-back
+		snat to ct mark map @udp-services-m-back
+	}
+
+	chain filter {
+		type filter hook prerouting priority mangle; policy accept;
+		meta mark set ct mark
+		ip daddr . tcp dport vmap @filter-tcp-services
+	}
+
+	chain nat-lb02 {
+	}
+
+	chain filter-lb01 {
+		ct mark set numgen random mod 20 map { 0-4 : 0x00000001, 5-9 : 0x00000002, 10-14 : 0x00000003, 15-19 : 0x00000004 }
+	}
+
+	chain nat-lb01 {
+		ip protocol tcp ct mark 0x00000001 dnat to 172.16.138.202:80
+		ip protocol tcp ct mark 0x00000002 dnat to 172.16.138.203:80
+		ip protocol tcp ct mark 0x00000003 dnat to 172.16.138.204:81
+		ip protocol tcp ct mark 0x00000004 dnat to 172.16.138.205:80
+	}
+}
+table netdev nftlb {
+	map tcp-services-lo {
+		type ipv4_addr . inet_service : verdict
+	}
+
+	chain ingress-lo {
+		type filter hook ingress device "lo" priority 100; policy accept;
+		ip daddr . tcp dport vmap @tcp-services-lo
+	}
+}
