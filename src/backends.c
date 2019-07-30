@@ -29,6 +29,22 @@
 #include "objects.h"
 #include "network.h"
 
+static int backend_s_set_marked(struct farm *f)
+{
+	struct backend *b;
+
+	syslog(LOG_DEBUG, "%s():%d: finding marked backends for %s", __FUNCTION__, __LINE__, f->name);
+
+	list_for_each_entry(b, &f->backends, list) {
+		if (b->mark == DEFAULT_MARK) {
+			f->bcks_are_marked = 0;
+			return 0;
+		}
+	}
+
+	f->bcks_are_marked = 1;
+	return 1;
+}
 
 static struct backend * backend_create(struct farm *f, char *name)
 {
@@ -56,6 +72,7 @@ static struct backend * backend_create(struct farm *f, char *name)
 
 	list_add_tail(&b->list, &f->backends);
 	f->total_bcks++;
+	backend_s_set_marked(f);
 
 	return b;
 }
@@ -257,23 +274,6 @@ static int backend_set_priority(struct backend *b, int new_value)
 	b->priority = new_value;
 	backend_s_update_counters(f);
 
-	return 0;
-}
-
-static int backend_s_set_marked(struct farm *f)
-{
-	struct backend *b;
-
-	syslog(LOG_DEBUG, "%s():%d: finding marked backends for %s", __FUNCTION__, __LINE__, f->name);
-
-	list_for_each_entry(b, &f->backends, list) {
-		if (b->mark != DEFAULT_MARK) {
-			f->bcks_are_marked = 1;
-			return 1;
-		}
-	}
-
-	f->bcks_are_marked = 0;
 	return 0;
 }
 

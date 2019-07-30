@@ -1,0 +1,42 @@
+{
+        "farms": [
+                {
+                        "name": "newfarm",
+                        "family": "ipv4",
+                        "virtual-addr": "127.0.0.1",
+                        "virtual-ports": "80",
+                        "source-addr": "",
+                        "mode": "snat",
+                        "protocol": "tcp",
+                        "scheduler": "weight",
+                        "sched-param": "none",
+                        "persistence": "srcip ",
+                        "persist-ttl": "120",
+                        "helper": "none",
+                        "log": "none",
+                        "mark": "0x0",
+                        "priority": "1",
+                        "state": "up",
+                        "new-rtlimit": "0",
+                        "new-rtlimit-burst": "0",
+                        "rst-rtlimit": "0",
+                        "rst-rtlimit-burst": "0",
+                        "est-connlimit": "0",
+                        "tcp-strict": "off",
+                        "queue": "-1",
+                        "backends": [
+                                {
+                                        "name": "bck0",
+                                        "ip-addr": "192.168.104.254",
+                                        "port": "80",
+                                        "weight": "1",
+                                        "priority": "1",
+                                        "mark": "0x200",
+                                        "est-connlimit": "0",
+                                        "state": "up"
+                                }
+                        ],
+                        "policies": []
+                }
+        ]
+}
