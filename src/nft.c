@@ -796,6 +796,7 @@ static int run_farm_rules_gen_srv(struct sbuffer *buf, struct farm *f, char *nft
 	struct backend *b;
 	int nports;
 	int i;
+	int bckmark;
 
 	data_str = calloc(1, 255);
 	if (!data_str) {
@@ -842,17 +843,18 @@ static int run_farm_rules_gen_srv(struct sbuffer *buf, struct farm *f, char *nft
 		break;
 	case BCK_MAP_BCK_MARK:
 		list_for_each_entry(b, &f->backends, list) {
-			if (get_bck_mark(b) & NFTLB_POSTROUTING_MARK)
+			bckmark = get_bck_mark(b);
+			if (bckmark == DEFAULT_MARK || bckmark & NFTLB_POSTROUTING_MARK)
 				continue;
 			if (b->action == ACTION_STOP || b->action == ACTION_DELETE) {
 				if (action == ACTION_START)
 					continue;
-				concat_buf(buf, " ; delete element %s %s %s { 0x%x }", nft_family, NFTLB_TABLE_NAME, service, get_bck_mark(b));
+				concat_buf(buf, " ; delete element %s %s %s { 0x%x }", nft_family, NFTLB_TABLE_NAME, service, bckmark);
 			}
 			if(!backend_is_available(b))
 				continue;
 			run_farm_rules_gen_srv_data((char **) &data_str, f, b, chain, data_mode);
-			concat_buf(buf, " ; %s element %s %s %s { 0x%x %s }", action_str, nft_family, NFTLB_TABLE_NAME, service, get_bck_mark(b), data_str);
+			concat_buf(buf, " ; %s element %s %s %s { 0x%x %s }", action_str, nft_family, NFTLB_TABLE_NAME, service, bckmark, data_str);
 		}
 		break;
 	case BCK_MAP_IPADDR_PORT:
