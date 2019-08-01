@@ -249,6 +249,12 @@ int policy_rulerize(struct policy *p)
 	syslog(LOG_DEBUG, "%s():%d: rulerize policy %s", __FUNCTION__, __LINE__, p->name);
 
 	policy_print(p);
+
+	if (p->action == ACTION_NONE) {
+		syslog(LOG_INFO, "%s():%d: policy %s won't be rulerized", __FUNCTION__, __LINE__, p->name);
+		return 0;
+	}
+
 	return nft_rulerize_policies(p);
 }
 

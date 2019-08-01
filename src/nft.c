@@ -1680,23 +1680,54 @@ int nft_rulerize(struct farm *f)
 static int run_set_elements(struct sbuffer *buf, struct policy *p)
 {
 	struct element *e;
-	char action_str[255] = "add";
+	int index = 0;
 
-	list_for_each_entry(e, &p->elements, list) {
-		switch (p->action){
-		case ACTION_START:
-			concat_buf(buf, " ; add element %s %s %s { %s }", NFTLB_NETDEV_FAMILY, NFTLB_TABLE_NAME, p->name, e->data);
-		break;
-		case ACTION_RELOAD:
-			if (e->action == ACTION_DELETE || e->action == ACTION_STOP)
-				sprintf(action_str, "delete");
-			concat_buf(buf, " ; %s element %s %s %s { %s }", action_str, NFTLB_NETDEV_FAMILY, NFTLB_TABLE_NAME, p->name, e->data);
-			sprintf(action_str, "add");
-		break;
-		default:
-		break;
+	switch (p->action){
+	case ACTION_START:
+		concat_buf(buf, " ; add element %s %s %s { ", NFTLB_NETDEV_FAMILY, NFTLB_TABLE_NAME, p->name);
+		list_for_each_entry(e, &p->elements, list) {
+			if (index)
+				concat_buf(buf, ", %s", e->data);
+			else {
+				index++;
+				concat_buf(buf, "%s ", e->data);
+			}
+			e->action = ACTION_NONE;
 		}
-		e->action = ACTION_NONE;
+		concat_buf(buf, " }");
+		break;
+	case ACTION_RELOAD:
+		list_for_each_entry(e, &p->elements, list) {
+			if (e->action != ACTION_START && e->action != ACTION_NONE)
+				continue;
+			if (index)
+				concat_buf(buf, ", %s", e->data);
+			else {
+				index++;
+				concat_buf(buf, " ; add element %s %s %s { %s", NFTLB_NETDEV_FAMILY, NFTLB_TABLE_NAME, p->name, e->data);
+			}
+			e->action = ACTION_NONE;
+		}
+		if (index)
+			concat_buf(buf, " }");
+
+		index = 0;
+		list_for_each_entry(e, &p->elements, list) {
+			if (e->action != ACTION_DELETE && e->action != ACTION_STOP)
+				continue;
+			if (index)
+				concat_buf(buf, ", %s", e->data);
+			else {
+				index++;
+				concat_buf(buf, " ; delete element %s %s %s { %s", NFTLB_NETDEV_FAMILY, NFTLB_TABLE_NAME, p->name, e->data);
+			}
+			e->action = ACTION_NONE;
+		}
+		if (index)
+			concat_buf(buf, " }");
+		break;
+	default:
+		break;
 	}
 
 	return 0;
