@@ -51,6 +51,7 @@ table netdev nftlb {
 	set mylist {
 		type ipv4_addr
 		flags interval
+		auto-merge
 		elements = { 35.195.60.76 }
 	}
 

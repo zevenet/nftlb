@@ -1741,7 +1741,7 @@ static int run_policy_set(struct sbuffer *buf, struct policy *p)
 	switch (p->action) {
 	case ACTION_START:
 		run_base_table(buf, NFTLB_NETDEV_FAMILY);
-		concat_buf(buf, " ; add set %s %s %s { type ipv4_addr ; flags interval ; }", NFTLB_NETDEV_FAMILY, NFTLB_TABLE_NAME, p->name);
+		concat_buf(buf, " ; add set %s %s %s { type ipv4_addr ; flags interval ; auto-merge ; }", NFTLB_NETDEV_FAMILY, NFTLB_TABLE_NAME, p->name);
 		run_set_elements(buf, p);
 		break;
 	case ACTION_RELOAD:
