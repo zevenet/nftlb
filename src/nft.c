@@ -1682,19 +1682,22 @@ static int run_set_elements(struct sbuffer *buf, struct policy *p)
 	struct element *e;
 	int index = 0;
 
+	if (!p->total_elem)
+		return 0;
+
 	switch (p->action){
 	case ACTION_START:
-		concat_buf(buf, " ; add element %s %s %s { ", NFTLB_NETDEV_FAMILY, NFTLB_TABLE_NAME, p->name);
 		list_for_each_entry(e, &p->elements, list) {
 			if (index)
 				concat_buf(buf, ", %s", e->data);
 			else {
 				index++;
-				concat_buf(buf, "%s ", e->data);
+				concat_buf(buf, " ; add element %s %s %s { %s", NFTLB_NETDEV_FAMILY, NFTLB_TABLE_NAME, p->name, e->data);
 			}
 			e->action = ACTION_NONE;
 		}
-		concat_buf(buf, " }");
+		if (index)
+			concat_buf(buf, " }");
 		break;
 	case ACTION_RELOAD:
 		list_for_each_entry(e, &p->elements, list) {
