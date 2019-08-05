@@ -36,14 +36,14 @@ static int backend_s_set_marked(struct farm *f)
 	syslog(LOG_DEBUG, "%s():%d: finding marked backends for %s", __FUNCTION__, __LINE__, f->name);
 
 	list_for_each_entry(b, &f->backends, list) {
-		if (b->mark == DEFAULT_MARK) {
-			f->bcks_are_marked = 0;
-			return 0;
+		if (b->mark != DEFAULT_MARK) {
+			f->bcks_are_marked = 1;
+			return 1;
 		}
 	}
 
-	f->bcks_are_marked = 1;
-	return 1;
+	f->bcks_are_marked = 0;
+	return 0;
 }
 
 static struct backend * backend_create(struct farm *f, char *name)
@@ -698,6 +698,7 @@ int bck_pre_actionable(struct config_pair *c)
 	case KEY_IPADDR:
 	case KEY_PORT:
 	case KEY_SRCADDR:
+	case KEY_MARK:
 	case KEY_PRIORITY:
 	case KEY_ESTCONNLIMIT:
 

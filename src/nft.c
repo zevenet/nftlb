@@ -127,7 +127,8 @@ enum map_modes {
 	BCK_MAP_BCK_MARK,
 	BCK_MAP_BCK_IPADDR_F_PORT,
 	BCK_MAP_BCK_IPADDR_BF_PORT,
-	BCK_MAP_BCK_BF_SRCIPADDR
+	BCK_MAP_BCK_BF_SRCIPADDR,
+	BCK_MAP_BCK_ID,
 };
 
 struct if_base_rule {
@@ -550,8 +551,8 @@ static int run_base_nat(struct sbuffer *buf, struct farm *f)
 		concat_buf(buf, " ; add rule %s %s %s %s daddr . %s dport vmap @%s-%s", NFTLB_IPV4_FAMILY, NFTLB_TABLE_NAME, NFTLB_TABLE_PREROUTING, NFTLB_IPV4_FAMILY, NFTLB_UDP_PROTO, NFTLB_TYPE_NAT, NFTLB_UDP_SERVICES_MAP);
 		concat_buf(buf, " ; add map %s %s %s-back { type %s . %s : %s ;}", NFTLB_IPV4_FAMILY, NFTLB_TABLE_NAME, NFTLB_UDP_SERVICES_MAP, NFTLB_MAP_TYPE_IPV4, NFTLB_MAP_TYPE_INETSRV, NFTLB_MAP_TYPE_IPV4);
 		concat_buf(buf, " ; add rule %s %s %s snat to %s daddr . %s dport map @%s-back", NFTLB_IPV4_FAMILY, NFTLB_TABLE_NAME, NFTLB_TABLE_POSTROUTING, NFTLB_IPV4_FAMILY, NFTLB_UDP_PROTO, NFTLB_UDP_SERVICES_MAP);
-		concat_buf(buf, " ; add map %s %s %s-m-back { type %s : %s ;}", NFTLB_IPV4_FAMILY, NFTLB_TABLE_NAME, NFTLB_UDP_SERVICES_MAP, NFTLB_MAP_TYPE_MARK, NFTLB_MAP_TYPE_IPV4);
-		concat_buf(buf, " ; add rule %s %s %s snat to ct mark map @%s-m-back", NFTLB_IPV4_FAMILY, NFTLB_TABLE_NAME, NFTLB_TABLE_POSTROUTING, NFTLB_UDP_SERVICES_MAP);
+		concat_buf(buf, " ; add map %s %s %s-back-m { type %s : %s ;}", NFTLB_IPV4_FAMILY, NFTLB_TABLE_NAME, NFTLB_UDP_SERVICES_MAP, NFTLB_MAP_TYPE_MARK, NFTLB_MAP_TYPE_IPV4);
+		concat_buf(buf, " ; add rule %s %s %s snat to ct mark map @%s-back-m", NFTLB_IPV4_FAMILY, NFTLB_TABLE_NAME, NFTLB_TABLE_POSTROUTING, NFTLB_UDP_SERVICES_MAP);
 		nat_base_rules |= NFTLB_IPV4_UDP_ACTIVE;
 	}
 
@@ -560,8 +561,8 @@ static int run_base_nat(struct sbuffer *buf, struct farm *f)
 		concat_buf(buf, " ; add rule %s %s %s %s daddr . %s dport vmap @%s-%s", NFTLB_IPV4_FAMILY, NFTLB_TABLE_NAME, NFTLB_TABLE_PREROUTING, NFTLB_IPV4_FAMILY, NFTLB_TCP_PROTO, NFTLB_TYPE_NAT, NFTLB_TCP_SERVICES_MAP);
 		concat_buf(buf, " ; add map %s %s %s-back { type %s . %s : %s ;}", NFTLB_IPV4_FAMILY, NFTLB_TABLE_NAME, NFTLB_TCP_SERVICES_MAP, NFTLB_MAP_TYPE_IPV4, NFTLB_MAP_TYPE_INETSRV, NFTLB_MAP_TYPE_IPV4);
 		concat_buf(buf, " ; add rule %s %s %s snat to %s daddr . %s dport map @%s-back", NFTLB_IPV4_FAMILY, NFTLB_TABLE_NAME, NFTLB_TABLE_POSTROUTING, NFTLB_IPV4_FAMILY, NFTLB_TCP_PROTO, NFTLB_TCP_SERVICES_MAP);
-		concat_buf(buf, " ; add map %s %s %s-m-back { type %s : %s ;}", NFTLB_IPV4_FAMILY, NFTLB_TABLE_NAME, NFTLB_TCP_SERVICES_MAP, NFTLB_MAP_TYPE_MARK, NFTLB_MAP_TYPE_IPV4);
-		concat_buf(buf, " ; add rule %s %s %s snat to ct mark map @%s-m-back", NFTLB_IPV4_FAMILY, NFTLB_TABLE_NAME, NFTLB_TABLE_POSTROUTING, NFTLB_TCP_SERVICES_MAP);
+		concat_buf(buf, " ; add map %s %s %s-back-m { type %s : %s ;}", NFTLB_IPV4_FAMILY, NFTLB_TABLE_NAME, NFTLB_TCP_SERVICES_MAP, NFTLB_MAP_TYPE_MARK, NFTLB_MAP_TYPE_IPV4);
+		concat_buf(buf, " ; add rule %s %s %s snat to ct mark map @%s-back-m", NFTLB_IPV4_FAMILY, NFTLB_TABLE_NAME, NFTLB_TABLE_POSTROUTING, NFTLB_TCP_SERVICES_MAP);
 		nat_base_rules |= NFTLB_IPV4_TCP_ACTIVE;
 	}
 
@@ -570,8 +571,8 @@ static int run_base_nat(struct sbuffer *buf, struct farm *f)
 		concat_buf(buf, " ; add rule %s %s %s %s daddr . %s dport vmap @%s-%s", NFTLB_IPV4_FAMILY, NFTLB_TABLE_NAME, NFTLB_TABLE_PREROUTING, NFTLB_IPV4_FAMILY, NFTLB_SCTP_PROTO, NFTLB_TYPE_NAT, NFTLB_SCTP_SERVICES_MAP);
 		concat_buf(buf, " ; add map %s %s %s-back { type %s . %s : %s ;}", NFTLB_IPV4_FAMILY, NFTLB_TABLE_NAME, NFTLB_SCTP_SERVICES_MAP, NFTLB_MAP_TYPE_IPV4, NFTLB_MAP_TYPE_INETSRV, NFTLB_MAP_TYPE_IPV4);
 		concat_buf(buf, " ; add rule %s %s %s snat to %s daddr . %s dport map @%s-back", NFTLB_IPV4_FAMILY, NFTLB_TABLE_NAME, NFTLB_TABLE_POSTROUTING, NFTLB_IPV4_FAMILY, NFTLB_SCTP_PROTO, NFTLB_SCTP_SERVICES_MAP);
-		concat_buf(buf, " ; add map %s %s %s-m-back { type %s : %s ;}", NFTLB_IPV4_FAMILY, NFTLB_TABLE_NAME, NFTLB_SCTP_SERVICES_MAP, NFTLB_MAP_TYPE_MARK, NFTLB_MAP_TYPE_IPV4);
-		concat_buf(buf, " ; add rule %s %s %s snat to ct mark map @%s-m-back", NFTLB_IPV4_FAMILY, NFTLB_TABLE_NAME, NFTLB_TABLE_POSTROUTING, NFTLB_SCTP_SERVICES_MAP);
+		concat_buf(buf, " ; add map %s %s %s-back-m { type %s : %s ;}", NFTLB_IPV4_FAMILY, NFTLB_TABLE_NAME, NFTLB_SCTP_SERVICES_MAP, NFTLB_MAP_TYPE_MARK, NFTLB_MAP_TYPE_IPV4);
+		concat_buf(buf, " ; add rule %s %s %s snat to ct mark map @%s-back-m", NFTLB_IPV4_FAMILY, NFTLB_TABLE_NAME, NFTLB_TABLE_POSTROUTING, NFTLB_SCTP_SERVICES_MAP);
 		nat_base_rules |= NFTLB_IPV4_SCTP_ACTIVE;
 	}
 
@@ -580,8 +581,8 @@ static int run_base_nat(struct sbuffer *buf, struct farm *f)
 		concat_buf(buf, " ; add rule %s %s %s %s daddr vmap @%s-%s", NFTLB_IPV4_FAMILY, NFTLB_TABLE_NAME, NFTLB_TABLE_PREROUTING, NFTLB_IPV4_FAMILY, NFTLB_TYPE_NAT, NFTLB_IP_SERVICES_MAP);
 		concat_buf(buf, " ; add map %s %s %s-back { type %s : %s ;}", NFTLB_IPV4_FAMILY, NFTLB_TABLE_NAME, NFTLB_IP_SERVICES_MAP, NFTLB_MAP_TYPE_IPV4, NFTLB_MAP_TYPE_IPV4);
 		concat_buf(buf, " ; add rule %s %s %s snat to %s daddr map @%s-back", NFTLB_IPV4_FAMILY, NFTLB_TABLE_NAME, NFTLB_TABLE_POSTROUTING, NFTLB_IPV4_FAMILY, NFTLB_IP_SERVICES_MAP);
-		concat_buf(buf, " ; add map %s %s %s-m-back { type %s : %s ;}", NFTLB_IPV4_FAMILY, NFTLB_TABLE_NAME, NFTLB_IP_SERVICES_MAP, NFTLB_MAP_TYPE_MARK, NFTLB_MAP_TYPE_IPV4);
-		concat_buf(buf, " ; add rule %s %s %s snat to ct mark map @%s-m-back", NFTLB_IPV4_FAMILY, NFTLB_TABLE_NAME, NFTLB_TABLE_POSTROUTING, NFTLB_IP_SERVICES_MAP);
+		concat_buf(buf, " ; add map %s %s %s-back-m { type %s : %s ;}", NFTLB_IPV4_FAMILY, NFTLB_TABLE_NAME, NFTLB_IP_SERVICES_MAP, NFTLB_MAP_TYPE_MARK, NFTLB_MAP_TYPE_IPV4);
+		concat_buf(buf, " ; add rule %s %s %s snat to ct mark map @%s-back-m", NFTLB_IPV4_FAMILY, NFTLB_TABLE_NAME, NFTLB_TABLE_POSTROUTING, NFTLB_IP_SERVICES_MAP);
 		nat_base_rules |= NFTLB_IPV4_IP_ACTIVE;
 	}
 
@@ -590,8 +591,8 @@ static int run_base_nat(struct sbuffer *buf, struct farm *f)
 		concat_buf(buf, " ; add rule %s %s %s %s daddr . %s dport vmap @%s-%s", NFTLB_IPV6_FAMILY, NFTLB_TABLE_NAME, NFTLB_TABLE_PREROUTING, NFTLB_IPV6_FAMILY, NFTLB_UDP_PROTO, NFTLB_TYPE_NAT, NFTLB_UDP_SERVICES6_MAP);
 		concat_buf(buf, " ; add map %s %s %s-back { type %s . %s : %s ;}", NFTLB_IPV6_FAMILY, NFTLB_TABLE_NAME, NFTLB_UDP_SERVICES6_MAP, NFTLB_MAP_TYPE_IPV6, NFTLB_MAP_TYPE_INETSRV, NFTLB_MAP_TYPE_IPV6);
 		concat_buf(buf, " ; add rule %s %s %s snat to %s daddr . %s dport map @%s-back", NFTLB_IPV6_FAMILY, NFTLB_TABLE_NAME, NFTLB_TABLE_POSTROUTING, NFTLB_IPV6_FAMILY, NFTLB_UDP_PROTO, NFTLB_UDP_SERVICES6_MAP);
-		concat_buf(buf, " ; add map %s %s %s-m-back { type %s : %s ;}", NFTLB_IPV6_FAMILY, NFTLB_TABLE_NAME, NFTLB_UDP_SERVICES_MAP, NFTLB_MAP_TYPE_MARK, NFTLB_MAP_TYPE_IPV6);
-		concat_buf(buf, " ; add rule %s %s %s snat to ct mark map @%s-m-back", NFTLB_IPV6_FAMILY, NFTLB_TABLE_NAME, NFTLB_TABLE_POSTROUTING, NFTLB_UDP_SERVICES_MAP);
+		concat_buf(buf, " ; add map %s %s %s-back-m { type %s : %s ;}", NFTLB_IPV6_FAMILY, NFTLB_TABLE_NAME, NFTLB_UDP_SERVICES_MAP, NFTLB_MAP_TYPE_MARK, NFTLB_MAP_TYPE_IPV6);
+		concat_buf(buf, " ; add rule %s %s %s snat to ct mark map @%s-back-m", NFTLB_IPV6_FAMILY, NFTLB_TABLE_NAME, NFTLB_TABLE_POSTROUTING, NFTLB_UDP_SERVICES_MAP);
 		nat_base_rules |= NFTLB_IPV6_UDP_ACTIVE;
 	}
 
@@ -600,8 +601,8 @@ static int run_base_nat(struct sbuffer *buf, struct farm *f)
 		concat_buf(buf, " ; add rule %s %s %s %s daddr . %s dport vmap @%s-%s", NFTLB_IPV6_FAMILY, NFTLB_TABLE_NAME, NFTLB_TABLE_PREROUTING, NFTLB_IPV6_FAMILY, NFTLB_TCP_PROTO, NFTLB_TYPE_NAT, NFTLB_TCP_SERVICES_MAP);
 		concat_buf(buf, " ; add map %s %s %s-back { type %s . %s : %s ;}", NFTLB_IPV6_FAMILY, NFTLB_TABLE_NAME, NFTLB_TCP_SERVICES_MAP, NFTLB_MAP_TYPE_IPV6, NFTLB_MAP_TYPE_INETSRV, NFTLB_MAP_TYPE_IPV6);
 		concat_buf(buf, " ; add rule %s %s %s snat to %s daddr . %s dport map @%s-back", NFTLB_IPV6_FAMILY, NFTLB_TABLE_NAME, NFTLB_TABLE_POSTROUTING, NFTLB_IPV6_FAMILY, NFTLB_TCP_PROTO, NFTLB_TCP_SERVICES_MAP);
-		concat_buf(buf, " ; add map %s %s %s-m-back { type %s : %s ;}", NFTLB_IPV6_FAMILY, NFTLB_TABLE_NAME, NFTLB_TCP_SERVICES_MAP, NFTLB_MAP_TYPE_MARK, NFTLB_MAP_TYPE_IPV6);
-		concat_buf(buf, " ; add rule %s %s %s snat to ct mark map @%s-m-back", NFTLB_IPV6_FAMILY, NFTLB_TABLE_NAME, NFTLB_TABLE_POSTROUTING, NFTLB_TCP_SERVICES_MAP);
+		concat_buf(buf, " ; add map %s %s %s-back-m { type %s : %s ;}", NFTLB_IPV6_FAMILY, NFTLB_TABLE_NAME, NFTLB_TCP_SERVICES_MAP, NFTLB_MAP_TYPE_MARK, NFTLB_MAP_TYPE_IPV6);
+		concat_buf(buf, " ; add rule %s %s %s snat to ct mark map @%s-back-m", NFTLB_IPV6_FAMILY, NFTLB_TABLE_NAME, NFTLB_TABLE_POSTROUTING, NFTLB_TCP_SERVICES_MAP);
 		nat_base_rules |= NFTLB_IPV6_TCP_ACTIVE;
 	}
 
@@ -610,8 +611,8 @@ static int run_base_nat(struct sbuffer *buf, struct farm *f)
 		concat_buf(buf, " ; add rule %s %s %s %s daddr . %s dport vmap @%s-%s", NFTLB_IPV6_FAMILY, NFTLB_TABLE_NAME, NFTLB_TABLE_PREROUTING, NFTLB_IPV6_FAMILY, NFTLB_SCTP_PROTO, NFTLB_TYPE_NAT, NFTLB_SCTP_SERVICES_MAP);
 		concat_buf(buf, " ; add map %s %s %s-back { type %s . %s : %s ;}", NFTLB_IPV6_FAMILY, NFTLB_TABLE_NAME, NFTLB_SCTP_SERVICES_MAP, NFTLB_MAP_TYPE_IPV6, NFTLB_MAP_TYPE_INETSRV, NFTLB_MAP_TYPE_IPV6);
 		concat_buf(buf, " ; add rule %s %s %s snat to %s daddr . %s dport map @%s-back", NFTLB_IPV6_FAMILY, NFTLB_TABLE_NAME, NFTLB_TABLE_POSTROUTING, NFTLB_IPV6_FAMILY, NFTLB_SCTP_PROTO, NFTLB_SCTP_SERVICES_MAP);
-		concat_buf(buf, " ; add map %s %s %s-m-back { type %s : %s ;}", NFTLB_IPV6_FAMILY, NFTLB_TABLE_NAME, NFTLB_SCTP_SERVICES_MAP, NFTLB_MAP_TYPE_MARK, NFTLB_MAP_TYPE_IPV6);
-		concat_buf(buf, " ; add rule %s %s %s snat to ct mark map @%s-m-back", NFTLB_IPV6_FAMILY, NFTLB_TABLE_NAME, NFTLB_TABLE_POSTROUTING, NFTLB_SCTP_SERVICES_MAP);
+		concat_buf(buf, " ; add map %s %s %s-back-m { type %s : %s ;}", NFTLB_IPV6_FAMILY, NFTLB_TABLE_NAME, NFTLB_SCTP_SERVICES_MAP, NFTLB_MAP_TYPE_MARK, NFTLB_MAP_TYPE_IPV6);
+		concat_buf(buf, " ; add rule %s %s %s snat to ct mark map @%s-back-m", NFTLB_IPV6_FAMILY, NFTLB_TABLE_NAME, NFTLB_TABLE_POSTROUTING, NFTLB_SCTP_SERVICES_MAP);
 		nat_base_rules |= NFTLB_IPV6_SCTP_ACTIVE;
 	}
 
@@ -620,8 +621,8 @@ static int run_base_nat(struct sbuffer *buf, struct farm *f)
 		concat_buf(buf, " ; add rule %s %s %s %s daddr vmap @%s-%s", NFTLB_IPV6_FAMILY, NFTLB_TABLE_NAME, NFTLB_TABLE_PREROUTING, NFTLB_IPV6_FAMILY, NFTLB_TYPE_NAT, NFTLB_IP_SERVICES_MAP);
 		concat_buf(buf, " ; add map %s %s %s-back { type %s : %s ;}", NFTLB_IPV6_FAMILY, NFTLB_TABLE_NAME, NFTLB_IP_SERVICES_MAP, NFTLB_MAP_TYPE_IPV6, NFTLB_MAP_TYPE_IPV6);
 		concat_buf(buf, " ; add rule %s %s %s snat to %s daddr map @%s-back", NFTLB_IPV6_FAMILY, NFTLB_TABLE_NAME, NFTLB_TABLE_POSTROUTING, NFTLB_IPV6_FAMILY, NFTLB_IP_SERVICES_MAP);
-		concat_buf(buf, " ; add map %s %s %s-m-back { type %s : %s ;}", NFTLB_IPV6_FAMILY, NFTLB_TABLE_NAME, NFTLB_IP_SERVICES_MAP, NFTLB_MAP_TYPE_MARK, NFTLB_MAP_TYPE_IPV6);
-		concat_buf(buf, " ; add rule %s %s %s snat to ct mark map @%s-m-back", NFTLB_IPV6_FAMILY, NFTLB_TABLE_NAME, NFTLB_TABLE_POSTROUTING, NFTLB_IP_SERVICES_MAP);
+		concat_buf(buf, " ; add map %s %s %s-back-m { type %s : %s ;}", NFTLB_IPV6_FAMILY, NFTLB_TABLE_NAME, NFTLB_IP_SERVICES_MAP, NFTLB_MAP_TYPE_MARK, NFTLB_MAP_TYPE_IPV6);
+		concat_buf(buf, " ; add rule %s %s %s snat to ct mark map @%s-back-m", NFTLB_IPV6_FAMILY, NFTLB_TABLE_NAME, NFTLB_TABLE_POSTROUTING, NFTLB_IP_SERVICES_MAP);
 		nat_base_rules |= NFTLB_IPV6_IP_ACTIVE;
 	}
 
@@ -792,7 +793,10 @@ static int run_farm_rules_gen_srv(struct sbuffer *buf, struct farm *f, char *nft
 {
 	int port_list[65535] = { 0 };
 	char action_str[255] = { 0 };
-	char *data_str;
+	char key_str[255] = { 0 };
+	char *data_str = NULL;
+	char chain_str[255] = { 0 };
+	char service_str[255] = { 0 };
 	struct backend *b;
 	int nports;
 	int i;
@@ -820,99 +824,75 @@ static int run_farm_rules_gen_srv(struct sbuffer *buf, struct farm *f, char *nft
 	/* avoid port in cases of listening from all protocols */
 	if (f->protocol == VALUE_PROTO_ALL && key_mode == BCK_MAP_IPADDR_PORT)
 		key_mode = BCK_MAP_IPADDR;
-	if (f->protocol == VALUE_PROTO_ALL && (key_mode == BCK_MAP_BCK_IPADDR_F_PORT || key_mode == BCK_MAP_BCK_IPADDR_BF_PORT))
-		key_mode = BCK_MAP_BCK_IPADDR;
 
 	switch (key_mode) {
 	case BCK_MAP_IPADDR:
 		run_farm_rules_gen_srv_data((char **) &data_str, f, NULL, chain, data_mode);
 		concat_buf(buf, " ; %s element %s %s %s { %s %s}", action_str, nft_family, NFTLB_TABLE_NAME, service, f->virtaddr, data_str);
 		break;
-	case BCK_MAP_BCK_IPADDR:
-		list_for_each_entry(b, &f->backends, list) {
-			if (b->action == ACTION_STOP || b->action == ACTION_DELETE) {
-				if (action == ACTION_START)
-					continue;
-				concat_buf(buf, " ; delete element %s %s %s { %s }", nft_family, NFTLB_TABLE_NAME, service, b->ipaddr);
-			}
-			if(!backend_is_available(b))
-				continue;
-			run_farm_rules_gen_srv_data((char **) &data_str, f, b, chain, data_mode);
-			concat_buf(buf, " ; %s element %s %s %s { %s %s}", action_str, nft_family, NFTLB_TABLE_NAME, service, b->ipaddr, data_str);
-		}
-		break;
-	case BCK_MAP_BCK_MARK:
-		list_for_each_entry(b, &f->backends, list) {
-			bckmark = get_bck_mark(b);
-			if (bckmark == DEFAULT_MARK || bckmark & NFTLB_POSTROUTING_MARK)
-				continue;
-			if (b->action == ACTION_STOP || b->action == ACTION_DELETE) {
-				if (action == ACTION_START)
-					continue;
-				concat_buf(buf, " ; delete element %s %s %s { 0x%x }", nft_family, NFTLB_TABLE_NAME, service, bckmark);
-			}
-			if(!backend_is_available(b))
-				continue;
-			run_farm_rules_gen_srv_data((char **) &data_str, f, b, chain, data_mode);
-			concat_buf(buf, " ; %s element %s %s %s { 0x%x %s }", action_str, nft_family, NFTLB_TABLE_NAME, service, bckmark, data_str);
-		}
-		break;
 	case BCK_MAP_IPADDR_PORT:
 		run_farm_rules_gen_srv_data((char **) &data_str, f, NULL, chain, data_mode);
 		nports = get_array_ports(port_list, f);
-		for (i = 0; i < nports; i++)
-			concat_buf(buf, " ; %s element %s %s %s { %s . %d %s}", action_str, nft_family, NFTLB_TABLE_NAME, service, f->virtaddr, port_list[i], data_str);
-		break;
-	case BCK_MAP_BCK_IPADDR_F_PORT:
-		nports = get_array_ports(port_list, f);
 		for (i = 0; i < nports; i++) {
-			list_for_each_entry(b, &f->backends, list) {
-				if (b->action == ACTION_STOP || b->action == ACTION_DELETE || b->action == ACTION_RELOAD) {
-					if (action == ACTION_START)
-						continue;
-					concat_buf(buf, " ; delete element %s %s %s { %s . %d }", nft_family, NFTLB_TABLE_NAME, service, b->ipaddr, port_list[i]);
-				}
-				if(!backend_is_available(b))
-					continue;
-				run_farm_rules_gen_srv_data((char **) &data_str, f, b, chain, data_mode);
-				concat_buf(buf, " ; %s element %s %s %s { %s . %d %s}", action_str, nft_family, NFTLB_TABLE_NAME, service, b->ipaddr, port_list[i], data_str);
-			}
+			if (i)
+				concat_buf(buf, ", %s . %d %s", f->virtaddr, port_list[i], data_str);
+			else
+				concat_buf(buf, " ; %s element %s %s %s { %s . %d %s", action_str, nft_family, NFTLB_TABLE_NAME, service, f->virtaddr, port_list[i], data_str);
 		}
-		break;
-	case BCK_MAP_BCK_IPADDR_BF_PORT:
-		list_for_each_entry(b, &f->backends, list) {
-			run_farm_rules_gen_srv_data((char **) &data_str, f, b, chain, data_mode);
-			if (strcmp(b->port, DEFAULT_PORT) == 0) {
-
-				nports = get_array_ports(port_list, f);
-				for (i = 0; i < nports; i++) {
-					if (b->action == ACTION_STOP || b->action == ACTION_DELETE || b->action == ACTION_RELOAD) {
-						if (action == ACTION_START)
-							continue;
-						concat_buf(buf, " ; delete element %s %s %s { %s . %d }", nft_family, NFTLB_TABLE_NAME, service, b->ipaddr, port_list[i]);
-					}
-					if(!backend_is_available(b))
-						continue;
-					concat_buf(buf, " ; %s element %s %s %s { %s . %d %s}", action_str, nft_family, NFTLB_TABLE_NAME, service, b->ipaddr, port_list[i], data_str);
-				}
-
-			} else {
-				if (b->action == ACTION_STOP || b->action == ACTION_DELETE || b->action == ACTION_RELOAD) {
-					if (action == ACTION_START)
-						continue;
-					concat_buf(buf, " ; delete element %s %s %s { %s . %s }", nft_family, NFTLB_TABLE_NAME, service, b->ipaddr, b->port);
-				}
-				if(!backend_is_available(b))
-					continue;
-				concat_buf(buf, " ; %s element %s %s %s { %s . %s %s}", action_str, nft_family, NFTLB_TABLE_NAME, service, b->ipaddr, b->port, data_str);
-			}
-		}
+		if (i)
+			concat_buf(buf, " }");
 		break;
 	default:
-		return -1;
+		if (f->protocol == VALUE_PROTO_ALL)
+			nports = 1;
+		else
+			nports = get_array_ports(port_list, f);
+
+		for (i = 0; i < nports; i++) {
+			list_for_each_entry(b, &f->backends, list) {
+				if (f->mode == VALUE_MODE_STLSDNAT)
+					sprintf(service_str, "%s", service);
+				else
+					sprintf(service_str, "%s-back", service);
+				sprintf(chain_str, "%s", chain);
+
+				bckmark = get_bck_mark(b);
+				if (bckmark & NFTLB_POSTROUTING_MARK)
+					continue;
+
+				if ((key_mode == BCK_MAP_BCK_ID || key_mode == BCK_MAP_BCK_MARK) && bckmark != DEFAULT_MARK) {
+					sprintf(key_str, "0x%x", bckmark);
+					sprintf(service_str, "%s-m", service_str);
+					sprintf(chain_str, "%s-m", chain_str);
+				} else if ((key_mode == BCK_MAP_BCK_ID || key_mode == BCK_MAP_BCK_IPADDR_BF_PORT) && strcmp(b->port, DEFAULT_PORT) != 0 && f->protocol != VALUE_PROTO_ALL) {
+					sprintf(key_str, "%s . %s", b->ipaddr, b->port);
+				} else if ((key_mode == BCK_MAP_BCK_ID || key_mode == BCK_MAP_BCK_IPADDR_BF_PORT || key_mode == BCK_MAP_BCK_IPADDR_F_PORT) && strcmp(b->port, DEFAULT_PORT) == 0 && f->protocol != VALUE_PROTO_ALL) {
+					sprintf(key_str, "%s . %d", b->ipaddr, port_list[i]);
+				} else if (key_mode == BCK_MAP_BCK_ID || key_mode == BCK_MAP_BCK_IPADDR) {
+					sprintf(key_str, "%s", b->ipaddr);
+				} else
+					continue;
+
+				run_farm_rules_gen_srv_data((char **) &data_str, f, b, chain_str, data_mode);
+
+				if (b->action == ACTION_STOP || b->action == ACTION_DELETE || b->action == ACTION_RELOAD) {
+					if (action == ACTION_START)
+						continue;
+					concat_buf(buf, " ; delete element %s %s %s { %s }", nft_family, NFTLB_TABLE_NAME, service_str, key_str);
+				}
+
+				if(!backend_is_available(b))
+					continue;
+
+				run_farm_rules_gen_srv_data((char **) &data_str, f, b, chain_str, data_mode);
+				concat_buf(buf, " ; %s element %s %s %s { %s %s}", action_str, nft_family, NFTLB_TABLE_NAME, service_str, key_str, data_str);
+			}
+		}
 		break;
 	}
 
+	if (data_str)
+		free(data_str);
 	return 0;
 }
 
@@ -923,15 +903,8 @@ static int run_farm_snat(struct sbuffer *buf, struct farm *f, int family, int ac
 	if (f->mode != VALUE_MODE_SNAT)
 		return 0;
 
-	if (f->bcks_are_marked) {
-		sprintf(name, "%s-m-back", print_nft_service(family, f->protocol));
-		run_farm_rules_gen_srv(buf, f, print_nft_table_family(family, f->mode), name, name, action, BCK_MAP_BCK_MARK, BCK_MAP_BCK_BF_SRCIPADDR);
-	} else {
-		if (farm_get_masquerade(f))
-			return 0;
-		sprintf(name, "%s-back", print_nft_service(family, f->protocol));
-		run_farm_rules_gen_srv(buf, f, print_nft_table_family(family, f->mode), name, name, action, BCK_MAP_BCK_IPADDR_BF_PORT, BCK_MAP_BCK_BF_SRCIPADDR);
-	}
+	sprintf(name, "%s", print_nft_service(family, f->protocol));
+	run_farm_rules_gen_srv(buf, f, print_nft_table_family(family, f->mode), name, name, action, BCK_MAP_BCK_ID, BCK_MAP_BCK_BF_SRCIPADDR);
 
 	return 0;
 }
