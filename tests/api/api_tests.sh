@@ -15,6 +15,8 @@ INDEX=1
 OUTPUT=0
 OUT_FILE="out"
 
+echo "" > /var/log/syslog
+
 $NFTBIN flush ruleset
 $NFTLBIN -d -k "$APISRV_KEY" -H $APISRV_ADDR -P $APISRV_PORT -l $DEBUG > /dev/null
 sleep 1s
@@ -92,3 +94,7 @@ done
 
 $NFTBIN flush ruleset
 kill `pidof nftlb`
+
+if [ "`grep 'nft command error' /var/log/syslog`" != "" ]; then
+	echo -e "\e[33m* command errors found, please check syslog\e[0m"
+fi

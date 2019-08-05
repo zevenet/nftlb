@@ -1,0 +1,54 @@
+table ip nftlb {
+	map nat-udp-services {
+		type ipv4_addr . inet_service : verdict
+		elements = { 192.168.0.100 . 80 : goto nat-lb01,
+			     192.168.0.100 . 81 : goto nat-lb01,
+			     192.168.0.100 . 82 : goto nat-lb01 }
+	}
+
+	map udp-services-back {
+		type ipv4_addr . inet_service : ipv4_addr
+		elements = { 192.168.0.10 . 80 : 192.168.0.101,
+			     192.168.0.10 . 81 : 192.168.0.101,
+			     192.168.0.10 . 82 : 192.168.0.101,
+			     192.168.0.11 . 80 : 192.168.0.101,
+			     192.168.0.11 . 81 : 192.168.0.101,
+			     192.168.0.11 . 82 : 192.168.0.101 }
+	}
+
+	map udp-services-back-m {
+		type mark : ipv4_addr
+	}
+
+	map filter-udp-services {
+		type ipv4_addr . inet_service : verdict
+		elements = { 192.168.0.100 . 80 : goto filter-lb01,
+			     192.168.0.100 . 81 : goto filter-lb01,
+			     192.168.0.100 . 82 : goto filter-lb01 }
+	}
+
+	chain prerouting {
+		type nat hook prerouting priority filter; policy accept;
+		ip daddr . udp dport vmap @nat-udp-services
+	}
+
+	chain postrouting {
+		type nat hook postrouting priority srcnat; policy accept;
+		ct mark 0x80000000/1 masquerade
+		snat to ip daddr . udp dport map @udp-services-back
+		snat to ct mark map @udp-services-back-m
+	}
+
+	chain filter {
+		type filter hook prerouting priority mangle; policy accept;
+		meta mark set ct mark
+		ip daddr . udp dport vmap @filter-udp-services
+	}
+
+	chain filter-lb01 {
+	}
+
+	chain nat-lb01 {
+		dnat to numgen random mod 10 map { 0-4 : 192.168.0.10, 5-9 : 192.168.0.11 }
+	}
+}

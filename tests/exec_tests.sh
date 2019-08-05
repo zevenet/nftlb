@@ -9,37 +9,47 @@ APISRV_PORT=5555
 APISRV_KEY="hola"
 CURL=`which curl`
 
-FILES=""
+TESTS=""
 
 if [ "${ARG}" = "-s" -a -e "$CURL" ]; then
 	APISERVER=1
-elif [[ ${ARG} =~ '.json' ]]; then
-	FILES="${ARG}"
+elif [[ -d ${ARG} ]]; then
+	TESTS="${ARG}"
 elif [ "${ARG}" = "" ]; then
-	FILES="*.json"
+	TESTS="*/"
 fi
 
-if [ "$FILES" = "" -a "${ARG2}" = "" ]; then
-	FILES="*.json"
+if [ "$TESTS" = "" -a "${ARG2}" = "" ]; then
+	TESTS="*/"
 fi
+
+echo "" > /var/log/syslog
 
 if [ $APISERVER -eq 1 ]; then
 	$NFTBIN flush ruleset
 	$NFTLBIN -d -k "$APISRV_KEY" -l 7 > /dev/null
 fi
 
-echo "-- Executing configuration files tests"
+echo "-- Executing configuration tests"
 
-for file in `ls ${FILES}`; do
-	echo -n "Executing test: ${file}... "
+for test in `ls -d ${TESTS}`; do
+	if [[ ! ${test} =~ ^..._ ]]; then
+		continue;
+	fi
+
+	echo -n "Executing test: ${test}... "
+
+	inputfile="${test}/input.json"
+	outputfile="${test}/output.nft"
+	reportfile="${test}/report-output.nft"
 
 	if [ $APISERVER -eq 1 ]; then
 		$CURL -H "Expect:" -H "Key: $APISRV_KEY" -X DELETE http://localhost:$APISRV_PORT/farms
-		$CURL -H "Expect:" -H "Key: $APISRV_KEY" -X POST http://localhost:$APISRV_PORT/farms -d "@$file"
+		$CURL -H "Expect:" -H "Key: $APISRV_KEY" -X POST http://localhost:$APISRV_PORT/farms -d "@${inputfile}"
 		statusexec=$?
 	else
 		$NFTBIN flush ruleset
-		$NFTLBIN -e -l 7 -c ${file}
+		$NFTLBIN -e -l 7 -c ${inputfile}
 		statusexec=$?
 	fi
 
@@ -48,18 +58,20 @@ for file in `ls ${FILES}`; do
 		continue;
 	fi
 
-	nftfile=`echo ${file} | awk -F'.' '{ print $1 }'`
+	#~ nftfile=`echo ${file} | awk -F'.' '{ print $1 }'`
+	$NFTBIN list ruleset > ${reportfile}
 
-	if [ ! -f "cmd/$nftfile.nft" ]; then
+	if [ ! -f ${outputfile} ]; then
 		echo "Dump file doesn't exist"
 		continue;
 	fi
 
-	diff -Nru "cmd/${nftfile}.nft" <($NFTBIN list ruleset)
+	diff -Nru ${outputfile} ${reportfile}
 	statusnft=$?
 
 	if [ $statusnft -eq 0 ]; then
 		echo -e "\e[32mOK\e[0m"
+		rm -f ${reportfile}
 	else
 		echo -e "\e[31mNFT DUMP ERROR\e[0m"
 	fi
@@ -69,11 +81,6 @@ if [ $APISERVER -eq 1 ]; then
 	kill `pidof nftlb`
 fi
 
-if [ "$FILES" = "*.json" ]; then
-	# execute api specific test
-	echo "-- Executing API specific tests"
-
-	cd api/
-	./api_tests.sh
-	cd ..
+if [ "`grep 'nft command error' /var/log/syslog`" != "" ]; then
+	echo -e "\e[33m* command errors found, please check syslog\e[0m"
 fi

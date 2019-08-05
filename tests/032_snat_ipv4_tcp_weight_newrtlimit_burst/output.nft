@@ -1,0 +1,52 @@
+table ip nftlb {
+	map nat-tcp-services {
+		type ipv4_addr . inet_service : verdict
+		elements = { 192.168.0.100 . 80 : goto nat-lb01 }
+	}
+
+	map tcp-services-back {
+		type ipv4_addr . inet_service : ipv4_addr
+	}
+
+	map tcp-services-back-m {
+		type mark : ipv4_addr
+	}
+
+	map filter-tcp-services {
+		type ipv4_addr . inet_service : verdict
+		elements = { 192.168.0.100 . 80 : goto filter-lb01 }
+	}
+
+	set new-rtlimit-lb01 {
+		type ipv4_addr
+		size 65535
+		flags dynamic
+	}
+
+	chain prerouting {
+		type nat hook prerouting priority filter; policy accept;
+		ip daddr . tcp dport vmap @nat-tcp-services
+	}
+
+	chain postrouting {
+		type nat hook postrouting priority srcnat; policy accept;
+		ct mark 0x80000000/1 masquerade
+		snat to ip daddr . tcp dport map @tcp-services-back
+		snat to ct mark map @tcp-services-back-m
+	}
+
+	chain filter {
+		type filter hook prerouting priority mangle; policy accept;
+		meta mark set ct mark
+		ip daddr . tcp dport vmap @filter-tcp-services
+	}
+
+	chain filter-lb01 {
+		ct state new add @new-rtlimit-lb01 { ip saddr limit rate over 10/second burst 3 packets } log prefix "new-rtlimit-lb01 " drop
+		ct mark set 0x80000000
+	}
+
+	chain nat-lb01 {
+		dnat to numgen random mod 10 map { 0-4 : 192.168.0.10, 5-9 : 192.168.0.11 }
+	}
+}
