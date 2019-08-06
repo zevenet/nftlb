@@ -100,27 +100,6 @@ static int backend_delete_node(struct backend *b)
 	return 0;
 }
 
-static int backend_s_gen_priority(struct farm *f)
-{
-	struct backend *b, *next;
-	int are_down = 0;
-	int old_prio = f->priority;
-
-	syslog(LOG_DEBUG, "%s():%d: farm %s", __FUNCTION__, __LINE__, f->name);
-
-	list_for_each_entry_safe(b, next, &f->backends, list) {
-		if (b->priority <= f->priority && b->state != VALUE_STATE_UP)
-			are_down++;
-	}
-
-	f->priority = DEFAULT_PRIORITY + are_down;
-
-	syslog(LOG_DEBUG, "%s():%d: priority is %d",
-		   __FUNCTION__, __LINE__, f->priority);
-
-	return f->priority != old_prio;
-}
-
 static int backend_delete(struct backend *b)
 {
 	struct farm *f = b->parent;
@@ -372,6 +351,9 @@ static int backend_set_ipaddr(struct backend *b, char *new_value)
 	obj_set_attribute_string(new_value, &b->ipaddr);
 	obj_set_attribute_string("", &b->ethaddr);
 
+	if (old_value == DEFAULT_IPADDR)
+		return 0;
+
 	if (farm_set_ifinfo(b->parent, KEY_OFACE) == -1 ||
 	    backend_set_ipaddr_from_ether(b) == -1) {
 		syslog(LOG_DEBUG, "%s():%d: backend %s comes to OFF", __FUNCTION__, __LINE__, b->name);
@@ -576,8 +558,6 @@ static int backend_switch(struct backend *b, int new_state)
 	syslog(LOG_DEBUG, "%s():%d: backend %s switched to %s",
 	       __FUNCTION__, __LINE__, b->name, obj_print_state(new_state));
 
-	backend_s_gen_priority(f);
-
 	if (b->state == VALUE_STATE_UP) {
 		b->action = ACTION_START;
 		farm_set_action(f, ACTION_RELOAD);
@@ -736,6 +716,7 @@ int bck_pos_actionable(struct config_pair *c)
 	case KEY_IPADDR:
 	case KEY_PORT:
 	case KEY_SRCADDR:
+	case KEY_MARK:
 	case KEY_PRIORITY:
 	case KEY_ESTCONNLIMIT:
 
@@ -746,7 +727,6 @@ int bck_pos_actionable(struct config_pair *c)
 
 		break;
 	case KEY_STATE:
-	case KEY_MARK:
 	case KEY_WEIGHT:
 	case KEY_ESTCONNLIMIT_LOGPREFIX:
 
@@ -758,4 +738,25 @@ int bck_pos_actionable(struct config_pair *c)
 	}
 
 	return 0;
+}
+
+int backend_s_gen_priority(struct farm *f)
+{
+	struct backend *b, *next;
+	int are_down = 0;
+	int old_prio = f->priority;
+
+	syslog(LOG_DEBUG, "%s():%d: farm %s", __FUNCTION__, __LINE__, f->name);
+
+	list_for_each_entry_safe(b, next, &f->backends, list) {
+		if (b->priority <= f->priority && b->state != VALUE_STATE_UP)
+			are_down++;
+	}
+
+	f->priority = DEFAULT_PRIORITY + are_down;
+
+	syslog(LOG_DEBUG, "%s():%d: priority is %d",
+		   __FUNCTION__, __LINE__, f->priority);
+
+	return f->priority != old_prio;
 }

@@ -837,6 +837,7 @@ int farm_set_action(struct farm *f, int action)
 	}
 
 	if (f->action > action) {
+		backend_s_gen_priority(f);
 		farm_manage_eventd();
 		f->action = action;
 		farm_set_netinfo(f);
