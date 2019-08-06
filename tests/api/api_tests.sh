@@ -5,24 +5,24 @@ ARG2="$2"
 NFTBIN="nft"
 NFTLBIN="../../src/nftlb"
 DEBUG="7"
-APISERVER=0
 APISRV_ADDR=localhost
 APISRV_PORT=5555
 APISRV_KEY="hola"
 CURL=`which curl`
 CURL_ARGS=""
 INDEX=1
-OUTPUT=0
-OUT_FILE="out"
+STOPPED=0
+
 
 echo "" > /var/log/syslog
 
+kill `pidof nftlb` 2> /dev/null
 $NFTBIN flush ruleset
 $NFTLBIN -d -k "$APISRV_KEY" -H $APISRV_ADDR -P $APISRV_PORT -l $DEBUG > /dev/null
 sleep 1s
 
 for DIRTEST in `ls -d */`; do
-	cd ${DIRTEST}/
+	cd ${DIRTEST}
 	TESTCASE=`ls *.api`
 	source $TESTCASE
 	INDEX_OUT=`printf %03d $INDEX`
@@ -90,10 +90,21 @@ for DIRTEST in `ls -d */`; do
 	CURL_ARGS=
 	INDEX=$(($INDEX+1));
 	cd ../
+
+	if [[ "$ARG" = "-stop" ]]; then
+		if [[ "${DIRTEST}" == "${ARG2}"* ]]; then
+			echo "Stopped."
+			STOPPED=1;
+			break;
+		fi
+	fi
+
 done
 
-$NFTBIN flush ruleset
-kill `pidof nftlb`
+if [ $STOPPED -eq 0 ]; then
+	$NFTBIN flush ruleset
+	kill `pidof nftlb`
+fi
 
 if [ "`grep 'nft command error' /var/log/syslog`" != "" ]; then
 	echo -e "\e[33m* command errors found, please check syslog\e[0m"
