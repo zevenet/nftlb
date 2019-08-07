@@ -862,8 +862,7 @@ static int run_farm_rules_gen_srv(struct sbuffer *buf, struct farm *f, char *nft
 
 				if ((key_mode == BCK_MAP_BCK_ID || key_mode == BCK_MAP_BCK_MARK) && bckmark != DEFAULT_MARK) {
 					sprintf(key_str, "0x%x", bckmark);
-					sprintf(service_str, "%s-m", service_str);
-					sprintf(chain_str, "%s-m", chain_str);
+					strcat(service_str, "-m");
 				} else if ((key_mode == BCK_MAP_BCK_ID || key_mode == BCK_MAP_BCK_IPADDR_BF_PORT) && strcmp(b->port, DEFAULT_PORT) != 0 && f->protocol != VALUE_PROTO_ALL) {
 					sprintf(key_str, "%s . %s", b->ipaddr, b->port);
 				} else if ((key_mode == BCK_MAP_BCK_ID || key_mode == BCK_MAP_BCK_IPADDR_BF_PORT || key_mode == BCK_MAP_BCK_IPADDR_F_PORT) && strcmp(b->port, DEFAULT_PORT) == 0 && f->protocol != VALUE_PROTO_ALL) {
