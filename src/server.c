@@ -289,6 +289,9 @@ static int send_delete_response(struct nftlb_http_state *state)
 		}
 	} else if (strcmp(firstlevel, CONFIG_KEY_FARMS) == 0 &&
 			   strcmp(thirdlevel, "") == 0) {
+		ret = config_set_farm_action(secondlevel, CONFIG_VALUE_ACTION_STOP);
+		if (ret > 0)
+			obj_rulerize(OBJ_START);
 		ret = config_set_farm_action(secondlevel, CONFIG_VALUE_ACTION_DELETE);
 		if (ret < 0) {
 			config_print_response(&state->body_response,

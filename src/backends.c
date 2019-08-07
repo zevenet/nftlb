@@ -459,7 +459,7 @@ int backend_s_delete(struct farm *f)
 	struct backend *b, *next;
 
 	list_for_each_entry_safe(b, next, &f->backends, list)
-		backend_delete(b);
+		backend_delete_node(b);
 
 	f->total_bcks = 0;
 	f->bcks_available = 0;
