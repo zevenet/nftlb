@@ -126,7 +126,6 @@ enum map_modes {
 	BCK_MAP_BCK_IPADDR,
 	BCK_MAP_BCK_MARK,
 	BCK_MAP_BCK_IPADDR_F_PORT,
-	BCK_MAP_BCK_IPADDR_BF_PORT,
 	BCK_MAP_BCK_BF_SRCIPADDR,
 	BCK_MAP_BCK_ID,
 };
@@ -843,7 +842,7 @@ static int run_farm_rules_gen_srv(struct sbuffer *buf, struct farm *f, char *nft
 			concat_buf(buf, " }");
 		break;
 	default:
-		if (f->protocol == VALUE_PROTO_ALL)
+		if (f->protocol == VALUE_PROTO_ALL || key_mode != BCK_MAP_BCK_IPADDR_F_PORT)
 			nports = 1;
 		else
 			nports = get_array_ports(port_list, f);
@@ -863,9 +862,9 @@ static int run_farm_rules_gen_srv(struct sbuffer *buf, struct farm *f, char *nft
 				if ((key_mode == BCK_MAP_BCK_ID || key_mode == BCK_MAP_BCK_MARK) && bckmark != DEFAULT_MARK) {
 					sprintf(key_str, "0x%x", bckmark);
 					strcat(service_str, "-m");
-				} else if ((key_mode == BCK_MAP_BCK_ID || key_mode == BCK_MAP_BCK_IPADDR_BF_PORT) && strcmp(b->port, DEFAULT_PORT) != 0 && f->protocol != VALUE_PROTO_ALL) {
+				} else if (key_mode == BCK_MAP_BCK_ID && strcmp(b->port, DEFAULT_PORT) != 0 && f->protocol != VALUE_PROTO_ALL) {
 					sprintf(key_str, "%s . %s", b->ipaddr, b->port);
-				} else if ((key_mode == BCK_MAP_BCK_ID || key_mode == BCK_MAP_BCK_IPADDR_BF_PORT || key_mode == BCK_MAP_BCK_IPADDR_F_PORT) && strcmp(b->port, DEFAULT_PORT) == 0 && f->protocol != VALUE_PROTO_ALL) {
+				} else if ((key_mode == BCK_MAP_BCK_ID || key_mode == BCK_MAP_BCK_IPADDR_F_PORT) && strcmp(b->port, DEFAULT_PORT) == 0 && f->protocol != VALUE_PROTO_ALL) {
 					sprintf(key_str, "%s . %d", b->ipaddr, port_list[i]);
 				} else if (key_mode == BCK_MAP_BCK_ID || key_mode == BCK_MAP_BCK_IPADDR) {
 					sprintf(key_str, "%s", b->ipaddr);

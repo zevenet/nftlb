@@ -1,0 +1,55 @@
+table ip nftlb {
+	map nat-tcp-services {
+		type ipv4_addr . inet_service : verdict
+		elements = { 192.168.105.189 . 9443 : goto nat-newfarm,
+			     192.168.105.189 . 9444 : goto nat-newfarm }
+	}
+
+	map tcp-services-back {
+		type ipv4_addr . inet_service : ipv4_addr
+	}
+
+	map tcp-services-back-m {
+		type mark : ipv4_addr
+		elements = { 0x00000200 : 192.168.104.22 }
+	}
+
+	map filter-tcp-services {
+		type ipv4_addr . inet_service : verdict
+		elements = { 192.168.105.189 . 9443 : goto filter-newfarm,
+			     192.168.105.189 . 9444 : goto filter-newfarm }
+	}
+
+	map persist-newfarm {
+		type ipv4_addr : mark
+		size 65535
+		timeout 2m
+	}
+
+	chain prerouting {
+		type nat hook prerouting priority filter; policy accept;
+		ip daddr . tcp dport vmap @nat-tcp-services
+	}
+
+	chain postrouting {
+		type nat hook postrouting priority srcnat; policy accept;
+		ct mark 0x80000000/1 masquerade
+		snat to ip daddr . tcp dport map @tcp-services-back
+		snat to ct mark map @tcp-services-back-m
+	}
+
+	chain filter {
+		type filter hook prerouting priority mangle; policy accept;
+		meta mark set ct mark
+		ip daddr . tcp dport vmap @filter-tcp-services
+	}
+
+	chain filter-newfarm {
+		ct mark set numgen random mod 1 map { 0 : 0x00000200 }
+		update @persist-newfarm { ip saddr : ct mark }
+	}
+
+	chain nat-newfarm {
+		ip protocol tcp ct mark 0x00000200 dnat to 192.168.104.254:80
+	}
+}
