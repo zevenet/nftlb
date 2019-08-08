@@ -119,6 +119,11 @@ int element_s_set_action(struct policy *p, int action)
 {
 	struct element *e, *next;
 
+	if (action == ACTION_STOP) {
+		policy_set_action(p, ACTION_FLUSH);
+		return 0;
+	}
+
 	list_for_each_entry_safe(e, next, &p->elements, list)
 		element_set_action(e, action);
 

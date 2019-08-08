@@ -1,0 +1,3 @@
+VERB="DELETE"
+URI="policies/blacklist/elements"
+DESC="Deleting elements of blacklist... "

@@ -1672,7 +1672,7 @@ static int run_set_elements(struct sbuffer *buf, struct policy *p)
 		break;
 	case ACTION_RELOAD:
 		list_for_each_entry(e, &p->elements, list) {
-			if (e->action != ACTION_START && e->action != ACTION_NONE)
+			if (e->action != ACTION_START)
 				continue;
 			if (index)
 				concat_buf(buf, ", %s", e->data);
@@ -1717,6 +1717,9 @@ static int run_policy_set(struct sbuffer *buf, struct policy *p)
 		break;
 	case ACTION_RELOAD:
 		run_set_elements(buf, p);
+		break;
+	case ACTION_FLUSH:
+		concat_buf(buf, " ; flush set %s %s %s", NFTLB_NETDEV_FAMILY, NFTLB_TABLE_NAME, p->name);
 		break;
 	case ACTION_STOP:
 	case ACTION_DELETE:

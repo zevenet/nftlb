@@ -79,6 +79,7 @@ enum levels {
 enum actions {
 	ACTION_START,
 	ACTION_STOP,
+	ACTION_FLUSH,
 	ACTION_RELOAD,
 	ACTION_DELETE,
 	ACTION_NONE,
