@@ -1,3 +1,4 @@
-VERB="POST"
-URI="policies"
-DESC="Setting policy blacklist with overlap... "
+FILE="data.json"
+VERB="PUT"
+URI="farms"
+DESC="Change protocol tcp without helper... "

@@ -1,69 +1,42 @@
 {
-        "policies": [
+        "farms": [
                 {
-                        "name": "blacklist",
-                        "type": "blacklist",
-                        "timeout": "0",
-                        "priority": "-1",
-                        "used": "0",
-                        "elements": [
+                        "name": "newfarm",
+                        "family": "ipv4",
+                        "virtual-addr": "192.168.105.189",
+                        "virtual-ports": "9443,9444",
+                        "source-addr": "192.168.104.22",
+                        "mode": "snat",
+                        "protocol": "tcp",
+                        "scheduler": "weight",
+                        "sched-param": "none",
+                        "persistence": "srcip ",
+                        "persist-ttl": "120",
+                        "helper": "none",
+                        "log": "none",
+                        "mark": "0x0",
+                        "priority": "1",
+                        "state": "up",
+                        "new-rtlimit": "0",
+                        "new-rtlimit-burst": "0",
+                        "rst-rtlimit": "0",
+                        "rst-rtlimit-burst": "0",
+                        "est-connlimit": "0",
+                        "tcp-strict": "off",
+                        "queue": "-1",
+                        "backends": [
                                 {
-                                        "data": "103.15.28.215",
-                                        "time": ""
-                                },
-                                {
-                                        "data": "103.208.220.122",
-                                        "time": ""
-                                },
-                                {
-                                        "data": "103.208.220.226",
-                                        "time": ""
-                                },
-                                {
-                                        "data": "103.234.220.195",
-                                        "time": ""
-                                },
-                                {
-                                        "data": "103.234.220.197",
-                                        "time": ""
-                                },
-                                {
-                                        "data": "103.236.201.110",
-                                        "time": ""
-                                },
-                                {
-                                        "data": "103.236.201.88",
-                                        "time": ""
-                                },
-                                {
-                                        "data": "103.28.52.93",
-                                        "time": ""
-                                },
-                                {
-                                        "data": "103.28.53.138",
-                                        "time": ""
-                                },
-                                {
-                                        "data": "103.75.190.11",
-                                        "time": ""
-                                },
-                                {
-                                        "data": "104.192.0.58",
-                                        "time": ""
-                                },
-                                {
-                                        "data": "104.194.228.240",
-                                        "time": ""
-                                },
-                                {
-                                        "data": "104.196.43.128",
-                                        "time": ""
-                                },
-                                {
-                                        "data": "103.15.28.0/24",
-                                        "time": ""
+                                        "name": "bck0",
+                                        "ip-addr": "192.168.104.254",
+                                        "port": "80",
+                                        "weight": "1",
+                                        "priority": "1",
+                                        "mark": "0x200",
+                                        "est-connlimit": "0",
+                                        "state": "up"
                                 }
-                        ]
+                        ],
+                        "policies": []
                 }
         ]
 }
