@@ -158,7 +158,8 @@ static int farm_validate(struct farm *f)
 	}
 
 	if (farm_is_ingress_mode(f) &&
-		(!f->iface || (strcmp(f->iface, "") == 0))) {
+		((!f->iface || (strcmp(f->iface, "") == 0)) ||
+		 (!f->oface || (strcmp(f->oface, "") == 0)))) {
 		return 0;
 	}
 
