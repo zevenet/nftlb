@@ -1,0 +1,18 @@
+table netdev nftlb {
+	map tcp-services-enp0s3 {
+		type ipv4_addr . inet_service : verdict
+		elements = { 192.168.0.152 . 100 : goto test1 }
+	}
+
+	chain ingress-enp0s3 {
+		type filter hook ingress device "enp0s3" priority 100; policy accept;
+		ip saddr . tcp sport vmap @tcp-services-enp0s3
+	}
+
+	chain test1 {
+	}
+
+	chain test1-back {
+		ip saddr set 192.168.0.152 ether saddr set 08:00:27:2d:b8:0f fwd to "enp0s3"
+	}
+}

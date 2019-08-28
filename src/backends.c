@@ -23,6 +23,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
+#include <net/if.h>
 
 #include "backends.h"
 #include "farms.h"
@@ -59,6 +60,8 @@ static struct backend * backend_create(struct farm *f, char *name)
 
 	b->fqdn = DEFAULT_FQDN;
 	b->ethaddr = DEFAULT_ETHADDR;
+	b->oface = DEFAULT_IFNAME;
+	b->ofidx = DEFAULT_IFIDX;
 	b->ipaddr = DEFAULT_IPADDR;
 	b->port = DEFAULT_PORT;
 	b->srcaddr = DEFAULT_SRCADDR;
@@ -84,6 +87,8 @@ static int backend_delete_node(struct backend *b)
 		free(b->name);
 	if (b->fqdn && strcmp(b->fqdn, "") != 0)
 		free(b->fqdn);
+	if (b->oface && strcmp(b->oface, "") != 0)
+		free(b->oface);
 	if (b->ipaddr && strcmp(b->ipaddr, "") != 0)
 		free(b->ipaddr);
 	if (b->ethaddr && strcmp(b->ethaddr, "") != 0)
@@ -125,6 +130,11 @@ void backend_s_print(struct farm *f)
 
 		if (b->fqdn)
 			syslog(LOG_DEBUG,"       [%s] %s", CONFIG_KEY_FQDN, b->fqdn);
+
+		if (b->oface)
+			syslog(LOG_DEBUG,"       [%s] %s", CONFIG_KEY_OFACE, b->oface);
+
+		syslog(LOG_DEBUG,"      *[ofidx] %d", b->ofidx);
 
 		if (b->ipaddr)
 			syslog(LOG_DEBUG,"       [%s] %s", CONFIG_KEY_IPADDR, b->ipaddr);
@@ -341,6 +351,53 @@ static int backend_set_srcaddr(struct backend *b, char *new_value)
 	return 0;
 }
 
+static int backend_set_ifinfo(struct backend *b, int key)
+{
+	struct farm *f = b->parent;
+	char if_str[IFNAMSIZ];
+	int if_index;
+	int ret = 0;
+
+	syslog(LOG_DEBUG, "%s():%d: backend %s set interface info for interface key %d", __FUNCTION__, __LINE__, b->name, key);
+
+	if (!farm_is_ingress_mode(f)) {
+		syslog(LOG_DEBUG, "%s():%d: farm %s is not in ingress mode", __FUNCTION__, __LINE__, f->name);
+		return 0;
+	}
+
+	switch (key) {
+	case KEY_OFACE:
+		if (!b || b->ipaddr == DEFAULT_IPADDR) {
+			syslog(LOG_ERR, "%s():%d: there is no backend yet in the farm %s", __FUNCTION__, __LINE__, f->name);
+			return 0;
+		}
+
+		ret = net_get_local_ifidx_per_remote_host(b->ipaddr, &if_index);
+		if (ret == -1) {
+			syslog(LOG_ERR, "%s():%d: unable to get the outbound interface to %s for the backend %s in farm %s", __FUNCTION__, __LINE__, b->ipaddr, b->name, f->name);
+			return -1;
+		}
+
+		if (f->ofidx != if_index) {
+			f->bcks_have_if = 1;
+			b->ofidx = if_index;
+		}
+
+		if (if_indextoname(if_index, if_str) == NULL) {
+			syslog(LOG_ERR, "%s():%d: unable to get the outbound interface name with index %d required by the backend %s in farm %s", __FUNCTION__, __LINE__, if_index, b->name, f->name);
+			return -1;
+		}
+
+		if (strcmp(f->oface, if_str) != 0) {
+			obj_set_attribute_string(if_str, &b->oface);
+			net_strim_netface(b->oface);
+		}
+		break;
+	}
+
+	return 0;
+}
+
 static int backend_set_ipaddr(struct backend *b, char *new_value)
 {
 	char *old_value = b->ipaddr;
@@ -351,14 +408,15 @@ static int backend_set_ipaddr(struct backend *b, char *new_value)
 	obj_set_attribute_string(new_value, &b->ipaddr);
 	obj_set_attribute_string("", &b->ethaddr);
 
-	if (farm_set_ifinfo(b->parent, KEY_OFACE) == -1 ||
-	    backend_set_ipaddr_from_ether(b) == -1) {
+	if (farm_set_ifinfo(b->parent, KEY_OFACE) == 0 &&
+		backend_set_ifinfo(b, KEY_OFACE) == 0 &&
+	    backend_set_ipaddr_from_ether(b) == 0 ) {
+		if (old_value != DEFAULT_IPADDR && b->state == VALUE_STATE_CONFERR)
+			backend_set_state(b, VALUE_STATE_UP);
+	} else {
 		syslog(LOG_DEBUG, "%s():%d: backend %s comes to OFF", __FUNCTION__, __LINE__, b->name);
 		if (old_value != DEFAULT_IPADDR)
 			backend_set_state(b, VALUE_STATE_CONFERR);
-	} else {
-		if (old_value != DEFAULT_IPADDR && b->state == VALUE_STATE_CONFERR)
-			backend_set_state(b, VALUE_STATE_UP);
 	}
 
 	return 0;
@@ -462,6 +520,7 @@ int backend_s_delete(struct farm *f)
 	f->total_bcks = 0;
 	f->bcks_available = 0;
 	f->total_weight = 0;
+	f->bcks_have_if = 0;
 
 	return 0;
 }

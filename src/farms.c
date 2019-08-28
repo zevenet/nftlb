@@ -93,6 +93,7 @@ static struct farm * farm_create(char *name)
 	pfarm->bcks_are_marked = 0;
 	pfarm->bcks_have_port = 0;
 	pfarm->bcks_have_srcaddr = 0;
+	pfarm->bcks_have_if = 0;
 	pfarm->policies_used = 0;
 	pfarm->policies_action = ACTION_NONE;
 
@@ -328,18 +329,6 @@ static int farm_set_sched(struct farm *f, int new_value)
 	return 0;
 }
 
-static int farm_strim_netface(char *name)
-{
-	char *ptr;
-
-	if ((ptr = strstr(name, ":")) != NULL) {
-		*ptr = '\0';
-		return 1;
-	}
-
-	return 0;
-}
-
 static void farm_print(struct farm *f)
 {
 	char buf[100] = {};
@@ -540,7 +529,7 @@ int farm_set_ifinfo(struct farm *f, int key)
 		}
 
 		obj_set_attribute_string(if_str, &f->iface);
-		farm_strim_netface(f->iface);
+		net_strim_netface(f->iface);
 
 		if_index = if_nametoindex(f->iface);
 
@@ -554,7 +543,7 @@ int farm_set_ifinfo(struct farm *f, int key)
 		ether_addr = &f->iethaddr;
 
 		net_get_local_ifinfo((unsigned char **)&ether, f->iface);
-		farm_strim_netface(f->iface);
+		net_strim_netface(f->iface);
 
 		sprintf(streth, "%02x:%02x:%02x:%02x:%02x:%02x", ether[0],
 			ether[1], ether[2], ether[3], ether[4], ether[5]);
@@ -584,16 +573,16 @@ int farm_set_ifinfo(struct farm *f, int key)
 		}
 
 		obj_set_attribute_string(if_str, &f->oface);
-		farm_strim_netface(f->oface);
+		net_strim_netface(f->oface);
 
-		if_index = if_nametoindex(f->oface);
+		//~ if_index = if_nametoindex(f->oface);
 
-		if (if_index == 0) {
-			syslog(LOG_ERR, "%s():%d: index of outbound interface %s in farm %s is not found", __FUNCTION__, __LINE__, f->oface, f->name);
-			return -1;
-		}
+		//~ if (if_index == 0) {
+			//~ syslog(LOG_ERR, "%s():%d: index of outbound interface %s in farm %s is not found", __FUNCTION__, __LINE__, f->oface, f->name);
+			//~ return -1;
+		//~ }
 
-		f->ofidx = if_index;
+		//~ f->ofidx = if_index;
 		break;
 	}
 
@@ -706,11 +695,11 @@ int farm_set_attribute(struct config_pair *c)
 		break;
 	case KEY_IFACE:
 		ret = obj_set_attribute_string(c->str_value, &f->iface);
-		farm_strim_netface(f->iface);
+		net_strim_netface(f->iface);
 		break;
 	case KEY_OFACE:
 		ret = obj_set_attribute_string(c->str_value, &f->oface);
-		farm_strim_netface(f->oface);
+		net_strim_netface(f->oface);
 		break;
 	case KEY_FAMILY:
 		f->family = c->int_value;

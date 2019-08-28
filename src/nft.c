@@ -128,6 +128,7 @@ enum map_modes {
 	BCK_MAP_BCK_IPADDR_F_PORT,
 	BCK_MAP_BCK_BF_SRCIPADDR,
 	BCK_MAP_BCK_ID,
+	BCK_MAP_OFACE,
 };
 
 struct if_base_rule {
@@ -1031,6 +1032,12 @@ static int run_farm_rules_gen_bck_map(struct sbuffer *buf, struct farm *f, enum 
 			case BCK_MAP_IPADDR:
 				concat_buf(buf, " %s", b->ipaddr);
 				break;
+			case BCK_MAP_OFACE:
+				if (b->oface)
+					concat_buf(buf, " %s", b->oface);
+				else
+					concat_buf(buf, " %s", f->oface);
+				break;
 			default:
 				break;
 			}
@@ -1061,6 +1068,9 @@ static int run_farm_rules_gen_bck_map(struct sbuffer *buf, struct farm *f, enum 
 				concat_buf(buf, "-%d", new);
 			last = new + 1;
 			break;
+		case BCK_MAP_ETHADDR:
+			concat_buf(buf, " %s", b->ethaddr);
+			break;
 		default:
 			break;
 		}
@@ -1076,6 +1086,12 @@ static int run_farm_rules_gen_bck_map(struct sbuffer *buf, struct farm *f, enum 
 			break;
 		case BCK_MAP_IPADDR:
 			concat_buf(buf, " %s", b->ipaddr);
+			break;
+		case BCK_MAP_OFACE:
+			if (b->oface)
+				concat_buf(buf, " %s", b->oface);
+			else
+				concat_buf(buf, " %s", f->oface);
 			break;
 		default:
 			break;
@@ -1435,7 +1451,12 @@ static int run_farm_rules_gen_nat(struct sbuffer *buf, struct farm *f, int famil
 		concat_buf(buf, " ; add rule %s %s %s ether saddr set %s ether daddr set", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain, f->iethaddr);
 		run_farm_rules_gen_sched(buf, f, family);
 		run_farm_rules_gen_bck_map(buf, f, BCK_MAP_WEIGHT, BCK_MAP_ETHADDR);
-		concat_buf(buf, " fwd to %s", f->oface);
+		concat_buf(buf, " fwd to");
+		if (f->bcks_have_if) {
+			concat_buf(buf, " ether daddr");
+			run_farm_rules_gen_bck_map(buf, f, BCK_MAP_ETHADDR, BCK_MAP_OFACE);
+		} else
+			concat_buf(buf, " %s", f->oface);
 		break;
 	case VALUE_MODE_STLSDNAT:
 		concat_buf(buf, " ; add rule %s %s %s %s daddr set", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain, print_nft_family(family));

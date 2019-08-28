@@ -32,6 +32,8 @@ struct backend {
 	char			*fqdn;
 	char			*ipaddr;
 	char			*ethaddr;
+	int			ofidx;
+	char			*oface;
 	char			*port;
 	char			*srcaddr;
 	int			weight;

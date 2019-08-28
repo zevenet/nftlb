@@ -666,4 +666,14 @@ int net_get_event_enabled(void)
 	return net_event_enabled;
 }
 
+int net_strim_netface(char *name)
+{
+	char *ptr;
 
+	if ((ptr = strstr(name, ":")) != NULL) {
+		*ptr = '\0';
+		return 1;
+	}
+
+	return 0;
+}

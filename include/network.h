@@ -32,5 +32,6 @@ int net_get_local_ifname_per_vip(char *strvip, char *outdev);
 int net_eventd_init(void);
 int net_eventd_stop(void);
 int net_get_event_enabled(void);
+int net_strim_netface(char *name);
 
 #endif /* _NETWORK_H_ */
