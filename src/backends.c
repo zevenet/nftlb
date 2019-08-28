@@ -351,15 +351,13 @@ static int backend_set_ipaddr(struct backend *b, char *new_value)
 	obj_set_attribute_string(new_value, &b->ipaddr);
 	obj_set_attribute_string("", &b->ethaddr);
 
-	if (old_value == DEFAULT_IPADDR)
-		return 0;
-
 	if (farm_set_ifinfo(b->parent, KEY_OFACE) == -1 ||
 	    backend_set_ipaddr_from_ether(b) == -1) {
 		syslog(LOG_DEBUG, "%s():%d: backend %s comes to OFF", __FUNCTION__, __LINE__, b->name);
-		backend_set_state(b, VALUE_STATE_CONFERR);
+		if (old_value != DEFAULT_IPADDR)
+			backend_set_state(b, VALUE_STATE_CONFERR);
 	} else {
-		if (b->state == VALUE_STATE_CONFERR)
+		if (old_value != DEFAULT_IPADDR && b->state == VALUE_STATE_CONFERR)
 			backend_set_state(b, VALUE_STATE_UP);
 	}
 
