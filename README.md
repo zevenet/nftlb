@@ -71,10 +71,7 @@ Where every farm object has the following attributes:
 ```
 {
 	"name" : "<string>",				*Name of the service (required)*
-	"iface"	: "<interface name>",			*Input interface (only required for DSR)*
-	"oface"	: "<interface name>",			*Output interface (only required for DSR)*
 	"family": "<ipv4 | ipv6 | dual>",		*Family of the virtual service (ipv4 by default)*
-	"ether-addr": "<mac address>",			*Physical address of the virtual service (only required for DSR)*
 	"virtual-addr": "<ip address>",			*IP address for the virtual service (required)*
 	"virtual-ports": "<port list>",			*Port list separated by commas or ranges separated by a hyphen*
 	"source-addr": "<ip address>",			*Source IP address instead of masquerading*
@@ -118,7 +115,6 @@ Where every backend object has the following attributes:
 ```
 {
 	"name" : "<string>",				*Name of the backend (required)*
-	"ether-addr": "<mac address>",			*Physical address of the backend (only required for DSR)*
 	"ip-addr": "<ip address>",			*IP address for the backend (required, except for DSR)*
 	"port": "<number>",				*Backend port to redirect the connections*
 	"source-addr": "<ip address>",			*Source IP address for a certain backend instead of masquerading or virtual service source address*
