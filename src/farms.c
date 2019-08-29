@@ -574,15 +574,6 @@ int farm_set_ifinfo(struct farm *f, int key)
 
 		obj_set_attribute_string(if_str, &f->oface);
 		net_strim_netface(f->oface);
-
-		//~ if_index = if_nametoindex(f->oface);
-
-		//~ if (if_index == 0) {
-			//~ syslog(LOG_ERR, "%s():%d: index of outbound interface %s in farm %s is not found", __FUNCTION__, __LINE__, f->oface, f->name);
-			//~ return -1;
-		//~ }
-
-		//~ f->ofidx = if_index;
 		break;
 	}
 
