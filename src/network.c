@@ -216,12 +216,12 @@ static int data_route_attr_cb(const struct nlattr *attr, void *data)
 			return MNL_CB_ERROR;
 		}
 		break;
-        case RTA_METRICS:
-                if (mnl_attr_validate(attr, MNL_TYPE_NESTED) < 0) {
+	case RTA_METRICS:
+		if (mnl_attr_validate(attr, MNL_TYPE_NESTED) < 0) {
 			syslog(LOG_ERR, "%s():%d: mnl_attr_validate error", __FUNCTION__, __LINE__);
-                        return MNL_CB_ERROR;
-                }
-                break;
+			return MNL_CB_ERROR;
+		}
+		break;
 	}
 
 	tb[type] = attr;
