@@ -29,6 +29,7 @@ enum families {
 	VALUE_FAMILY_IPV4,
 	VALUE_FAMILY_IPV6,
 	VALUE_FAMILY_INET,
+	VALUE_FAMILY_NETDEV,
 };
 
 enum modes {
@@ -147,6 +148,7 @@ struct farm {
 	int			bcks_have_if;
 	int			policies_action;
 	int			policies_used;
+	int			nft_chains;
 	struct list_head	backends;
 	struct list_head	policies;
 };

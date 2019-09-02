@@ -41,6 +41,7 @@ table ip nftlb {
 	}
 
 	chain filter-newfarm {
+		ct mark set 0x80000000
 	}
 
 	chain nat-newfarm {

@@ -96,6 +96,7 @@ static struct farm * farm_create(char *name)
 	pfarm->bcks_have_if = 0;
 	pfarm->policies_used = 0;
 	pfarm->policies_action = ACTION_NONE;
+	pfarm->nft_chains = 0;
 
 	list_add_tail(&pfarm->list, farms);
 	obj_set_total_farms(obj_get_total_farms() + 1);
@@ -419,6 +420,7 @@ static void farm_print(struct farm *f)
 	syslog(LOG_DEBUG,"    *[policies_used] %d", f->policies_used);
 	syslog(LOG_DEBUG,"    *[%s] %d", CONFIG_KEY_ACTION, f->action);
 	syslog(LOG_DEBUG,"    *[reload_action] %x", f->reload_action);
+	syslog(LOG_DEBUG,"    *[nft_chains] %x", f->nft_chains);
 
 	if (f->total_bcks != 0)
 		backend_s_print(f);
