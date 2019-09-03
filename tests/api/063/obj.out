@@ -6,7 +6,7 @@
                         "virtual-addr": "172.16.1.1",
                         "virtual-ports": "80",
                         "source-addr": "",
-                        "mode": "snat",
+                        "mode": "dnat",
                         "protocol": "tcp",
                         "scheduler": "weight",
                         "sched-param": "none",
@@ -24,7 +24,18 @@
                         "est-connlimit": "0",
                         "tcp-strict": "off",
                         "queue": "-1",
-                        "backends": [],
+                        "backends": [
+                                {
+                                        "name": "bck0",
+                                        "ip-addr": "127.0.0.2",
+                                        "port": "80",
+                                        "weight": "1",
+                                        "priority": "1",
+                                        "mark": "0x200",
+                                        "est-connlimit": "0",
+                                        "state": "up"
+                                }
+                        ],
                         "policies": []
                 }
         ]

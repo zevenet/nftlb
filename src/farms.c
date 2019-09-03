@@ -546,11 +546,17 @@ int farm_set_ifinfo(struct farm *f, int key)
 		}
 
 		f->ifidx = if_index;
-
 		ether_addr = &f->iethaddr;
 
 		net_get_local_ifinfo((unsigned char **)&ether, f->iface);
 		net_strim_netface(f->iface);
+
+		/* By default, use the same inbound and outbound interface until
+		 * the backends network configuration say a different thing */
+		if (f->ofidx == DEFAULT_IFIDX) {
+			f->ofidx = f->ifidx;
+			obj_set_attribute_string(f->iface, &f->oface);
+		}
 
 		sprintf(streth, "%02x:%02x:%02x:%02x:%02x:%02x", ether[0],
 			ether[1], ether[2], ether[3], ether[4], ether[5]);

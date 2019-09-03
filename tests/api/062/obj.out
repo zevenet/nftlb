@@ -6,7 +6,7 @@
                         "virtual-addr": "172.16.1.1",
                         "virtual-ports": "80",
                         "source-addr": "",
-                        "mode": "snat",
+                        "mode": "dnat",
                         "protocol": "tcp",
                         "scheduler": "weight",
                         "sched-param": "none",
