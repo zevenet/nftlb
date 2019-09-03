@@ -86,6 +86,7 @@ enum states {
 #define VALUE_META_DSTPORT	(1 << 3)
 #define VALUE_META_SRCMAC		(1 << 4)
 #define VALUE_META_DSTMAC		(1 << 5)
+#define VALUE_META_MARK		(1 << 6)
 
 #define VALUE_LOG_NONE			0
 #define VALUE_LOG_INPUT			(1 << 0)
@@ -117,6 +118,7 @@ struct farm {
 	char			*srcaddr;
 	int			family;
 	int			mode;
+	int			responsettl;
 	int			protocol;
 	int			scheduler;
 	int			schedparam;

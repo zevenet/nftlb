@@ -38,6 +38,7 @@
 #define CONFIG_KEY_SRCADDR		"source-addr"
 #define CONFIG_KEY_PORT			"port"
 #define CONFIG_KEY_MODE			"mode"
+#define CONFIG_KEY_RESPONSETTL	"responsettl"
 #define CONFIG_KEY_PROTO		"protocol"
 #define CONFIG_KEY_SCHED		"scheduler"
 #define CONFIG_KEY_SCHEDPARAM	"sched-param"

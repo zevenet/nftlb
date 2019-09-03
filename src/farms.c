@@ -58,6 +58,7 @@ static struct farm * farm_create(char *name)
 	pfarm->srcaddr = DEFAULT_SRCADDR;
 	pfarm->family = DEFAULT_FAMILY;
 	pfarm->mode = DEFAULT_MODE;
+	pfarm->responsettl = DEFAULT_RESPONSETTL;
 	pfarm->protocol = DEFAULT_PROTO;
 	pfarm->scheduler = DEFAULT_SCHED;
 	pfarm->schedparam = DEFAULT_SCHEDPARAM;
@@ -367,6 +368,10 @@ static void farm_print(struct farm *f)
 
 	syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_FAMILY, obj_print_family(f->family));
 	syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_MODE, obj_print_mode(f->mode));
+
+	if (f->mode == VALUE_MODE_STLSDNAT)
+		syslog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_RESPONSETTL, f->responsettl);
+
 	syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_PROTO, obj_print_proto(f->protocol));
 	syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_SCHED, obj_print_sched(f->scheduler));
 
@@ -603,6 +608,7 @@ int farm_pre_actionable(struct config_pair *c)
 	case KEY_VIRTPORTS:
 	case KEY_SRCADDR:
 	case KEY_MODE:
+	case KEY_RESPONSETTL:
 	case KEY_PROTO:
 	case KEY_PERSISTENCE:
 	case KEY_PERSISTTM:
@@ -637,6 +643,7 @@ int farm_pos_actionable(struct config_pair *c)
 	case KEY_VIRTPORTS:
 	case KEY_SRCADDR:
 	case KEY_MODE:
+	case KEY_RESPONSETTL:
 	case KEY_PROTO:
 	case KEY_PERSISTENCE:
 	case KEY_PERSISTTM:
@@ -713,6 +720,10 @@ int farm_set_attribute(struct config_pair *c)
 		break;
 	case KEY_MODE:
 		ret = farm_set_mode(f, c->int_value);
+		break;
+	case KEY_RESPONSETTL:
+		f->responsettl = c->int_value;
+		ret = PARSER_OK;
 		break;
 	case KEY_PROTO:
 		f->protocol = c->int_value;

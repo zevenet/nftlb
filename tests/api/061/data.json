@@ -1,0 +1,1 @@
+{"farms" : [ { "name" : "test1", "backends" : [ { "name" : "bck0", "ip-addr" : "127.0.0.2", "ether-addr" : "03:03:03:03:03:03", "port" : "80", "mark" : "0x200", "state" : "up" } ] } ] }

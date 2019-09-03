@@ -291,6 +291,7 @@ static int config_value(const char *value)
 			ret = PARSER_OK;
 		}
 		break;
+	case KEY_RESPONSETTL:
 	case KEY_PERSISTTM:
 	case KEY_NEWRTLIMIT:
 	case KEY_NEWRTLIMITBURST:
@@ -381,6 +382,8 @@ static int config_key(const char *key)
 		return KEY_PORT;
 	if (strcmp(key, CONFIG_KEY_MODE) == 0)
 		return KEY_MODE;
+	if (strcmp(key, CONFIG_KEY_RESPONSETTL) == 0)
+		return KEY_RESPONSETTL;
 	if (strcmp(key, CONFIG_KEY_PROTO) == 0)
 		return KEY_PROTO;
 	if (strcmp(key, CONFIG_KEY_SCHED) == 0)
@@ -658,6 +661,11 @@ static void add_dump_list(json_t *obj, const char *objname, int object,
 				add_dump_obj(item, CONFIG_KEY_SRCADDR, "");
 
 			add_dump_obj(item, CONFIG_KEY_MODE, obj_print_mode(f->mode));
+			if (f->mode == VALUE_MODE_STLSDNAT) {
+				config_dump_int(value, f->responsettl);
+				add_dump_obj(item, CONFIG_KEY_RESPONSETTL, value);
+			}
+
 			add_dump_obj(item, CONFIG_KEY_PROTO, obj_print_proto(f->protocol));
 			add_dump_obj(item, CONFIG_KEY_SCHED, obj_print_sched(f->scheduler));
 
