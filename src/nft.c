@@ -1551,7 +1551,12 @@ static int run_farm_rules_gen_nat(struct sbuffer *buf, struct farm *f, int famil
 		run_farm_rules_gen_bck_map(buf, f, BCK_MAP_WEIGHT, BCK_MAP_IPADDR);
 		concat_buf(buf, " ether daddr set ip daddr");
 		run_farm_rules_gen_bck_map(buf, f, BCK_MAP_IPADDR, BCK_MAP_ETHADDR);
-		concat_buf(buf, " fwd to %s", f->oface);
+		concat_buf(buf, " fwd to");
+		if (f->bcks_have_if) {
+			concat_buf(buf, " ether daddr");
+			run_farm_rules_gen_bck_map(buf, f, BCK_MAP_ETHADDR, BCK_MAP_OFACE);
+		} else
+			concat_buf(buf, " %s", f->oface);
 		break;
 	default:
 		if (!f->bcks_are_marked) {
