@@ -10,7 +10,6 @@ table netdev nftlb {
 	}
 
 	chain lb01 {
-		log prefix "IN-lb01 "
-		ether saddr set 01:01:01:01:01:01 ether daddr set jhash ip saddr mod 10 map { 0-4 : 02:02:02:02:02:02, 5-9 : 03:03:03:03:03:03 } fwd to "lo"
+		log prefix "IN-lb01 " ether saddr set 01:01:01:01:01:01 ether daddr set jhash ip saddr mod 10 map { 0-4 : 02:02:02:02:02:02, 5-9 : 03:03:03:03:03:03 } fwd to "lo"
 	}
 }

@@ -1,4 +1,4 @@
 VERB="POST"
 URI="farms"
-DESC="Setting dnat in farm test1... "
+DESC="Adding backend in farm test1... "
 FILE="data.json"
