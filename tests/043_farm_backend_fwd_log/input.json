@@ -1,0 +1,38 @@
+{
+	"farms" : [
+		{
+			"name" : "lb01",
+			"family" : "ipv4",
+			"virtual-addr" : "127.0.0.1",
+			"virtual-ports" : "80",
+			"mode" : "snat",
+			"protocol" : "tcp",
+			"scheduler" : "weight",
+			"log" : "input",
+			"log-prefix" : "[FNAME,TYPE]",
+			"state" : "up",
+			"backends" : [
+				{
+					"name" : "bck0",
+					"ip-addr" : "192.168.0.10",
+					"weight" : "5",
+					"priority" : "1",
+					"mark" : "0x001",
+					"est-connlimit" : "20",
+					"est-connlimit-log-prefix" : "[KNAME,bck,FNAME,BNAME]",
+					"state" : "up"
+				},
+				{
+					"name" : "bck1",
+					"ip-addr" : "192.168.0.11",
+					"weight" : "5",
+					"priority" : "1",
+					"mark" : "0x002",
+					"est-connlimit" : "20",
+					"est-connlimit-log-prefix" : "[KNAME,bck,FNAME,BNAME]",
+					"state" : "up"
+				}
+			]
+		}
+	]
+}

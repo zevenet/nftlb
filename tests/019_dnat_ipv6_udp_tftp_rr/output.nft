@@ -13,7 +13,7 @@ table ip6 nftlb {
 		type ipv6_addr . inet_service : ipv6_addr
 	}
 
-	map udp-services-back-m {
+	map udp-services6-back-m {
 		type mark : ipv6_addr
 	}
 
@@ -31,7 +31,7 @@ table ip6 nftlb {
 		type nat hook postrouting priority srcnat; policy accept;
 		ct mark 0x80000000/1 masquerade
 		snat to ip6 daddr . udp dport map @udp-services6-back
-		snat to ct mark map @udp-services-back-m
+		snat to ct mark map @udp-services6-back-m
 	}
 
 	chain filter {

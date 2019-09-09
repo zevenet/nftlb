@@ -92,6 +92,7 @@ table netdev nftlb {
 	chain ingress-lo {
 		type filter hook ingress device "lo" priority 100; policy accept;
 		ip saddr . tcp sport vmap @tcp-services-lo
+		ip daddr . tcp dport vmap @tcp-services-lo
 	}
 
 	chain lb01 {
