@@ -133,6 +133,8 @@ char * obj_print_mode(int mode)
 		return CONFIG_VALUE_MODE_DSR;
 	case VALUE_MODE_STLSDNAT:
 		return CONFIG_VALUE_MODE_STLSDNAT;
+	case VALUE_MODE_LOCAL:
+		return CONFIG_VALUE_MODE_LOCAL;
 	default:
 		return NULL;
 	}

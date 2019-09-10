@@ -37,6 +37,7 @@ enum modes {
 	VALUE_MODE_DNAT,
 	VALUE_MODE_DSR,
 	VALUE_MODE_STLSDNAT,
+	VALUE_MODE_LOCAL,
 };
 
 enum protocols {

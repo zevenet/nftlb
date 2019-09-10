@@ -81,6 +81,8 @@ static int config_value_mode(const char *value)
 		return VALUE_MODE_DSR;
 	if (strcmp(value, CONFIG_VALUE_MODE_STLSDNAT) == 0)
 		return VALUE_MODE_STLSDNAT;
+	if (strcmp(value, CONFIG_VALUE_MODE_LOCAL) == 0)
+		return VALUE_MODE_LOCAL;
 
 	syslog(LOG_INFO, "%s():%d: parsing unknown value'%s', using defaults", __FUNCTION__, __LINE__, value);
 	return VALUE_MODE_SNAT;

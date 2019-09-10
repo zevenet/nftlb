@@ -78,6 +78,7 @@
 #define CONFIG_VALUE_MODE_DNAT		"dnat"
 #define CONFIG_VALUE_MODE_DSR		"dsr"
 #define CONFIG_VALUE_MODE_STLSDNAT	"stlsdnat"
+#define CONFIG_VALUE_MODE_LOCAL		"local"
 #define CONFIG_VALUE_PROTO_TCP		"tcp"
 #define CONFIG_VALUE_PROTO_UDP		"udp"
 #define CONFIG_VALUE_PROTO_SCTP		"sctp"

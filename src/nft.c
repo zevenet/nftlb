@@ -1423,6 +1423,9 @@ static int run_farm_rules_filter(struct sbuffer *buf, struct farm *f, int family
 {
 	char chain[255] = { 0 };
 
+	if (!need_filter(f))
+		return 0;
+
 	get_farm_chain(chain, f, NFTLB_F_CHAIN_PRE_FILTER);
 
 	switch (action) {
@@ -1453,6 +1456,9 @@ static int run_farm_rules_filter(struct sbuffer *buf, struct farm *f, int family
 static int run_farm_rules_forward(struct sbuffer *buf, struct farm *f, int family, int action)
 {
 	char chain[255] = { 0 };
+
+	if (!need_forward(f))
+		return 0;
 
 	get_farm_chain(chain, f, NFTLB_F_CHAIN_FWD_FILTER);
 
@@ -1643,19 +1649,21 @@ static int run_farm_rules(struct sbuffer *buf, struct farm *f, int family, int a
 		run_farm_ingress_policies(buf, f, family, action);
 		run_farm_rules_gen_nat(buf, f, family, NFTLB_F_CHAIN_ING_FILTER);
 		break;
+	case VALUE_MODE_LOCAL:
+		run_farm_rules_filter(buf, f, family, action);
+		run_farm_ingress_policies(buf, f, family, action);
+		break;
 	default:
 		run_base_chain(buf, f, NFTLB_F_CHAIN_PRE_DNAT, family);
 		run_base_chain(buf, f, NFTLB_F_CHAIN_POS_SNAT, family);
 
-		if (need_filter(f))
-			run_farm_rules_filter(buf, f, family, action);
-
+		run_farm_rules_filter(buf, f, family, action);
 		run_farm_ingress_policies(buf, f, family, action);
+
 		run_farm_rules_gen_vsrv(buf, f, NFTLB_F_CHAIN_PRE_DNAT, family, action);
 		run_farm_rules_gen_nat(buf, f, family, NFTLB_F_CHAIN_PRE_DNAT);
 
-		if (need_forward(f))
-			run_farm_rules_forward(buf, f, family, action);
+		run_farm_rules_forward(buf, f, family, action);
 
 		run_farm_snat(buf, f, family, action);
 	}
