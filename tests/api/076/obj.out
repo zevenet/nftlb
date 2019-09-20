@@ -1,18 +1,17 @@
 {
         "farms": [
                 {
-                        "name": "test1",
+                        "name": "lb01",
                         "family": "ipv4",
-                        "virtual-addr": "127.0.0.1",
-                        "virtual-ports": "100",
+                        "virtual-addr": "192.168.0.100",
+                        "virtual-ports": "80",
                         "source-addr": "",
-                        "mode": "stlsdnat",
-                        "responsettl": "60",
+                        "mode": "snat",
                         "protocol": "tcp",
                         "scheduler": "weight",
                         "sched-param": "none",
                         "persistence": "none",
-                        "persist-ttl": "60",
+                        "persist-ttl": "50",
                         "helper": "none",
                         "log": "none",
                         "mark": "0x0",
@@ -28,21 +27,21 @@
                         "backends": [
                                 {
                                         "name": "bck0",
-                                        "ip-addr": "127.0.0.1",
-                                        "port": "80",
-                                        "weight": "1",
+                                        "ip-addr": "192.168.0.10",
+                                        "port": "10",
+                                        "weight": "5",
                                         "priority": "1",
-                                        "mark": "0x200",
+                                        "mark": "0x1",
                                         "est-connlimit": "0",
                                         "state": "up"
                                 },
                                 {
                                         "name": "bck1",
-                                        "ip-addr": "127.0.1.1",
-                                        "port": "80",
-                                        "weight": "2",
+                                        "ip-addr": "192.168.0.11",
+                                        "port": "20",
+                                        "weight": "5",
                                         "priority": "1",
-                                        "mark": "0x201",
+                                        "mark": "0x2",
                                         "est-connlimit": "0",
                                         "state": "up"
                                 }

@@ -62,6 +62,10 @@
 #define DEFAULT_POLICY_PRIORITY	-1
 #define DEFAULT_POLICY_LOGPREFIX	"KNAME-TYPE-PNAME-FNAME "
 #define DEFAULT_ELEMENT_TIME		""
+#define DEFAULT_SESSION_EXPIRATION		NULL
+
+#define UNDEFINED_VALUE					"UNDEFINED"
+
 
 enum obj_start {
 	OBJ_START,
@@ -75,6 +79,7 @@ enum levels {
 	LEVEL_FARMPOLICY,
 	LEVEL_POLICIES,
 	LEVEL_ELEMENTS,
+	LEVEL_SESSIONS,
 };
 
 enum actions {
@@ -133,6 +138,9 @@ enum keys {
 	KEY_ESTCONNLIMIT_LOGPREFIX,
 	KEY_TCPSTRICT_LOGPREFIX,
 	KEY_RESPONSETTL,
+	KEY_SESSIONS,
+	KEY_CLIENT,
+	KEY_BACKEND,
 };
 
 struct obj_config {
@@ -141,6 +149,7 @@ struct obj_config {
 	struct policy		*pptr;
 	struct element		*eptr;
 	struct farmpolicy	*fpptr;
+	struct session		*sptr;
 	struct config_pair	*c;
 };
 

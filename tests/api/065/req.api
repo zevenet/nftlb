@@ -1,4 +1,4 @@
 VERB="POST"
 URI="farms"
-DESC="Setting stateless dnat farm... "
+DESC="Creating farm lb01... "
 FILE="data.json"

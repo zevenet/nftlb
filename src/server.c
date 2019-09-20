@@ -61,11 +61,11 @@ enum ws_methods {
 };
 
 enum ws_responses {
-	WS_HTTP_500,
-	WS_HTTP_400,
-	WS_HTTP_401,
-	WS_HTTP_404,
-	WS_HTTP_200,
+	WS_HTTP_500,	// internal server error
+	WS_HTTP_400,	// bad request
+	WS_HTTP_401,	// unauthorized
+	WS_HTTP_404,	// not found
+	WS_HTTP_200,	// ok
 };
 
 struct nftlb_http_state {
@@ -213,10 +213,24 @@ static int send_get_response(struct nftlb_http_state *state)
 	       firstlevel, secondlevel, thirdlevel, fourthlevel);
 
 	if (strcmp(firstlevel, CONFIG_KEY_FARMS) == 0) {
-		if (config_print_farms(&state->body_response, secondlevel) == 0) {
-			state->status_code = WS_HTTP_200;
-			return 0;
+
+		if (strcmp(thirdlevel, CONFIG_KEY_SESSIONS) == 0 &&
+			config_print_farm_sessions(&state->body_response, secondlevel) == 0) {
+				state->status_code = WS_HTTP_200;
+				return 0;
 		}
+
+		if (strcmp(thirdlevel, "") == 0 &&
+			config_print_farms(&state->body_response, secondlevel) == 0) {
+				state->status_code = WS_HTTP_200;
+				return 0;
+		}
+
+		config_print_response(&state->body_response,
+				      "invalid URI key");
+		state->status_code = WS_HTTP_400;
+		return -1;
+
 	} else if (strcmp(firstlevel, CONFIG_KEY_POLICIES) == 0) {
 		if (config_print_policies(&state->body_response, secondlevel) == 0) {
 			state->status_code = WS_HTTP_200;
@@ -224,7 +238,7 @@ static int send_get_response(struct nftlb_http_state *state)
 		}
 	}
 
-	state->status_code = WS_HTTP_500;
+	state->status_code = WS_HTTP_400;
 	return -1;
 }
 
@@ -257,6 +271,19 @@ static int send_delete_response(struct nftlb_http_state *state)
 		if (ret < 0) {
 			config_print_response(&state->body_response,
 					      "error deleting backend");
+			goto delete_end;
+		}
+	} else if (strcmp(firstlevel, CONFIG_KEY_FARMS) == 0 &&
+		strcmp(thirdlevel, CONFIG_KEY_SESSIONS) == 0) {
+		ret = config_set_session_action(secondlevel, fourthlevel, CONFIG_VALUE_ACTION_STOP);
+		if (ret > 0) {
+			config_set_farm_action(secondlevel, CONFIG_VALUE_ACTION_RELOAD);
+			obj_rulerize(OBJ_START);
+		}
+		ret = config_set_session_action(secondlevel, fourthlevel, CONFIG_VALUE_ACTION_DELETE);
+		if (ret < 0) {
+			config_print_response(&state->body_response,
+					      "error deleting session");
 			goto delete_end;
 		}
 	} else if (strcmp(firstlevel, CONFIG_KEY_FARMS) == 0 &&

@@ -27,6 +27,7 @@
 #include "backends.h"
 #include "policies.h"
 #include "elements.h"
+#include "sessions.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -315,6 +316,15 @@ int obj_set_attribute(struct config_pair *c, int actionable)
 
 		if (actionable && status == 0)
 			bck_pos_actionable(c);
+		break;
+	case LEVEL_SESSIONS:
+		if (actionable)
+			status = session_pre_actionable(c);
+
+		ret = session_set_attribute(c);
+
+		if (actionable)
+			session_pos_actionable(c);
 		break;
 	case LEVEL_FARMPOLICY:
 		if (actionable)

@@ -154,6 +154,10 @@ struct farm {
 	int			nft_chains;
 	struct list_head	backends;
 	struct list_head	policies;
+	int					total_timed_sessions;
+	struct list_head	timed_sessions;
+	int					total_static_sessions;
+	struct list_head	static_sessions;
 };
 
 struct list_head * farm_s_get_head(void);

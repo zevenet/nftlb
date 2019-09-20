@@ -29,6 +29,7 @@
 #include "farms.h"
 #include "objects.h"
 #include "network.h"
+#include "sessions.h"
 
 static int backend_s_set_marked(struct farm *f)
 {
@@ -160,13 +161,23 @@ void backend_s_print(struct farm *f)
 	}
 }
 
-struct backend * backend_lookup_by_name(struct farm *f, const char *name)
+struct backend * backend_lookup_by_key(struct farm *f, int key, const char *name, int value)
 {
 	struct backend *b;
 
 	list_for_each_entry(b, &f->backends, list) {
-		if (strcmp(b->name, name) == 0)
-			return b;
+		switch (key) {
+		case KEY_NAME:
+			if (strcmp(b->name, name) == 0)
+				return b;
+			break;
+		case KEY_MARK:
+			if (b->mark == value)
+				return b;
+			break;
+		default:
+			return NULL;
+		}
 	}
 
 	return NULL;
@@ -557,7 +568,7 @@ int backend_set_attribute(struct config_pair *c)
 
 	switch (c->key) {
 	case KEY_NAME:
-		b = backend_lookup_by_name(cur->fptr, c->str_value);
+		b = backend_lookup_by_key(cur->fptr, KEY_NAME, c->str_value, 0);
 		if (!b) {
 			b = backend_create(cur->fptr, c->str_value);
 			if (!b)
@@ -618,14 +629,15 @@ static int backend_switch(struct backend *b, int new_state)
 	syslog(LOG_DEBUG, "%s():%d: backend %s switched to %s",
 	       __FUNCTION__, __LINE__, b->name, obj_print_state(new_state));
 
-	if (b->state == VALUE_STATE_UP) {
-		b->action = ACTION_START;
-		farm_set_action(f, ACTION_RELOAD);
-	} else {
-		b->action = ACTION_STOP;
-		farm_set_action(f, ACTION_RELOAD);
-	}
+	if (f->persistence != VALUE_META_NONE)
+		session_backend_action(f, b, b->state);
 
+	if (b->state == VALUE_STATE_UP)
+		b->action = ACTION_START;
+	else
+		b->action = ACTION_STOP;
+
+	farm_set_action(f, ACTION_RELOAD);
 	backend_s_update_counters(f);
 
 	return 0;

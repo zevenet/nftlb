@@ -17,6 +17,10 @@ table ip nftlb {
 		elements = { 127.0.0.1 . 80 : goto filter-newfarm }
 	}
 
+	map static-sessions-newfarm {
+		type ipv4_addr : mark
+	}
+
 	map persist-newfarm {
 		type ipv4_addr : mark
 		timeout 2m

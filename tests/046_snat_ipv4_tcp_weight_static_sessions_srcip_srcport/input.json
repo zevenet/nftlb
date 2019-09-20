@@ -1,0 +1,50 @@
+{
+	"farms" : [
+		{
+			"name" : "lb01",
+			"family" : "ipv4",
+			"virtual-addr" : "192.168.0.100",
+			"virtual-ports" : "80",
+			"mode" : "snat",
+			"protocol" : "tcp",
+			"scheduler" : "weight",
+			"persistence" : "srcip srcport",
+			"persist-ttl" : "50",
+			"state" : "up",
+			"backends" : [
+				{
+					"name" : "bck0",
+					"ip-addr" : "192.168.0.10",
+					"port" : "10",
+					"weight" : "5",
+					"mark" : "0x0000001",
+					"priority" : "1",
+					"state" : "up"
+				},
+				{
+					"name" : "bck1",
+					"ip-addr" : "192.168.0.11",
+					"port" : "20",
+					"weight" : "5",
+					"mark" : "0x0000002",
+					"priority" : "1",
+					"state" : "up"
+				}
+			],
+			"sessions" : [
+				{
+					"client" : "192.168.44.4 . 95",
+					"backend" : "bck0"
+				},
+				{
+					"client" : "192.168.44.4 . 96",
+					"backend" : "bck1"
+				},
+				{
+					"client" : "192.168.44.4 . 97",
+					"backend" : "bck1"
+				}
+			]
+		}
+	]
+}

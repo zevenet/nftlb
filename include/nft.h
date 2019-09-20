@@ -29,5 +29,7 @@
 int nft_reset(void);
 int nft_rulerize(struct farm *f);
 int nft_rulerize_policies(struct policy *p);
+int nft_get_rules_buffer(const char **buf, int key, char *name);
+void nft_del_rules_buffer(const char *buf);
 
 #endif /* _NFT_H_ */

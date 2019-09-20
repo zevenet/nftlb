@@ -70,6 +70,9 @@
 #define CONFIG_KEY_ELEMENTS		"elements"
 #define CONFIG_KEY_DATA			"data"
 #define CONFIG_KEY_TIME			"time"
+#define CONFIG_KEY_SESSIONS		"sessions"
+#define CONFIG_KEY_CLIENT		"client"
+#define CONFIG_KEY_BACKEND		"backend"
 
 #define CONFIG_VALUE_FAMILY_IPV4	"ipv4"
 #define CONFIG_VALUE_FAMILY_IPV6	"ipv6"
@@ -148,9 +151,11 @@ void config_pair_init(struct config_pair *c);
 int config_file(const char *file);
 int config_buffer(const char *buf);
 int config_print_farms(char **buf, char *name);
+int config_print_farm_sessions(char **buf, char *name);
 int config_print_policies(char **buf, char *name);
 int config_set_farm_action(const char *name, const char *value);
 int config_set_backend_action(const char *fname, const char *bname, const char *value);
+int config_set_session_action(const char *fname, const char *sname, const char *value);
 int config_set_fpolicy_action(const char *fname, const char *fpname, const char *value);
 int config_set_policy_action(const char *name, const char *value);
 int config_set_element_action(const char *pname, const char *edata, const char *value);

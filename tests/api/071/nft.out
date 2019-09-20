@@ -1,0 +1,62 @@
+table ip nftlb {
+	map nat-tcp-services {
+		type ipv4_addr . inet_service : verdict
+		elements = { 192.168.0.100 . 80 : goto nat-lb01 }
+	}
+
+	map tcp-services-back {
+		type ipv4_addr . inet_service : ipv4_addr
+	}
+
+	map tcp-services-back-m {
+		type mark : ipv4_addr
+	}
+
+	map filter-tcp-services {
+		type ipv4_addr . inet_service : verdict
+		elements = { 192.168.0.100 . 80 : goto filter-lb01 }
+	}
+
+	map static-sessions-lb01 {
+		type ipv4_addr . inet_service : mark
+		elements = { 192.168.44.5 . 91 : 0x00000002,
+			     192.168.44.6 . 92 : 0x00000002,
+			     192.168.44.7 . 91 : 0x00000001,
+			     192.168.44.8 . 0 : 0x00000001 }
+	}
+
+	map persist-lb01 {
+		type ipv4_addr . inet_service : mark
+		size 65535
+		timeout 50s
+	}
+
+	chain prerouting {
+		type nat hook prerouting priority filter; policy accept;
+		ip daddr . tcp dport vmap @nat-tcp-services
+	}
+
+	chain postrouting {
+		type nat hook postrouting priority srcnat; policy accept;
+		ct mark 0x80000000/1 masquerade
+		snat to ip daddr . tcp dport map @tcp-services-back
+		snat to ct mark map @tcp-services-back-m
+	}
+
+	chain filter {
+		type filter hook prerouting priority mangle; policy accept;
+		meta mark set ct mark
+		ip daddr . tcp dport vmap @filter-tcp-services
+	}
+
+	chain filter-lb01 {
+		ct mark set numgen random mod 10 map { 0-4 : 0x80000001, 5-9 : 0x80000002 }
+		ct mark set ip saddr . tcp sport map @static-sessions-lb01 accept
+		update @persist-lb01 { ip saddr . tcp sport : ct mark }
+	}
+
+	chain nat-lb01 {
+		ip protocol tcp ct mark 0x80000001 dnat to 192.168.0.10:10
+		ip protocol tcp ct mark 0x80000002 dnat to 192.168.0.11:20
+	}
+}

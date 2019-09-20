@@ -103,6 +103,12 @@ Where every farm object has the following attributes:
 		{<object backend 2>},
 		{...}
 	],
+	"sessions" : [					*List of static sessions. It requires persistence enabled.*
+		{
+		{<object session 1>},
+		{<object session 2>},
+		{...}
+	],
 	"policies" : [					*List of policies*
 		{
 			"name" : "<policy name>",
@@ -124,6 +130,14 @@ Where every backend object has the following attributes:
 	"est-connlimit": "<number>",			*Number of established connections allowed per backend (disabled by default)*
 	"est-connlimit-log-prefix": "<string|KNAME|TYPE|FNAME|BNAME>",	*Backend established connections log prefix (default "KNAME-FNAME-BNAME")*
 	"state": "<up | down | off>",			*Set the status of the backend (up by default)*
+}
+```
+Where every session object has the following attributes:
+```
+{
+	"client" : "<backend>",				*Client with the same format than persistence configuration*
+	"backend": "<ip address>"			*Backend ID to set a stickyness between client and backend*
+	"expiration": "<time>"				*Dynamic sessions timeout. Static sessions doesn't include this attribute*
 }
 ```
 Where every policy object has the following attributes:
@@ -163,6 +177,10 @@ Delete a virtual service.
 curl -H "Key: <MYKEY>" -X DELETE http://<NFTLB IP>:5555/farms/lb01
 ```
 Delete a backend of a virtual service.
+```
+curl -H "Key: <MYKEY>" -X DELETE http://<NFTLB IP>:5555/farms/lb01/backends/bck1
+```
+Get the static and dynamic sessions.
 ```
 curl -H "Key: <MYKEY>" -X DELETE http://<NFTLB IP>:5555/farms/lb01/backends/bck1
 ```

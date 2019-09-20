@@ -33,12 +33,14 @@
 #include "farmpolicy.h"
 #include "policies.h"
 #include "elements.h"
+#include "sessions.h"
 
 #define CONFIG_MAXBUF			4096
 
 static int config_json(json_t *element, int level, int source, int key);
 
 struct config_pair c;
+unsigned int continue_obj = 0;
 
 static void init_pair(struct config_pair *c)
 {
@@ -342,6 +344,8 @@ static int config_value(const char *value)
 	case KEY_RSTRTLIMIT_LOGPREFIX:
 	case KEY_ESTCONNLIMIT_LOGPREFIX:
 	case KEY_TCPSTRICT_LOGPREFIX:
+	case KEY_CLIENT:
+	case KEY_BACKEND:
 		c.str_value = (char *)value;
 		ret = PARSER_OK;
 		break;
@@ -448,6 +452,12 @@ static int config_key(const char *key)
 		return KEY_DATA;
 	if (strcmp(key, CONFIG_KEY_TIME) == 0)
 		return KEY_TIME;
+	if (strcmp(key, CONFIG_KEY_SESSIONS) == 0)
+		return KEY_SESSIONS;
+	if (strcmp(key, CONFIG_KEY_CLIENT) == 0)
+		return KEY_CLIENT;
+	if (strcmp(key, CONFIG_KEY_BACKEND) == 0)
+		return KEY_BACKEND;
 
 	syslog(LOG_ERR, "%s():%d: unknown key '%s'", __FUNCTION__, __LINE__, key);
 	return -1;
@@ -457,6 +467,7 @@ static int jump_config_value(int level, int key)
 {
 	if ((level == LEVEL_INIT && key != KEY_FARMS && key != KEY_POLICIES) ||
 	    (key == KEY_BCKS && level != LEVEL_FARMS) ||
+	    (key == KEY_SESSIONS && level != LEVEL_FARMS) ||
 	    (key == KEY_POLICIES && level != LEVEL_FARMS && level != LEVEL_INIT) ||
 	    (key == KEY_ELEMENTS && level != LEVEL_POLICIES))
 			return -1;
@@ -536,6 +547,8 @@ static int config_json(json_t *element, int level, int source, int key)
 			level = LEVEL_POLICIES;
 		if (level == LEVEL_FARMS && key == KEY_BCKS)
 			level = LEVEL_BCKS;
+		if (level == LEVEL_FARMS && key == KEY_SESSIONS)
+			level = LEVEL_SESSIONS;
 		if (level == LEVEL_FARMS && key == KEY_POLICIES)
 			level = LEVEL_FARMPOLICY;
 		if (level == LEVEL_POLICIES && key == KEY_ELEMENTS)
@@ -545,8 +558,9 @@ static int config_json(json_t *element, int level, int source, int key)
 
 		if (level == LEVEL_FARMS || level == LEVEL_POLICIES)
 			level = LEVEL_INIT;
-		if (level == LEVEL_BCKS || level == LEVEL_FARMPOLICY)
+		if (level == LEVEL_BCKS || level == LEVEL_FARMPOLICY || level == LEVEL_SESSIONS) {
 			level = LEVEL_FARMS;
+		}
 		if (level == LEVEL_ELEMENTS)
 			level = LEVEL_POLICIES;
 
@@ -632,7 +646,7 @@ static void add_dump_obj(json_t *obj, const char *name, char *value)
 	json_object_set_new(obj, name, json_string(value));
 }
 
-static void add_dump_list(json_t *obj, const char *objname, int object,
+static struct json_t *add_dump_list(json_t *obj, const char *objname, int object,
 			  struct list_head *head, char *name)
 {
 	struct farm *f;
@@ -640,14 +654,21 @@ static void add_dump_list(json_t *obj, const char *objname, int object,
 	struct farmpolicy *fp;
 	struct policy *p;
 	struct element *e;
-	json_t *jarray = json_array();
+	struct session *s;
+	json_t *jarray;
 	json_t *item;
 	char value[10];
 	char buf[100] = {};
 
+	if (continue_obj)
+		jarray = obj;
+	else
+		jarray = json_array();
+
 	switch (object) {
 	case LEVEL_FARMS:
 		list_for_each_entry(f, head, list) {
+
 			if (name != NULL && (strcmp(name, "") != 0) && (strcmp(f->name, name) != 0))
 				continue;
 
@@ -722,6 +743,10 @@ static void add_dump_list(json_t *obj, const char *objname, int object,
 			add_dump_obj(item, CONFIG_KEY_QUEUE, value);
 
 			add_dump_list(item, CONFIG_KEY_BCKS, LEVEL_BCKS, &f->backends, NULL);
+
+			if (f->total_static_sessions != 0)
+				add_dump_list(item, CONFIG_KEY_SESSIONS, LEVEL_SESSIONS, &f->static_sessions, NULL);
+
 			add_dump_list(item, CONFIG_KEY_POLICIES, LEVEL_FARMPOLICY, &f->policies, NULL);
 
 			json_array_append_new(jarray, item);
@@ -785,12 +810,32 @@ static void add_dump_list(json_t *obj, const char *objname, int object,
 			json_array_append_new(jarray, item);
 		}
 		break;
+	case LEVEL_SESSIONS:
+		list_for_each_entry(s, head, list) {
+			item = json_object();
+			add_dump_obj(item, "client", s->client);
+
+			if (!s->bck)
+				add_dump_obj(item, "backend", UNDEFINED_VALUE);
+			else
+				add_dump_obj(item, "backend", s->bck->name);
+
+			if (s->expiration)
+				add_dump_obj(item, "expiration", s->expiration);
+
+			json_array_append_new(jarray, item);
+		}
+		break;
 	default:
-		return;
+		return NULL;
 	}
 
-	json_object_set_new(obj, objname, jarray);
-	return;
+	if (!continue_obj) {
+		json_object_set_new(obj, objname, jarray);
+		return jarray;
+	}
+
+	return NULL;
 }
 
 int config_print_farms(char **buf, char *name)
@@ -809,7 +854,36 @@ int config_print_farms(char **buf, char *name)
 	return 0;
 }
 
- int config_print_policies(char **buf, char *name)
+int config_print_farm_sessions(char **buf, char *name)
+{
+	json_t *jdata = json_object();
+	json_t *jdata_cont;
+	struct farm *f;
+
+	if (!name || strcmp(name, "") == 0)
+		return -1;
+
+	f = farm_lookup_by_name(name);
+	if (!f)
+		return -1;
+
+	jdata_cont = add_dump_list(jdata, CONFIG_KEY_SESSIONS, LEVEL_SESSIONS, &f->static_sessions, name);
+	continue_obj = 1;
+	session_get_timed(f);
+	add_dump_list(jdata_cont, CONFIG_KEY_SESSIONS, LEVEL_SESSIONS, &f->timed_sessions, name);
+	continue_obj = 0;
+	*buf = json_dumps(jdata, JSON_INDENT(8));
+
+	json_decref(jdata);
+	session_s_delete(f, SESSION_TYPE_TIMED);
+
+	if (*buf == NULL)
+		return -1;
+
+	return 0;
+}
+
+int config_print_policies(char **buf, char *name)
 {
 	struct list_head *policies = obj_get_policies();
 	json_t* jdata = json_object();
@@ -854,11 +928,40 @@ int config_set_backend_action(const char *fname, const char *bname, const char *
 	if (!bname || strcmp(bname, "") == 0)
 		return backend_s_set_action(f, config_value_action(value));
 
-	b = backend_lookup_by_name(f, bname);
+	b = backend_lookup_by_key(f, KEY_NAME, bname, 0);
 	if (!b)
 		return -1;
 
 	return backend_set_action(b, config_value_action(value));
+}
+
+int config_set_session_action(const char *fname, const char *sname, const char *value)
+{
+	struct farm *f;
+	struct session *s;
+	char name[255] = { 0 };
+	char *c;
+
+	if (!fname || strcmp(fname, "") == 0)
+		return -1;
+
+	f = farm_lookup_by_name(fname);
+	if (!f)
+		return -1;
+
+	if (!sname || strcmp(sname, "") == 0)
+		return session_s_set_action(f, config_value_action(value));
+
+	/* Traduce URL to plain text */
+	sprintf(name, "%s", sname);
+	for (c = name; (c = strchr(c, '_')); ++c)
+		*c = ' ';
+
+	s = session_lookup_by_key(f, SESSION_TYPE_STATIC, KEY_CLIENT, name);
+	if (!s)
+		return -1;
+
+	return session_set_action(s, SESSION_TYPE_STATIC, config_value_action(value));
 }
 
 int config_set_fpolicy_action(const char *fname, const char *fpname, const char *value)

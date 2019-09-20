@@ -27,6 +27,7 @@
 
 #include "farms.h"
 #include "backends.h"
+#include "sessions.h"
 #include "farmpolicy.h"
 #include "objects.h"
 #include "config.h"
@@ -98,6 +99,11 @@ static struct farm * farm_create(char *name)
 	pfarm->policies_used = 0;
 	pfarm->policies_action = ACTION_NONE;
 	pfarm->nft_chains = 0;
+
+	init_list_head(&pfarm->static_sessions);
+	pfarm->total_static_sessions = 0;
+	init_list_head(&pfarm->timed_sessions);
+	pfarm->total_timed_sessions = 0;
 
 	list_add_tail(&pfarm->list, farms);
 	obj_set_total_farms(obj_get_total_farms() + 1);
@@ -275,6 +281,8 @@ static int farm_set_state(struct farm *f, int new_value)
 	if (old_value == VALUE_STATE_UP &&
 	    new_value != VALUE_STATE_UP) {
 
+		if (f->persistence != VALUE_META_NONE)
+			session_s_delete(f, SESSION_TYPE_STATIC);
 		farm_set_action(f, ACTION_STOP);
 		farm_manage_eventd();
 	}
@@ -327,6 +335,20 @@ static int farm_set_sched(struct farm *f, int new_value)
 	if (f->scheduler != VALUE_SCHED_HASH) {
 		f->schedparam = VALUE_META_NONE;
 	}
+
+	return 0;
+}
+
+static int farm_set_persistence(struct farm *f, int new_value)
+{
+	int old_value = f->persistence;
+
+	syslog(LOG_DEBUG, "%s():%d: farm %s old persistence %d new persistence %d", __FUNCTION__, __LINE__, f->name, old_value, new_value);
+
+	if (new_value == VALUE_META_NONE)
+		session_s_delete(f, SESSION_TYPE_STATIC);
+
+	f->persistence = new_value;
 
 	return 0;
 }
@@ -423,12 +445,17 @@ static void farm_print(struct farm *f)
 	syslog(LOG_DEBUG,"    *[bcks_have_srcaddr] %d", f->bcks_have_srcaddr);
 	syslog(LOG_DEBUG,"    *[policies_action] %d", f->policies_action);
 	syslog(LOG_DEBUG,"    *[policies_used] %d", f->policies_used);
+	syslog(LOG_DEBUG,"    *[total_static_sessions] %d", f->total_static_sessions);
+	syslog(LOG_DEBUG,"    *[total_timed_sessions] %d", f->total_timed_sessions);
 	syslog(LOG_DEBUG,"    *[%s] %d", CONFIG_KEY_ACTION, f->action);
 	syslog(LOG_DEBUG,"    *[reload_action] %x", f->reload_action);
 	syslog(LOG_DEBUG,"    *[nft_chains] %x", f->nft_chains);
 
 	if (f->total_bcks != 0)
 		backend_s_print(f);
+
+	if (f->total_static_sessions != 0)
+		session_s_print(f);
 
 	farmpolicy_s_print(f);
 }
@@ -618,6 +645,7 @@ int farm_pre_actionable(struct config_pair *c)
 	case KEY_PROTO:
 	case KEY_PERSISTENCE:
 	case KEY_PERSISTTM:
+	case KEY_SESSIONS:
 		if (farm_set_action(f, ACTION_STOP))
 			farm_rulerize(f);
 		break;
@@ -743,8 +771,7 @@ int farm_set_attribute(struct config_pair *c)
 		ret = PARSER_OK;
 		break;
 	case KEY_PERSISTENCE:
-		f->persistence = c->int_value;
-		ret = PARSER_OK;
+		ret = farm_set_persistence(f, c->int_value);
 		break;
 	case KEY_PERSISTTM:
 		f->persistttl = c->int_value;

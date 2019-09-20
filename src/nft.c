@@ -23,6 +23,7 @@
 #include "objects.h"
 #include "farms.h"
 #include "backends.h"
+#include "sessions.h"
 #include "farmpolicy.h"
 #include "policies.h"
 #include "elements.h"
@@ -117,6 +118,8 @@
 #define NFTLB_F_CHAIN_FWD_FILTER	(1 << 3)
 #define NFTLB_F_CHAIN_POS_SNAT		(1 << 4)
 #define NFTLB_F_CHAIN_EGR_DNAT		(1 << 5)
+
+struct nft_ctx *ctx = NULL;
 
 enum map_modes {
 	BCK_MAP_NONE,
@@ -234,25 +237,51 @@ static struct if_base_rule * add_ndv_base(struct if_base_rule_list *ndv_if_rules
 	return ifentry;
 }
 
-static int exec_cmd(char *cmd)
+static int exec_cmd_open(char *cmd, const char **out, int error_output)
 {
-	struct nft_ctx *ctx;
 	int error;
 
 	if (strlen(cmd) == 0 || strcmp(cmd, "") == 0)
 		return 0;
+
 	syslog(LOG_NOTICE, "nft command exec : %s", cmd);
 
 	ctx = nft_ctx_new(0);
 	nft_ctx_buffer_error(ctx);
 
+	if (out != NULL)
+		nft_ctx_buffer_output(ctx);
+
 	error = nft_run_cmd_from_buffer(ctx, cmd);
 
-	if (error)
+	if (error && error_output)
 		syslog(LOG_ERR, "nft command error : %s", nft_ctx_get_error_buffer(ctx));
+
+	if (out != NULL)
+		*out = nft_ctx_get_output_buffer(ctx);
+
+	return error;
+}
+
+static void exec_cmd_close(const char *out)
+{
+	if (ctx == NULL)
+		return;
+
+	if (out != NULL)
+		nft_ctx_unbuffer_output(ctx);
 
 	nft_ctx_unbuffer_error(ctx);
 	nft_ctx_free(ctx);
+	ctx = NULL;
+}
+
+static int exec_cmd(char *cmd)
+{
+	int error;
+
+	error = exec_cmd_open(cmd, NULL, 1);
+	exec_cmd_close(NULL);
 
 	return error;
 }
@@ -1275,6 +1304,45 @@ static int run_farm_rules_filter_helper(struct sbuffer *buf, struct farm *f, int
 	return 0;
 }
 
+static int run_farm_rules_filter_static_sessions(struct sbuffer *buf, struct farm *f, int family, char *chain, int action)
+{
+	char map_str[255] = { 0 };
+	char *client;
+	struct session *s;
+
+	if (f->persistence == VALUE_META_NONE)
+		return 0;
+
+	sprintf(map_str, "static-sessions-%s", f->name);
+	run_farm_map(buf, f, family, map_str, f->persistence, VALUE_META_MARK, 0, action);
+
+	if ((action != ACTION_START && action != ACTION_RELOAD) || (!f->bcks_are_marked))
+		return 0;
+
+	list_for_each_entry(s, &f->static_sessions, list) {
+		client = (char *) malloc(255);
+		if (!client) {
+			syslog(LOG_ERR, "%s():%d: unable to allocate parsed client %s for farm %s", __FUNCTION__, __LINE__, s->client, f->name);
+			continue;
+		}
+		session_get_client(s, &client);
+		if ((action == ACTION_START || s->action == ACTION_START) && s->bck && s->bck->mark != DEFAULT_MARK)
+			concat_buf(buf, " ; add element %s %s %s { %s : 0x%x }", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, map_str, client, s->bck->mark);
+
+		if (action == ACTION_RELOAD && (s->action == ACTION_STOP || s->action == ACTION_DELETE))
+			concat_buf(buf, " ; delete element %s %s %s { %s }", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, map_str, client);
+
+		free(client);
+		s->action = ACTION_NONE;
+	}
+
+	concat_buf(buf, " ; add rule %s %s %s ct mark set", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain);
+	run_farm_rules_gen_meta_param(buf, f, family, f->persistence, NFTLB_MAP_KEY_RULE);
+	concat_buf(buf, " map @%s accept", map_str);
+
+	return 0;
+}
+
 static int run_farm_rules_filter_persistence(struct sbuffer *buf, struct farm *f, int family, char *chain, int action)
 {
 	char map_str[255] = { 0 };
@@ -1436,12 +1504,14 @@ static int run_farm_rules_filter(struct sbuffer *buf, struct farm *f, int family
 		run_farm_rules_filter_policies(buf, f, family, chain, action);
 		run_farm_rules_filter_helper(buf, f, family, chain, action);
 		run_farm_rules_filter_marks(buf, f, family, chain, action);
+		run_farm_rules_filter_static_sessions(buf, f, family, chain, action);
 		run_farm_rules_filter_persistence(buf, f, family, chain, action);
 		break;
 	case ACTION_DELETE:
 	case ACTION_STOP:
 		run_farm_rules_gen_vsrv(buf, f, NFTLB_F_CHAIN_PRE_FILTER, family, action);
 		run_farm_rules_filter_persistence(buf, f, family, chain, action);
+		run_farm_rules_filter_static_sessions(buf, f, family, chain, action);
 		run_farm_rules_filter_marks(buf, f, family, chain, action);
 		run_farm_rules_filter_helper(buf, f, family, chain, action);
 		run_farm_rules_filter_policies(buf, f, family, chain, action);
@@ -1897,4 +1967,28 @@ int nft_rulerize_policies(struct policy *p)
 	clean_buf(&buf);
 
 	return ret;
+}
+
+int nft_get_rules_buffer(const char **buf, int key, char *name)
+{
+	char cmd[255] = { 0 };
+	int error = 0;
+
+	switch (key) {
+	case KEY_SESSIONS:
+		sprintf(cmd, "list map ip nftlb persist-%s", name);
+		break;
+	default:
+		return 0;
+		break;
+	}
+
+	error = exec_cmd_open(cmd, buf, 0);
+
+	return error;
+}
+
+void nft_del_rules_buffer(const char *buf)
+{
+	exec_cmd_close(buf);
 }
