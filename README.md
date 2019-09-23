@@ -136,7 +136,7 @@ Where every session object has the following attributes:
 ```
 {
 	"client" : "<backend>",				*Client with the same format than persistence configuration*
-	"backend": "<ip address>"			*Backend ID to set a stickyness between client and backend*
+	"backend": "<ip address>",			*Backend ID to set a stickyness between client and backend*
 	"expiration": "<time>"				*Dynamic sessions timeout. Static sessions doesn't include this attribute*
 }
 ```
@@ -182,7 +182,7 @@ curl -H "Key: <MYKEY>" -X DELETE http://<NFTLB IP>:5555/farms/lb01/backends/bck1
 ```
 Get the static and dynamic sessions.
 ```
-curl -H "Key: <MYKEY>" -X DELETE http://<NFTLB IP>:5555/farms/lb01/backends/bck1
+curl -H "Key: <MYKEY>" -X GET http://<NFTLB IP>:5555/farms/lb01/sessions
 ```
 
 ## Support

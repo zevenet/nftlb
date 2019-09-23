@@ -113,7 +113,6 @@ new_session:
 	ini_ptr = fin_ptr;
 
 	session_create(f, SESSION_TYPE_TIMED, element1, element3, element2);
-	//~ f->total_timed_sessions++;
 
 	while (*fin_ptr == '\n' || *fin_ptr == '\t' || *fin_ptr == ' ') {
 		fin_ptr++;
@@ -160,21 +159,17 @@ int session_set_action(struct session *s, int type, int action)
 		return 1;
 	}
 
-	syslog(LOG_DEBUG, "%s():%d: session %s", __FUNCTION__, __LINE__, s->client);
-
 	if ((action == ACTION_STOP || action == ACTION_DELETE) && s->state == VALUE_STATE_UP) {
 		s->action = action;
 		s->state = VALUE_STATE_OFF;
 		return 1;
 	}
-	syslog(LOG_DEBUG, "%s():%d: session %s", __FUNCTION__, __LINE__, s->client);
 
 	if (action == ACTION_START && s->state != VALUE_STATE_UP && s->bck != NULL) {
 		s->action = action;
 		s->state = VALUE_STATE_UP;
 		return 1;
 	}
-	syslog(LOG_DEBUG, "%s():%d: session %s", __FUNCTION__, __LINE__, s->client);
 
 	return 0;
 }
@@ -188,16 +183,12 @@ struct session * session_lookup_by_key(struct farm *f, int type, int key, const 
 		sessions = &f->timed_sessions;
 	else
 		sessions = &f->static_sessions;
-	syslog(LOG_DEBUG, "%s():%d: there is %s !!!!!", __FUNCTION__, __LINE__, name);
 
 	list_for_each_entry(s, sessions, list) {
 		switch (key) {
 		case KEY_CLIENT:
-	syslog(LOG_DEBUG, "%s():%d: comparing %s !!!!!", __FUNCTION__, __LINE__, name);
-			if (strcmp(s->client, name) == 0) {
-	syslog(LOG_DEBUG, "%s():%d: FOUND %s !!!!!", __FUNCTION__, __LINE__, name);
+			if (strcmp(s->client, name) == 0)
 				return s;
-			}
 			break;
 		default:
 			return NULL;
@@ -349,14 +340,12 @@ int session_set_attribute(struct config_pair *c)
 		cur->sptr = s;
 		break;
 	case KEY_BACKEND:
-	syslog(LOG_DEBUG, "%s():%d: session %s", __FUNCTION__, __LINE__, s->client);
 		b = backend_lookup_by_key(f, KEY_NAME, c->str_value, 0);
 		if (!b)
 			return PARSER_OBJ_UNKNOWN;
 		cur->sptr->bck = b;
 		if (session_set_action(s, SESSION_TYPE_STATIC, ACTION_START))
 			farm_set_action(f, ACTION_RELOAD);
-	syslog(LOG_DEBUG, "%s():%d: session %s", __FUNCTION__, __LINE__, s->client);
 		break;
 	default:
 		return -1;

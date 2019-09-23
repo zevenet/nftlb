@@ -52,10 +52,4 @@ int session_set_attribute(struct config_pair *c);
 int session_pre_actionable(struct config_pair *c);
 int session_pos_actionable(struct config_pair *c);
 
-//~ struct session * session_lookup_by_name(struct farm *f, const char *client);
-//~ int session_set_action(struct session *s, int action);
-//~ int session_s_set_action(struct farm *f, int action);
-//~ int session_s_delete(struct farm *f);
-//~ int session_pos_actionable(struct config_pair *c);
-
 #endif /* _SESSIONS_H_ */
