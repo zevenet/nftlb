@@ -1687,7 +1687,6 @@ static int run_farm_rules_gen_nat(struct sbuffer *buf, struct farm *f, int famil
 
 		if (!f->bcks_have_port) {
 			concat_buf(buf, " ; add rule %s %s %s", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain);
-			run_farm_rules_gen_logs(buf, f, VALUE_LOG_INPUT, NFTLB_F_CHAIN_PRE_DNAT, ACTION_START);
 			concat_buf(buf, " dnat to ct mark");
 			run_farm_rules_gen_bck_map(buf, f, BCK_MAP_MARK, BCK_MAP_IPADDR);
 			return 0;

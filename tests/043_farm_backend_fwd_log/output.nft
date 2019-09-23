@@ -55,6 +55,6 @@ table ip nftlb {
 
 	chain nat-lb01 {
 		log prefix "[lb01,IN]"
-		log prefix "[lb01,IN]" dnat to ct mark map { 0x80000001 : 192.168.0.10, 0x80000002 : 192.168.0.11 }
+		dnat to ct mark map { 0x80000001 : 192.168.0.10, 0x80000002 : 192.168.0.11 }
 	}
 }
