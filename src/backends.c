@@ -622,12 +622,12 @@ int backend_set_attribute(struct config_pair *c)
 	return PARSER_OK;
 }
 
-static int backend_switch(struct backend *b, int new_state)
+static int backend_switch(struct backend *b)
 {
 	struct farm *f = b->parent;
 
-	syslog(LOG_DEBUG, "%s():%d: backend %s switched to %s",
-	       __FUNCTION__, __LINE__, b->name, obj_print_state(new_state));
+	syslog(LOG_DEBUG, "%s():%d: backend %s with state %s switched",
+	       __FUNCTION__, __LINE__, b->name, obj_print_state(b->state));
 
 	if (f->persistence != VALUE_META_NONE)
 		session_backend_action(f, b, b->state);
@@ -661,12 +661,12 @@ int backend_set_state(struct backend *b, int new_value)
 			return 0;
 		}
 		if (backend_is_usable(b))
-			backend_switch(b, new_value);
+			backend_switch(b);
 		break;
 	default:
 		if (backend_is_usable(b)) {
 			b->state = new_value;
-			backend_switch(b, new_value);
+			backend_switch(b);
 		} else
 			b->state = new_value;
 		break;
