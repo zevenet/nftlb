@@ -1556,7 +1556,7 @@ static int get_farm_interfaces(struct farm *f, char *list)
 	}
 
 	if (f->oface && !(p = strstr(list, f->oface))) {
-		if (!number)
+		if (number)
 			strcat(list, ", ");
 		strcat(list, f->oface);
 		number++;
@@ -1564,7 +1564,7 @@ static int get_farm_interfaces(struct farm *f, char *list)
 
 	list_for_each_entry(b, &f->backends, list) {
 		if (b->oface && !(p = strstr(list, b->oface))) {
-			if (!number)
+			if (number)
 				strcat(list, ", ");
 			strcat(list, b->oface);
 			number++;

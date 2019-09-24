@@ -2,7 +2,8 @@
 	"farms" : [
 		{
 			"name" : "lb01",
-			"flow-offload" : "off"
+			"flow-offload" : "off",
+			"oface" : "lo"
 		}
 	]
 }

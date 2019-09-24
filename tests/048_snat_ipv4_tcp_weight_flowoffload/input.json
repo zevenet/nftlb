@@ -29,7 +29,8 @@
 					"priority" : "1",
 					"state" : "up"
 				}
-			]
+			],
+			"oface" : "lo"
 		}
 	]
 }
