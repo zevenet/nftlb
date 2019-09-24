@@ -89,6 +89,7 @@ static struct farm * farm_create(char *name)
 	pfarm->tcpstrict = DEFAULT_TCPSTRICT;
 	pfarm->tcpstrict_logprefix = DEFAULT_LOGPREFIX;
 	pfarm->queue = DEFAULT_QUEUE;
+	pfarm->flow_offload = DEFAULT_FLOWOFFLOAD;
 
 	pfarm->total_bcks = 0;
 	pfarm->bcks_available = 0;
@@ -166,7 +167,7 @@ static int farm_validate(struct farm *f)
 		return 0;
 	}
 
-	if (farm_is_ingress_mode(f) &&
+	if ((farm_is_ingress_mode(f) || farm_needs_flowtable(f)) &&
 		((!f->iface || (strcmp(f->iface, "") == 0)) ||
 		 (!f->oface || (strcmp(f->oface, "") == 0)))) {
 		return 0;
@@ -222,6 +223,11 @@ static void farm_manage_eventd(void)
 	}
 }
 
+int farm_needs_flowtable(struct farm *f)
+{
+	return f->flow_offload;
+}
+
 static int farm_set_netinfo(struct farm *f)
 {
 	syslog(LOG_DEBUG, "%s():%d: farm %s", __FUNCTION__, __LINE__, f->name);
@@ -240,6 +246,11 @@ static int farm_set_netinfo(struct farm *f)
 
 	if (farm_needs_policies(f))
 		farm_set_ifinfo(f, KEY_IFACE);
+
+	if (farm_needs_flowtable(f)) {
+		farm_set_ifinfo(f, KEY_IFACE);
+		farm_set_ifinfo(f, KEY_OFACE);
+	}
 
 	return 0;
 }
@@ -436,6 +447,7 @@ static void farm_print(struct farm *f)
 		syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_TCPSTRICT_LOGPREFIX, f->tcpstrict_logprefix);
 
 	syslog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_QUEUE, f->queue);
+	syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_FLOWOFFLOAD, obj_print_switch(f->flow_offload));
 
 	syslog(LOG_DEBUG,"    *[total_weight] %d", f->total_weight);
 	syslog(LOG_DEBUG,"    *[total_bcks] %d", f->total_bcks);
@@ -547,8 +559,10 @@ int farm_set_ifinfo(struct farm *f, int key)
 
 	syslog(LOG_DEBUG, "%s():%d: farm %s set interface info for interface key %d", __FUNCTION__, __LINE__, f->name, key);
 
-	if (!(farm_is_ingress_mode(f) || (farm_needs_policies(f) && key == KEY_IFACE))) {
-		syslog(LOG_DEBUG, "%s():%d: farm %s is not in ingress mode", __FUNCTION__, __LINE__, f->name);
+	if (!(farm_is_ingress_mode(f) ||
+		(farm_needs_policies(f) && key == KEY_IFACE) ||
+		farm_needs_flowtable(f))) {
+		syslog(LOG_DEBUG, "%s():%d: farm %s doesn't require netinfo", __FUNCTION__, __LINE__, f->name);
 		return 0;
 	}
 
@@ -645,7 +659,7 @@ int farm_pre_actionable(struct config_pair *c)
 	case KEY_PROTO:
 	case KEY_PERSISTENCE:
 	case KEY_PERSISTTM:
-	case KEY_SESSIONS:
+	case KEY_FLOWOFFLOAD:
 		if (farm_set_action(f, ACTION_STOP))
 			farm_rulerize(f);
 		break;
@@ -681,6 +695,7 @@ int farm_pos_actionable(struct config_pair *c)
 	case KEY_PROTO:
 	case KEY_PERSISTENCE:
 	case KEY_PERSISTTM:
+	case KEY_FLOWOFFLOAD:
 		farm_set_action(f, ACTION_START);
 		break;
 	case KEY_STATE:
@@ -821,6 +836,11 @@ int farm_set_attribute(struct config_pair *c)
 		break;
 	case KEY_QUEUE:
 		f->queue = c->int_value;
+		ret = PARSER_OK;
+		break;
+	case KEY_FLOWOFFLOAD:
+		f->flow_offload = c->int_value;
+		farm_set_netinfo(f);
 		ret = PARSER_OK;
 		break;
 	case KEY_LOGPREFIX:

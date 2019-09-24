@@ -321,6 +321,7 @@ static int config_value(const char *value)
 		ret = PARSER_OK;
 		break;
 	case KEY_TCPSTRICT:
+	case KEY_FLOWOFFLOAD:
 		c.int_value = config_value_switch(value);
 		ret = PARSER_OK;
 		break;
@@ -440,6 +441,8 @@ static int config_key(const char *key)
 		return KEY_TCPSTRICT_LOGPREFIX;
 	if (strcmp(key, CONFIG_KEY_QUEUE) == 0)
 		return KEY_QUEUE;
+	if (strcmp(key, CONFIG_KEY_FLOWOFFLOAD) == 0)
+		return KEY_FLOWOFFLOAD;
 	if (strcmp(key, CONFIG_KEY_POLICIES) == 0)
 		return KEY_POLICIES;
 	if (strcmp(key, CONFIG_KEY_TYPE) == 0)
@@ -741,6 +744,9 @@ static struct json_t *add_dump_list(json_t *obj, const char *objname, int object
 
 			config_dump_int(value, f->queue);
 			add_dump_obj(item, CONFIG_KEY_QUEUE, value);
+
+			if (f->flow_offload)
+				add_dump_obj(item, CONFIG_KEY_FLOWOFFLOAD, obj_print_switch(f->flow_offload));
 
 			add_dump_list(item, CONFIG_KEY_BCKS, LEVEL_BCKS, &f->backends, NULL);
 

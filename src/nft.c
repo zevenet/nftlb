@@ -59,6 +59,7 @@
 
 #define NFTLB_PREROUTING_PRIO		0
 #define NFTLB_POSTROUTING_PRIO		100
+#define NFTLB_FLOWTABLE_BASE_PRIO	50
 #define NFTLB_INGRESS_PRIO			100
 #define NFTLB_FILTER_PRIO			-150
 #define NFTLB_RAW_PRIO				-300
@@ -163,6 +164,8 @@ struct nft_base_rules {
 };
 
 struct nft_base_rules nft_base_rules;
+
+int nftlb_flowtable_prio = NFTLB_FLOWTABLE_BASE_PRIO;
 
 static int reset_ndv_base(struct if_base_rule_list *ndv_if_rules)
 {
@@ -602,7 +605,7 @@ static int need_filter(struct farm *f)
 
 static int need_forward(struct farm *f)
 {
-	return (f->log & VALUE_LOG_FORWARD);
+	return ((f->log & VALUE_LOG_FORWARD) || f->flow_offload);
 }
 
 static void get_farm_chain(char *name, struct farm *f, int type)
@@ -617,6 +620,11 @@ static void get_farm_chain(char *name, struct farm *f, int type)
 		sprintf(name, "%s-%s", NFTLB_TYPE_FWD, f->name);
 	else if (type & NFTLB_F_CHAIN_EGR_DNAT)
 		sprintf(name, "%s-back", f->name);
+}
+
+static void get_flowtable_name(char *name, struct farm *f)
+{
+	sprintf(name, "ft-%s", f->name);
 }
 
 static void get_farm_service(char *name, struct farm *f, int type, int family)
@@ -1523,14 +1531,77 @@ static int run_farm_rules_filter(struct sbuffer *buf, struct farm *f, int family
 	return 0;
 }
 
+static int get_farm_interfaces(struct farm *f, char *list)
+{
+	struct backend *b;
+	int number = 0;
+	char *p = NULL;
+
+	if (f->iface) {
+		strcat(list, f->iface);
+		number++;
+	}
+
+	if (f->oface && !(p = strstr(list, f->oface))) {
+		if (!number)
+			strcat(list, ", ");
+		strcat(list, f->oface);
+		number++;
+	}
+
+	list_for_each_entry(b, &f->backends, list) {
+		if (b->oface && !(p = strstr(list, b->oface))) {
+			if (!number)
+				strcat(list, ", ");
+			strcat(list, b->oface);
+			number++;
+		}
+	}
+
+	return number;
+}
+
+static void run_farm_flowtable(struct sbuffer *buf, struct farm *f, int family, char *name, int action)
+{
+	char interfaces[255] = { 0 };
+
+	if (!f->flow_offload || !get_farm_interfaces(f, interfaces))
+		return;
+
+	switch (action) {
+	case ACTION_START:
+		concat_buf(buf, " ; add flowtable %s %s %s { hook %s priority %d ; devices = { %s } ; } ;", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, name, NFTLB_HOOK_INGRESS, nftlb_flowtable_prio++, interfaces);
+		break;
+	case ACTION_STOP:
+	case ACTION_DELETE:
+		concat_buf(buf, " ; delete flowtable %s %s %s ; ", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, name);
+		nftlb_flowtable_prio--;
+		break;
+	default:
+		break;
+	}
+	return;
+}
+
+static void run_farm_gen_flowtable_rules(struct sbuffer *buf, struct farm *f, int family, char *chain, char *name, int action)
+{
+	if (!f->flow_offload || !f->iface)
+		return;
+
+	concat_buf(buf, " ; add rule %s %s %s flow add @%s;", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain, name);
+	return;
+}
+
 static int run_farm_rules_forward(struct sbuffer *buf, struct farm *f, int family, int action)
 {
 	char chain[255] = { 0 };
+	char flowtable[255] = { 0 };
 
 	if (!need_forward(f))
 		return 0;
 
 	get_farm_chain(chain, f, NFTLB_F_CHAIN_FWD_FILTER);
+	get_flowtable_name(flowtable, f);
 
 	switch (action) {
 	case ACTION_START:
@@ -1541,10 +1612,14 @@ static int run_farm_rules_forward(struct sbuffer *buf, struct farm *f, int famil
 			concat_buf(buf, " ; add rule %s %s %s", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain);
 			run_farm_rules_gen_logs(buf,f, VALUE_LOG_FORWARD, NFTLB_F_CHAIN_FWD_FILTER, action);
 		}
+		if (action != ACTION_RELOAD)
+			run_farm_flowtable(buf, f, family, flowtable, action);
+		run_farm_gen_flowtable_rules(buf, f, family, chain, flowtable, action);
 		break;
 	case ACTION_DELETE:
 	case ACTION_STOP:
 		run_farm_rules_gen_vsrv(buf, f, NFTLB_F_CHAIN_FWD_FILTER, family, action);
+		run_farm_flowtable(buf, f, family, flowtable, action);
 		break;
 	default:
 		break;
@@ -1764,6 +1839,9 @@ static int del_farm_rules(struct sbuffer *buf, struct farm *f, int family)
 		sprintf(fservice, "%s-%s", NFTLB_TYPE_FILTER, print_nft_service(family, f->protocol));
 		run_farm_rules_filter(buf, f, family, ACTION_DELETE);
 	}
+
+	if (need_forward(f))
+		run_farm_rules_forward(buf, f, family, ACTION_DELETE);
 
 	if (farm_is_ingress_mode(f)) {
 		run_farm_rules_gen_vsrv(buf, f, NFTLB_F_CHAIN_ING_FILTER, family, ACTION_DELETE);

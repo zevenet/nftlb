@@ -1,0 +1,9 @@
+{
+	"farms" : [
+		{
+			"name" : "lb01",
+			"virtual-addr" : "127.0.0.1",
+			"flow-offload" : "on"
+		}
+	]
+}

@@ -64,6 +64,7 @@
 #define CONFIG_KEY_TCPSTRICT	"tcp-strict"
 #define CONFIG_KEY_TCPSTRICT_LOGPREFIX	"tcp-strict-log-prefix"
 #define CONFIG_KEY_QUEUE		"queue"
+#define CONFIG_KEY_FLOWOFFLOAD		"flow-offload"
 #define CONFIG_KEY_POLICIES		"policies"
 #define CONFIG_KEY_TYPE			"type"
 #define CONFIG_KEY_TIMEOUT		"timeout"
