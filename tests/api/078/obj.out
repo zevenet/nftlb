@@ -24,7 +24,6 @@
                         "est-connlimit": "0",
                         "tcp-strict": "off",
                         "queue": "-1",
-                        "flow-offload": "on",
                         "backends": [
                                 {
                                         "name": "bck0",
