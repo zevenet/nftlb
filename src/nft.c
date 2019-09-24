@@ -1273,7 +1273,7 @@ static void run_farm_helper(struct sbuffer *buf, struct farm *f, int family, int
 	}
 }
 
-static int run_farm_rules_gen_logs(struct sbuffer *buf, struct farm *f, int key, int type, int action)
+static int run_farm_log_prefix(struct sbuffer *buf, struct farm *f, int key, int type, int action)
 {
 	char logprefix_str[255] = { 0 };
 
@@ -1283,6 +1283,19 @@ static int run_farm_rules_gen_logs(struct sbuffer *buf, struct farm *f, int key,
 	if (f->log & key) {
 		print_log_format(logprefix_str, KEY_LOGPREFIX, type, f, NULL, NULL);
 		concat_buf(buf, " log prefix \"%s\"", logprefix_str);
+	}
+
+	return 0;
+}
+
+static int run_farm_gen_log_rules(struct sbuffer *buf, struct farm *f, int family, char * chain, int key, int type, int action)
+{
+	if (f->log == VALUE_LOG_NONE)
+		return 0;
+
+	if (f->log & key) {
+		concat_buf(buf, " ; add rule %s %s %s", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain);
+		run_farm_log_prefix(buf,f, key, type, action);
 	}
 
 	return 0;
@@ -1608,10 +1621,7 @@ static int run_farm_rules_forward(struct sbuffer *buf, struct farm *f, int famil
 	case ACTION_RELOAD:
 		run_base_chain(buf, f, NFTLB_F_CHAIN_FWD_FILTER, family);
 		run_farm_rules_gen_vsrv(buf, f, NFTLB_F_CHAIN_FWD_FILTER, family, action);
-		if (f->log & VALUE_LOG_FORWARD) {
-			concat_buf(buf, " ; add rule %s %s %s", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain);
-			run_farm_rules_gen_logs(buf,f, VALUE_LOG_FORWARD, NFTLB_F_CHAIN_FWD_FILTER, action);
-		}
+		run_farm_gen_log_rules(buf,f, family, chain, VALUE_LOG_FORWARD, NFTLB_F_CHAIN_FWD_FILTER, action);
 		if (action != ACTION_RELOAD)
 			run_farm_flowtable(buf, f, family, flowtable, action);
 		run_farm_gen_flowtable_rules(buf, f, family, chain, flowtable, action);
@@ -1716,11 +1726,11 @@ static int run_farm_rules_gen_nat(struct sbuffer *buf, struct farm *f, int famil
 	switch (f->mode) {
 	case VALUE_MODE_DSR:
 		concat_buf(buf, " ; add rule %s %s %s", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain);
-		run_farm_rules_gen_logs(buf, f, VALUE_LOG_INPUT, NFTLB_F_CHAIN_ING_FILTER, ACTION_START);
+		run_farm_log_prefix(buf, f, VALUE_LOG_INPUT, NFTLB_F_CHAIN_ING_FILTER, ACTION_START);
 		concat_buf(buf, " ether saddr set %s ether daddr set", f->iethaddr);
 		run_farm_rules_gen_sched(buf, f, family);
 		run_farm_rules_gen_bck_map(buf, f, BCK_MAP_WEIGHT, BCK_MAP_ETHADDR);
-		run_farm_rules_gen_logs(buf, f, VALUE_LOG_OUTPUT, NFTLB_F_CHAIN_EGR_DNAT, ACTION_START);
+		run_farm_log_prefix(buf, f, VALUE_LOG_OUTPUT, NFTLB_F_CHAIN_EGR_DNAT, ACTION_START);
 		concat_buf(buf, " fwd to");
 		if (f->bcks_have_if) {
 			concat_buf(buf, " ether daddr");
@@ -1732,13 +1742,13 @@ static int run_farm_rules_gen_nat(struct sbuffer *buf, struct farm *f, int famil
 		sprintf(map_str, "map-%s-back", f->name);
 		concat_buf(buf, " ; add rule %s %s %s update @%s { %s saddr : ether saddr }", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain, map_str, print_nft_family(family));
 		concat_buf(buf, " ; add rule %s %s %s", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain);
-		run_farm_rules_gen_logs(buf, f, VALUE_LOG_INPUT, NFTLB_F_CHAIN_ING_FILTER, ACTION_START);
+		run_farm_log_prefix(buf, f, VALUE_LOG_INPUT, NFTLB_F_CHAIN_ING_FILTER, ACTION_START);
 		concat_buf(buf, " %s daddr set", print_nft_family(family));
 		run_farm_rules_gen_sched(buf, f, family);
 		run_farm_rules_gen_bck_map(buf, f, BCK_MAP_WEIGHT, BCK_MAP_IPADDR);
 		concat_buf(buf, " ether daddr set ip daddr");
 		run_farm_rules_gen_bck_map(buf, f, BCK_MAP_IPADDR, BCK_MAP_ETHADDR);
-		run_farm_rules_gen_logs(buf, f, VALUE_LOG_OUTPUT, NFTLB_F_CHAIN_EGR_DNAT, ACTION_START);
+		run_farm_log_prefix(buf, f, VALUE_LOG_OUTPUT, NFTLB_F_CHAIN_EGR_DNAT, ACTION_START);
 		concat_buf(buf, " fwd to");
 		if (f->bcks_have_if) {
 			concat_buf(buf, " ether daddr");
@@ -1747,10 +1757,7 @@ static int run_farm_rules_gen_nat(struct sbuffer *buf, struct farm *f, int famil
 			concat_buf(buf, " %s", f->oface);
 		break;
 	default:
-		if (f->log & VALUE_LOG_INPUT) {
-			concat_buf(buf, " ; add rule %s %s %s", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain);
-			run_farm_rules_gen_logs(buf, f, VALUE_LOG_INPUT, NFTLB_F_CHAIN_PRE_DNAT, ACTION_START);
-		}
+		run_farm_gen_log_rules(buf, f, family, chain, VALUE_LOG_INPUT, NFTLB_F_CHAIN_PRE_DNAT, ACTION_START);
 
 		if (!f->bcks_are_marked) {
 			concat_buf(buf, " ; add rule %s %s %s", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain);
