@@ -160,6 +160,8 @@ int config_set_session_action(const char *fname, const char *sname, const char *
 int config_set_fpolicy_action(const char *fname, const char *fpname, const char *value);
 int config_set_policy_action(const char *name, const char *value);
 int config_set_element_action(const char *pname, const char *edata, const char *value);
+int config_get_elements(const char *pname);
+int config_delete_elements(const char *pname);
 void config_print_response(char **buf, const char *message);
 
 #endif /* _CONFIG_H_ */

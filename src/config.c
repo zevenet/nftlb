@@ -649,6 +649,8 @@ static void add_dump_obj(json_t *obj, const char *name, char *value)
 	json_object_set_new(obj, name, json_string(value));
 }
 
+static int add_dump_elements(json_t *obj, struct policy *p);
+
 static struct json_t *add_dump_list(json_t *obj, const char *objname, int object,
 			  struct list_head *head, char *name)
 {
@@ -804,7 +806,8 @@ static struct json_t *add_dump_list(json_t *obj, const char *objname, int object
 
 			config_dump_int(value, p->used);
 			add_dump_obj(item, "used", value);
-			add_dump_list(item, CONFIG_KEY_ELEMENTS, LEVEL_ELEMENTS, &p->elements, NULL);
+			add_dump_elements(item, p);
+			//~ add_dump_list(item, CONFIG_KEY_ELEMENTS, LEVEL_ELEMENTS, &p->elements, NULL);
 			json_array_append_new(jarray, item);
 		}
 		break;
@@ -812,7 +815,8 @@ static struct json_t *add_dump_list(json_t *obj, const char *objname, int object
 		list_for_each_entry(e, head, list) {
 			item = json_object();
 			add_dump_obj(item, "data", e->data);
-			add_dump_obj(item, "time", e->time);
+			if (e->time)
+				add_dump_obj(item, "time", e->time);
 			json_array_append_new(jarray, item);
 		}
 		break;
@@ -842,6 +846,17 @@ static struct json_t *add_dump_list(json_t *obj, const char *objname, int object
 	}
 
 	return NULL;
+}
+
+static int add_dump_elements(json_t *jdata, struct policy *p)
+{
+	element_get_list(p);
+	add_dump_list(jdata, CONFIG_KEY_ELEMENTS, LEVEL_ELEMENTS, &p->elements, NULL);
+
+	//~ json_decref(jdata);
+	element_s_delete(p);
+
+	return 0;
 }
 
 int config_print_farms(char **buf, char *name)
@@ -1028,6 +1043,28 @@ int config_set_element_action(const char *pname, const char *edata, const char *
 		return -1;
 
 	return element_set_action(e, config_value_action(value));
+}
+
+int config_get_elements(const char *pname)
+{
+	struct policy *p;
+
+	p = policy_lookup_by_name(pname);
+	if (!p)
+		return -1;
+
+	return element_get_list(p);
+}
+
+int config_delete_elements(const char *pname)
+{
+	struct policy *p;
+
+	p = policy_lookup_by_name(pname);
+	if (!p)
+		return -1;
+
+	return element_s_delete(p);
 }
 
 void config_print_response(char **buf, const char *message)

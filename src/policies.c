@@ -246,6 +246,7 @@ int policy_pos_actionable(struct config_pair *c)
 
 int policy_rulerize(struct policy *p)
 {
+	int ret = 0;
 	syslog(LOG_DEBUG, "%s():%d: rulerize policy %s", __FUNCTION__, __LINE__, p->name);
 
 	policy_print(p);
@@ -255,7 +256,9 @@ int policy_rulerize(struct policy *p)
 		return 0;
 	}
 
-	return nft_rulerize_policies(p);
+	ret = nft_rulerize_policies(p);
+	element_s_delete(p);
+	return ret;
 }
 
 int policy_s_rulerize(void)

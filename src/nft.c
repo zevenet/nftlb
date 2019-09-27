@@ -2093,6 +2093,9 @@ int nft_get_rules_buffer(const char **buf, int key, char *name)
 	case KEY_SESSIONS:
 		sprintf(cmd, "list map ip nftlb persist-%s", name);
 		break;
+	case KEY_POLICIES:
+		sprintf(cmd, "list set netdev nftlb %s", name);
+		break;
 	default:
 		return 0;
 		break;

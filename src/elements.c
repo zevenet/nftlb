@@ -27,20 +27,23 @@
 #include "elements.h"
 #include "policies.h"
 #include "objects.h"
+#include "nft.h"
 
-static struct element * element_create(struct policy *p, char *data)
+static struct element * element_create(struct policy *p, char *data, char *time)
 {
 	struct element *e = (struct element *)malloc(sizeof(struct element));
 	if (!e) {
-		syslog(LOG_ERR, "Element memory allocation error");
+		syslog(LOG_ERR, "element memory allocation error");
 		return NULL;
 	}
 
 	e->policy = p;
 	obj_set_attribute_string(data, &e->data);
 
+	e->action = ACTION_NONE;
 	e->time = DEFAULT_ELEMENT_TIME;
-	e->action = DEFAULT_ACTION;
+	if (time && strcmp(time, "") != 0)
+		obj_set_attribute_string(time, &e->time);
 
 	list_add_tail(&e->list, &p->elements);
 	p->total_elem++;
@@ -69,6 +72,60 @@ static int element_delete(struct element *e)
 	policy_set_action(p, ACTION_RELOAD);
 
 	element_delete_node(e);
+
+	return 0;
+}
+
+static int nft_parse_elements(struct policy *p, const char *buf)
+{
+	char *ini_ptr = NULL;
+	char *fin_ptr = NULL;
+	char element1[2550] = {0};
+	char element2[2550] = {0};
+	char element3[2550] = {0};
+	int next = 0;
+
+	ini_ptr = strstr(buf, "elements = { ");
+	if (ini_ptr == NULL)
+		return 0;
+
+	ini_ptr += 13;
+new_element:
+	next = 0;
+
+	if (p->timeout) {
+		if ((fin_ptr = strstr(ini_ptr, " expires ")) != NULL) {
+			snprintf(element1, fin_ptr - ini_ptr + 1, "%s", ini_ptr);
+			fin_ptr += 9;
+			ini_ptr = fin_ptr;
+		} else
+			return 0;
+	}
+
+	if ((fin_ptr = strstr(ini_ptr + strlen(element2), ",")) != NULL) {
+		next = 1;
+	} else {
+		if ((fin_ptr = strstr(ini_ptr, " ")) == NULL)
+			return 0;
+	}
+
+	snprintf(element3, fin_ptr - ini_ptr + 1, "%s", ini_ptr);
+	fin_ptr += 1;
+	ini_ptr = fin_ptr;
+
+	if (p->timeout)
+		element_create(p, element3, element2);
+	else
+		element_create(p, element3, NULL);
+
+	while (*fin_ptr == '\n' || *fin_ptr == '\t' || *fin_ptr == ' ') {
+		fin_ptr++;
+	}
+
+	if (next && (*fin_ptr != '}' || *fin_ptr != '\0')) {
+		ini_ptr = fin_ptr;
+		goto new_element;
+	}
 
 	return 0;
 }
@@ -137,7 +194,7 @@ int element_s_delete(struct policy *p)
 	list_for_each_entry_safe(e, next, &p->elements, list)
 		element_delete(e);
 
-	p->total_elem = 0;
+	//~ p->total_elem = 0;
 
 	return 0;
 }
@@ -159,7 +216,7 @@ int element_set_attribute(struct config_pair *c)
 	case KEY_DATA:
 		e = element_lookup_by_name(cur->pptr, c->str_value);
 		if (!e) {
-			e = element_create(cur->pptr, c->str_value);
+			e = element_create(cur->pptr, c->str_value, NULL);
 			if (!e)
 				return -1;
 		}
@@ -194,5 +251,18 @@ int element_pos_actionable(struct config_pair *c)
 
 	policy_set_action(p, ACTION_RELOAD);
 
+	return 0;
+}
+
+int element_get_list(struct policy *p)
+{
+	const char *buf;
+	syslog(LOG_DEBUG, "%s():%d: policy %s", __FUNCTION__, __LINE__, p->name);
+
+	nft_get_rules_buffer(&buf, KEY_POLICIES, p->name);
+	p->total_elem = 0;
+	nft_parse_elements(p, buf);
+	nft_del_rules_buffer(buf);
+	element_s_print(p);
 	return 0;
 }
