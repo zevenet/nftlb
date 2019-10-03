@@ -47,6 +47,8 @@ Here is the list of options:
 **[ -6 | --ipv6 ]**: Enable IPv6 support for the web service listening port.<br />
 **[ -H &lt;HOST&gt; | --host &lt;HOST&gt; ]**: Set the host for the web service (all interfaces by default).<br />
 **[ -P &lt;PORT&gt; | --port &lt;PORT&gt; ]**: Set the TCP port for the web service (5555 by default).<br />
+**[ -S | --serial ]**: Serialize nft commands.<br />
+
 
 Note 1: In order to use sNAT or dNAT modes, ensure you have activated the ip forwarding option in your system
 Note 2: Before executing nftlb, ensure you have empty nft rules by executing "nft flush ruleset"

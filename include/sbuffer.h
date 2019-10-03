@@ -22,6 +22,8 @@
 #ifndef _SBUFFER_H_
 #define _SBUFFER_H_
 
+#include <stdarg.h>
+
 #define DEFAULT_BUFFER_SIZE		4096
 #define EXTRA_SIZE				1024
 
@@ -37,7 +39,9 @@ char * get_buf_data(struct sbuffer *buf);
 int resize_buf(struct sbuffer *buf, int times);
 int create_buf(struct sbuffer *buf);
 int clean_buf(struct sbuffer *buf);
+int reset_buf(struct sbuffer *buf);
 int isempty_buf(struct sbuffer *buf);
+int concat_buf_va(struct sbuffer *buf, int len, char *fmt, va_list args);
 int concat_buf(struct sbuffer *buf, char *fmt, ...);
 
 #endif /* _SBUFFER_H_ */

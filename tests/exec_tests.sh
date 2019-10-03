@@ -4,6 +4,8 @@ ARG="$1"
 ARG2="$2"
 NFTBIN="nft"
 NFTLBIN="../src/nftlb"
+#NFTLB_SERIAL=" -S"
+NFTLB_SERIAL=""
 APISERVER=0
 APISRV_PORT=5555
 APISRV_KEY="hola"
@@ -27,7 +29,7 @@ echo "" > /var/log/syslog
 
 if [ $APISERVER -eq 1 ]; then
 	$NFTBIN flush ruleset
-	$NFTLBIN -d -k "$APISRV_KEY" -l 7 > /dev/null
+	$NFTLBIN $NFTLB_SERIAL -d -k "$APISRV_KEY" -l 7 > /dev/null
 fi
 
 echo "-- Executing configuration tests"
@@ -49,7 +51,7 @@ for test in `ls -d ${TESTS}`; do
 		statusexec=$?
 	else
 		$NFTBIN flush ruleset
-		$NFTLBIN -e -l 7 -c ${inputfile}
+		$NFTLBIN $NFTLB_SERIAL -e -l 7 -c ${inputfile}
 		statusexec=$?
 	fi
 

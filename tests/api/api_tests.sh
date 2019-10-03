@@ -5,6 +5,8 @@ ARG2="$2"
 NFTBIN="nft"
 NFTLBIN="../../src/nftlb"
 DEBUG="7"
+#NFTLB_SERIAL=" -S"
+NFTLB_SERIAL=""
 APISRV_ADDR=localhost
 APISRV_PORT=5555
 APISRV_KEY="hola"
@@ -18,7 +20,7 @@ echo "" > /var/log/syslog
 
 kill `pidof nftlb` 2> /dev/null
 $NFTBIN flush ruleset
-$NFTLBIN -d -k "$APISRV_KEY" -H $APISRV_ADDR -P $APISRV_PORT -l $DEBUG > /dev/null
+$NFTLBIN $NFTLB_SERIAL -d -k "$APISRV_KEY" -H $APISRV_ADDR -P $APISRV_PORT -l $DEBUG > /dev/null
 sleep 1s
 
 for DIRTEST in `ls -d */`; do

@@ -23,7 +23,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
-#include <stdarg.h>
 
 #include "sbuffer.h"
 
@@ -93,16 +92,17 @@ int clean_buf(struct sbuffer *buf)
 	return 0;
 }
 
-int concat_buf(struct sbuffer *buf, char *fmt, ...)
+int reset_buf(struct sbuffer *buf)
+{
+	buf->data[0] = 0;
+	buf->next = 0;
+	return 0;
+}
+
+int concat_buf_va(struct sbuffer *buf, int len, char *fmt, va_list args)
 {
 	int times = 0;
-	int len;
-	va_list args;
 	char *pnext;
-
-	va_start(args, fmt);
-	len = vsnprintf(0, 0, fmt, args);
-	va_end(args);
 
 	if (buf->next + len >= buf->size)
 		times = ((buf->next + len - buf->size) / EXTRA_SIZE) + 1;
@@ -113,12 +113,24 @@ int concat_buf(struct sbuffer *buf, char *fmt, ...)
 	}
 
 	pnext = get_buf_next(buf);
+	vsnprintf(pnext, len + 1, fmt, args);
+	buf->next += len;
+
+	return 0;
+}
+
+int concat_buf(struct sbuffer *buf, char *fmt, ...)
+{
+	int len;
+	va_list args;
 
 	va_start(args, fmt);
-	vsnprintf(pnext, len + 1, fmt, args);
+	len = vsnprintf(0, 0, fmt, args);
 	va_end(args);
 
-	buf->next += len;
+	va_start(args, fmt);
+	concat_buf_va(buf, len, fmt, args);
+	va_end(args);
 
 	return 0;
 }

@@ -38,8 +38,11 @@
 #define NFTLB_FG_MODE			0
 #define NFTLB_BG_MODE			1
 #define NFTLB_EXIT_MODE			1
+#define NFTLB_NFT_SERIALIZE		0
 
 #define NFTLB_LOGLEVEL_DEFAULT		LOG_NOTICE
+
+unsigned int serialize = NFTLB_NFT_SERIALIZE;
 
 static void print_usage(const char *prog_name)
 {
@@ -56,6 +59,7 @@ static void print_usage(const char *prog_name)
 		"  [ -6 | --ipv6 ]			Enable IPv6 listening port\n"
 		"  [ -H <HOST> | --host <HOST> ]		Set the host for the listening port\n"
 		"  [ -P <PORT> | --port <PORT> ]		Set the port for the listening port\n"
+		"  [ -S | --serial ]			Serialize nft commands\n"
 		, prog_name, VERSION, prog_name);
 }
 
@@ -69,6 +73,7 @@ static const struct option options[] = {
 	{ .name = "ipv6",	.has_arg = 0,	.val = '6' },
 	{ .name = "host",	.has_arg = 1,	.val = 'H' },
 	{ .name = "port",	.has_arg = 1,	.val = 'P' },
+	{ .name = "serial",	.has_arg = 0,	.val = 'S' },
 	{ NULL },
 };
 
@@ -109,7 +114,7 @@ int main(int argc, char *argv[])
 	int		loglevel = NFTLB_LOGLEVEL_DEFAULT;
 	const char	*config = NULL;
 
-	while ((c = getopt_long(argc, argv, "hl:c:k:ed6H:P:", options, NULL)) != -1) {
+	while ((c = getopt_long(argc, argv, "hl:c:k:ed6H:P:S", options, NULL)) != -1) {
 		switch (c) {
 		case 'h':
 			print_usage(argv[0]);
@@ -138,6 +143,9 @@ int main(int argc, char *argv[])
 			break;
 		case 'P':
 			server_set_port(atoi(optarg));
+			break;
+		case 'S':
+			serialize = 1;
 			break;
 		default:
 			fprintf(stderr, "Unknown option -%c\n", optopt);
