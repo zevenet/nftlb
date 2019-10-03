@@ -526,7 +526,7 @@ static unsigned int * get_rules_applied(int type, int family, char *iface)
 		if (family == VALUE_FAMILY_IPV4)
 			ret = &nft_base_rules.filter_rules_v4;
 		if (family == VALUE_FAMILY_IPV6)
-			ret = &nft_base_rules.filter_rules_v4;
+			ret = &nft_base_rules.filter_rules_v6;
 
 	} else if (type & NFTLB_F_CHAIN_FWD_FILTER) {
 		if (family == VALUE_FAMILY_IPV4)
