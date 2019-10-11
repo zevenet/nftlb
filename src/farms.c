@@ -623,6 +623,8 @@ int farm_set_ifinfo(struct farm *f, int key)
 
 		if (if_indextoname(if_index, if_str) == NULL) {
 			syslog(LOG_ERR, "%s():%d: unable to get the outbound interface name with index %d required by the farm %s", __FUNCTION__, __LINE__, if_index, f->name);
+			f->ofidx = f->ifidx;
+			obj_set_attribute_string(if_str, &f->oface);
 			return -1;
 		}
 
