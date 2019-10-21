@@ -43,7 +43,7 @@ table ip nftlb {
 
 	chain filter-lb01 {
 		ct state new add @new-rtlimit-lb01 { ip saddr limit rate over 10/second burst 3 packets } log prefix "new-rtlimit-lb01 " drop
-		ct mark set 0x80000000
+		ct state new ct mark 0x00000000 ct mark set 0x80000000
 	}
 
 	chain nat-lb01 {

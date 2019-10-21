@@ -45,7 +45,7 @@ table ip nftlb {
 	}
 
 	chain filter-lb01 {
-		ct mark set numgen random mod 10 map { 0-4 : 0x00000001, 5-9 : 0x00000002 }
+		ct state new ct mark 0x00000000 ct mark set numgen random mod 10 map { 0-4 : 0x00000001, 5-9 : 0x00000002 }
 		ct mark 0x00000001 add @est-connlimit-lb01-bck0 { ip saddr ct count over 20  } log prefix "[est-connlimit,bck,lb01,bck0]" drop
 		ct mark 0x00000002 add @est-connlimit-lb01-bck1 { ip saddr ct count over 20  } log prefix "[est-connlimit,bck,lb01,bck1]" drop
 	}

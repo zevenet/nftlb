@@ -36,7 +36,7 @@ table ip nftlb {
 	}
 
 	chain filter-lb01 {
-		ct mark set 0x0000dead
+		ct state new ct mark 0x00000000 ct mark set 0x0000dead
 	}
 
 	chain nat-lb01 {

@@ -1384,9 +1384,9 @@ static int run_farm_rules_filter_static_sessions(struct sbuffer *buf, struct far
 		s->action = ACTION_NONE;
 	}
 
-	concat_buf(buf, " ; add rule %s %s %s ct mark set", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain);
+	concat_buf(buf, " ; add rule %s %s %s ct state new ct mark set", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain);
 	run_farm_rules_gen_meta_param(buf, f, family, f->persistence, NFTLB_MAP_KEY_RULE);
-	concat_exec_cmd(buf, " map @%s accept", map_str);
+	concat_exec_cmd(buf, " map @%s", map_str);
 
 	return 0;
 }
@@ -1400,6 +1400,25 @@ static int run_farm_rules_filter_persistence(struct sbuffer *buf, struct farm *f
 
 	sprintf(map_str, "persist-%s", f->name);
 	run_farm_map(buf, f, family, map_str, f->persistence, VALUE_META_MARK, f->persistttl, action);
+
+	if ((action != ACTION_START && action != ACTION_RELOAD) || (!f->bcks_are_marked))
+		return 0;
+
+	concat_buf(buf, " ; add rule %s %s %s ct state new ct mark set", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain);
+	run_farm_rules_gen_meta_param(buf, f, family, f->persistence, NFTLB_MAP_KEY_RULE);
+	concat_exec_cmd(buf, " map @%s", map_str);
+
+	return 0;
+}
+
+static int run_farm_rules_filter_persistence_update(struct sbuffer *buf, struct farm *f, int family, char *chain, int action)
+{
+	char map_str[255] = { 0 };
+
+	if (f->persistence == VALUE_META_NONE)
+		return 0;
+
+	sprintf(map_str, "persist-%s", f->name);
 
 	if ((action != ACTION_START && action != ACTION_RELOAD) || (!f->bcks_are_marked))
 		return 0;
@@ -1515,16 +1534,13 @@ static int run_farm_rules_filter_marks(struct sbuffer *buf, struct farm *f, int 
 
 	if (action == ACTION_START || action == ACTION_RELOAD) {
 		if (f->bcks_are_marked && f->bcks_available != 0) {
-			concat_buf(buf, " ; add rule %s %s %s", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain);
-			concat_buf(buf, " ct mark set");
+			concat_buf(buf, " ; add rule %s %s %s ct state new ct mark 0x0 ct mark set", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain);
 			if (run_farm_rules_gen_sched(buf, f, family) == -1)
 				return -1;
 			run_farm_rules_gen_bck_map(buf, f, BCK_MAP_WEIGHT, BCK_MAP_MARK);
 			run_farm_rules_gen_meter_per_bck(buf, f, family, chain, action);
 		} else if (mark != DEFAULT_MARK) {
-			concat_buf(buf, " ; add rule %s %s %s", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain);
-			concat_buf(buf, " ct mark set");
-			concat_buf(buf, " 0x%x", mark);
+			concat_buf(buf, " ; add rule %s %s %s ct state new ct mark 0x0 ct mark set 0x%x", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain, mark);
 		}
 	} else if (action == ACTION_STOP || action == ACTION_DELETE || (action == ACTION_RELOAD && f->bcks_available == 0)) {
 		run_farm_rules_gen_meter_per_bck(buf, f, family, chain, action);
@@ -1550,9 +1566,10 @@ static int run_farm_rules_filter(struct sbuffer *buf, struct farm *f, int family
 		run_farm_rules_gen_vsrv(buf, f, NFTLB_F_CHAIN_PRE_FILTER, family, action);
 		run_farm_rules_filter_policies(buf, f, family, chain, action);
 		run_farm_rules_filter_helper(buf, f, family, chain, action);
-		run_farm_rules_filter_marks(buf, f, family, chain, action);
 		run_farm_rules_filter_static_sessions(buf, f, family, chain, action);
 		run_farm_rules_filter_persistence(buf, f, family, chain, action);
+		run_farm_rules_filter_marks(buf, f, family, chain, action);
+		run_farm_rules_filter_persistence_update(buf, f, family, chain, action);
 		break;
 	case ACTION_DELETE:
 	case ACTION_STOP:
