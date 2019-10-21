@@ -56,7 +56,7 @@ table ip nftlb {
 	}
 
 	chain filter-lb01 {
-		ct mark set numgen random mod 20 map { 0-4 : 0x00000001, 5-9 : 0x00000002, 10-14 : 0x00000003, 15-19 : 0x00000004 }
+		ct state new ct mark 0x00000000 ct mark set numgen random mod 20 map { 0-4 : 0x00000001, 5-9 : 0x00000002, 10-14 : 0x00000003, 15-19 : 0x00000004 }
 	}
 
 	chain nat-lb01 {
