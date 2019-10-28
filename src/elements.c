@@ -40,7 +40,7 @@ static struct element * element_create(struct policy *p, char *data, char *time)
 	e->policy = p;
 	obj_set_attribute_string(data, &e->data);
 
-	e->action = ACTION_NONE;
+	e->action = ACTION_START;
 	e->time = DEFAULT_ELEMENT_TIME;
 	if (time && strcmp(time, "") != 0)
 		obj_set_attribute_string(time, &e->time);
