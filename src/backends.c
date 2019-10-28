@@ -112,7 +112,7 @@ static int backend_delete(struct backend *b)
 	backend_set_action(b, ACTION_STOP);
 
 	if (f->priority >= 1 && b->priority <= f->priority) {
-		f->priority--;
+		farm_set_priority(f, f->priority-1);
 		obj_rulerize(OBJ_START);
 	}
 
@@ -273,6 +273,9 @@ static int backend_set_priority(struct backend *b, int new_value)
 
 	syslog(LOG_DEBUG, "%s():%d: current value is %d, but new value will be %d",
 	       __FUNCTION__, __LINE__, old_value, new_value);
+
+	if (new_value <= 0)
+		return -1;
 
 	b->priority = new_value;
 	backend_s_update_counters(f);

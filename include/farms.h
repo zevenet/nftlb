@@ -162,6 +162,7 @@ struct farm {
 };
 
 struct list_head * farm_s_get_head(void);
+int farm_set_priority(struct farm *f, int new_value);
 void farm_s_print(void);
 int farm_is_ingress_mode(struct farm *f);
 int farm_needs_policies(struct farm *f);

@@ -514,6 +514,21 @@ static int farm_set_estconnlimit(struct farm *f, int new_value)
 	return PARSER_OK;
 }
 
+int farm_set_priority(struct farm *f, int new_value)
+{
+	int old_value = f->priority;
+
+	syslog(LOG_DEBUG, "%s():%d: current value is %d, but new value will be %d",
+	       __FUNCTION__, __LINE__, old_value, new_value);
+
+	if (new_value <= 0)
+		return -1;
+
+	f->priority = new_value;
+
+	return 0;
+}
+
 void farm_s_print(void)
 {
 	struct list_head *farms = obj_get_farms();
@@ -624,7 +639,8 @@ int farm_set_ifinfo(struct farm *f, int key)
 		if (if_indextoname(if_index, if_str) == NULL) {
 			syslog(LOG_ERR, "%s():%d: unable to get the outbound interface name with index %d required by the farm %s", __FUNCTION__, __LINE__, if_index, f->name);
 			f->ofidx = f->ifidx;
-			obj_set_attribute_string(if_str, &f->oface);
+			if (f->iface != DEFAULT_IFNAME)
+				obj_set_attribute_string(f->iface, &f->oface);
 			return -1;
 		}
 
@@ -795,7 +811,7 @@ int farm_set_attribute(struct config_pair *c)
 		ret = PARSER_OK;
 		break;
 	case KEY_PRIORITY:
-		f->priority = c->int_value;
+		farm_set_priority(f, c->int_value);
 		ret = PARSER_OK;
 		break;
 	case KEY_HELPER:
