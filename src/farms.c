@@ -826,7 +826,10 @@ int farm_set_attribute(struct config_pair *c)
 		ret = farm_set_mark(f, c->int_value);
 		break;
 	case KEY_STATE:
-		ret = farm_set_state(f, c->int_value);
+		if (c->int_value != VALUE_STATE_CONFERR)
+			ret = farm_set_state(f, c->int_value);
+		else
+			ret = PARSER_OK;
 		break;
 	case KEY_ACTION:
 		ret = farm_set_action(f, c->int_value);

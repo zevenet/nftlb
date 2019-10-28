@@ -607,7 +607,8 @@ int backend_set_attribute(struct config_pair *c)
 		backend_set_mark(b, c->int_value);
 		break;
 	case KEY_STATE:
-		backend_set_state(b, c->int_value);
+		if (c->int_value != VALUE_STATE_CONFERR)
+			backend_set_state(b, c->int_value);
 		break;
 	case KEY_ESTCONNLIMIT:
 		backend_set_estconnlimit(b, c->int_value);
