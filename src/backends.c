@@ -439,7 +439,18 @@ static int backend_set_ipaddr(struct backend *b, char *new_value)
 	return 0;
 }
 
-static int backend_validate(struct backend *b)
+static int backend_is_usable(struct backend *b)
+{
+	struct farm *f = b->parent;
+
+	syslog(LOG_DEBUG, "%s():%d: backend %s state is %s and priority %d",
+	       __FUNCTION__, __LINE__, b->name, obj_print_state(b->state), b->priority);
+
+	return (b->state == VALUE_STATE_UP) &&
+			(b->priority <= f->priority);
+}
+
+int backend_validate(struct backend *b)
 {
 	struct farm *f = b->parent;
 
@@ -454,17 +465,6 @@ static int backend_validate(struct backend *b)
 		return 0;
 
 	return 1;
-}
-
-static int backend_is_usable(struct backend *b)
-{
-	struct farm *f = b->parent;
-
-	syslog(LOG_DEBUG, "%s():%d: backend %s state is %s and priority %d",
-	       __FUNCTION__, __LINE__, b->name, obj_print_state(b->state), b->priority);
-
-	return (b->state == VALUE_STATE_UP) &&
-			(b->priority <= f->priority);
 }
 
 int backend_is_available(struct backend *b)

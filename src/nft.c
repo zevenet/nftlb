@@ -938,6 +938,9 @@ static int run_farm_rules_gen_srv_map(struct sbuffer *buf, struct farm *f, char 
 
 		for (i = 0; i < nports; i++) {
 			list_for_each_entry(b, &f->backends, list) {
+				if (!backend_validate(b))
+					continue;
+
 				get_farm_service(service, f, type, f->family);
 
 				bckmark = get_bck_mark(b);
