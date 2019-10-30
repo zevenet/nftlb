@@ -146,6 +146,13 @@ enum keys {
 	KEY_BACKEND,
 };
 
+enum families {
+	VALUE_FAMILY_IPV4,
+	VALUE_FAMILY_IPV6,
+	VALUE_FAMILY_INET,
+	VALUE_FAMILY_NETDEV,
+};
+
 struct obj_config {
 	struct farm		*fptr;
 	struct backend		*bptr;

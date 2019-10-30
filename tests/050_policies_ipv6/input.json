@@ -1,0 +1,51 @@
+{
+	"policies" : [
+		{
+			"name" : "black001",
+			"type" : "blacklist",
+			"family" : "ipv6",
+			"priority" : "1",
+			"elements" : [
+				{
+					"data" : "2001:4ca0:4101:0:81:bb:cc:30"
+				},
+				{
+					"data" : "2001:db8::/32"
+				}
+			]
+		}
+	],
+	"farms" : [
+		{
+			"name" : "lb01",
+			"family" : "ipv4",
+			"virtual-addr" : "127.0.0.1",
+			"virtual-ports" : "80",
+			"mode" : "dnat",
+			"protocol" : "tcp",
+			"scheduler" : "weight",
+			"state" : "up",
+			"backends" : [
+				{
+					"name" : "bck0",
+					"ip-addr" : "192.168.0.10",
+					"weight" : "5",
+					"priority" : "1",
+					"state" : "up"
+				},
+				{
+					"name" : "bck1",
+					"ip-addr" : "192.168.0.11",
+					"weight" : "5",
+					"priority" : "1",
+					"state" : "up"
+				}
+			],
+			"policies" : [
+				{
+					"name" : "black001"
+				}
+			]
+		}
+	]
+}

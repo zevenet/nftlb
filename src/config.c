@@ -796,6 +796,7 @@ static struct json_t *add_dump_list(json_t *obj, const char *objname, int object
 
 			item = json_object();
 			add_dump_obj(item, "name", p->name);
+			add_dump_obj(item, CONFIG_KEY_FAMILY, obj_print_family(p->family));
 			add_dump_obj(item, "type", obj_print_policy_type(p->type));
 			config_dump_int(value, p->timeout);
 			add_dump_obj(item, "timeout", value);
@@ -807,7 +808,6 @@ static struct json_t *add_dump_list(json_t *obj, const char *objname, int object
 			config_dump_int(value, p->used);
 			add_dump_obj(item, "used", value);
 			add_dump_elements(item, p);
-			//~ add_dump_list(item, CONFIG_KEY_ELEMENTS, LEVEL_ELEMENTS, &p->elements, NULL);
 			json_array_append_new(jarray, item);
 		}
 		break;

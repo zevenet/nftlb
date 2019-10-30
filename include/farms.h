@@ -25,13 +25,6 @@
 #include "list.h"
 #include "config.h"
 
-enum families {
-	VALUE_FAMILY_IPV4,
-	VALUE_FAMILY_IPV6,
-	VALUE_FAMILY_INET,
-	VALUE_FAMILY_NETDEV,
-};
-
 enum modes {
 	VALUE_MODE_SNAT,
 	VALUE_MODE_DNAT,
