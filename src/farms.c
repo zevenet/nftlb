@@ -262,7 +262,7 @@ static int farm_set_mark(struct farm *f, int new_value)
 	syslog(LOG_DEBUG, "%s():%d: farm %s old mark %d new mark %d", __FUNCTION__, __LINE__, f->name, old_value, new_value);
 
 	if (f->mode != VALUE_MODE_DNAT && f->mode != VALUE_MODE_SNAT) {
-		syslog(LOG_ERR, "%s():%d: mark for farm %s not available for the current mode %d", __FUNCTION__, __LINE__, f->name, f->mode);
+		syslog(LOG_INFO, "%s():%d: mark for farm %s not available for the current mode %d", __FUNCTION__, __LINE__, f->name, f->mode);
 		return 0;
 	}
 
@@ -624,7 +624,7 @@ int farm_set_ifinfo(struct farm *f, int key)
 
 		b = backend_get_first(f);
 		if (!b || b->ipaddr == DEFAULT_IPADDR) {
-			syslog(LOG_ERR, "%s():%d: there is no backend yet in the farm %s", __FUNCTION__, __LINE__, f->name);
+			syslog(LOG_DEBUG, "%s():%d: there is no backend yet in the farm %s", __FUNCTION__, __LINE__, f->name);
 			return 0;
 		}
 
