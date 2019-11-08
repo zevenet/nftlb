@@ -40,7 +40,14 @@
 #include "farms.h"
 #include "checksum.h"
 
-#define ARP_TABLE_RETRY_SLEEP	1000
+#define ARP_TABLE_RETRY_SLEEP		1000
+#define ICMP_PROTO					1
+#define ICMP_PACKETSIZE				64
+#define IP_ADDR_LEN					4
+#define IP6_ADDR_LEN				16
+#define ETH_ADDR_LEN				14
+#define GET_INET_LEN(family)		((family == AF_INET6) ? IP6_ADDR_LEN : IP_ADDR_LEN)
+#define GET_INET_STRLEN(family)		((family == AF_INET6) ? INET6_ADDRSTRLEN : INET_ADDRSTRLEN)
 
 static int net_event_enabled;
 
@@ -55,9 +62,8 @@ struct mnl_socket *nl;
 
 struct icmp_packet
 {
-	struct ip iphdr;
-	struct icmp icmphdr;
-	uint8_t data[ICMP_DATALEN];
+	struct icmphdr icmphdr;
+	char data[ICMP_PACKETSIZE - sizeof(struct icmphdr)];
 };
 
 struct icmpv6_packet
@@ -110,17 +116,17 @@ static int send_ping(void *data)
 {
 	struct ntl_data *sdata = data;
 	struct sockaddr_ll device;
+	struct sockaddr *pdevice;
 	struct icmp_packet pckt4;
 	struct icmpv6_packet pckt6;
+	struct sockaddr_in remote_addr;
 	ssize_t ret = 0;
 	int sock;
 	int frame_len_v6 = ETHER_HDRLEN + IP6_HDRLEN + ICMP_HDRLEN + ICMP_DATALEN;
 	uint8_t frame_v6[frame_len_v6];
 	int frame_len_v4 = ETHER_HDRLEN + IP4_HDRLEN + ICMP_HDRLEN + ICMP_DATALEN;
-	uint8_t frame_v4[frame_len_v4];
 	int *frame_len;
 	uint8_t *frame;
-	int flags[4];
 
 	syslog(LOG_DEBUG, "%s():%d: sending ping", __FUNCTION__, __LINE__);
 
@@ -130,7 +136,7 @@ static int send_ping(void *data)
 
 		memset(&device, 0, sizeof(device));
 		device.sll_ifindex = sdata->oifidx;
-		device.sll_family = AF_PACKET;
+		device.sll_family = PF_PACKET;
 		memcpy(device.sll_addr, sdata->src_ethaddr, ETH_HW_ADDR_LEN * sizeof(uint8_t));
 		device.sll_halen = 6;
 
@@ -168,79 +174,41 @@ static int send_ping(void *data)
 
 		pckt6.icmphdr.icmp6_cksum = 0;
 		pckt6.icmphdr.icmp6_cksum = icmp6_checksum(pckt6.iphdr, pckt6.icmphdr, pckt6.data, ICMP_DATALEN);
+
 		memcpy(frame_v6 + ETHER_HDRLEN, &pckt6.iphdr, IP6_HDRLEN * sizeof(uint8_t));
 		memcpy(frame_v6 + ETHER_HDRLEN + IP6_HDRLEN, &pckt6.icmphdr, ICMP_HDRLEN * sizeof(uint8_t));
 		memcpy(frame_v6 + ETHER_HDRLEN + IP6_HDRLEN + ICMP_HDRLEN, pckt6.data, ICMP_DATALEN * sizeof(uint8_t));
+
+		pdevice = (struct sockaddr *) &device;
+		sock = socket(PF_PACKET, SOCK_RAW, IPPROTO_ICMPV6);
+
 	} else {
+		bzero(&remote_addr, sizeof(remote_addr));
+		remote_addr.sin_family = sdata->family;
+		remote_addr.sin_port = 0;
+		memcpy(&remote_addr.sin_addr.s_addr, &sdata->dst_ipaddr->s6_addr, GET_INET_LEN(sdata->family) * sizeof(uint8_t));
+
+		bzero(&pckt4, sizeof(pckt4));
+		pckt4.icmphdr.type = ICMP_ECHO;
+		pckt4.icmphdr.un.echo.id = 1;
+		bzero(pckt4.data, ICMP_PACKETSIZE - sizeof(struct icmphdr));
+		pckt4.icmphdr.un.echo.sequence = 1;
+
+		frame_len_v4 = sizeof(pckt4);
+		frame = (uint8_t *)&pckt4;
 		frame_len = &frame_len_v4;
-		frame = frame_v4;
 
-		memset(&device, 0, sizeof(device));
-		device.sll_ifindex = sdata->oifidx;
-		device.sll_family = AF_PACKET;
-		memcpy(device.sll_addr, sdata->src_ethaddr, ETH_HW_ADDR_LEN * sizeof(uint8_t));
-		device.sll_halen = 6;
-
-		frame_v4[0] = 0xff;
-		frame_v4[1] = 0xff;
-		frame_v4[2] = 0xff;
-		frame_v4[3] = 0xff;
-		frame_v4[4] = 0xff;
-		frame_v4[5] = 0xff;
-		frame_v4[6] = (uint8_t)sdata->src_ethaddr[0];
-		frame_v4[7] = (uint8_t)sdata->src_ethaddr[1];
-		frame_v4[8] = (uint8_t)sdata->src_ethaddr[2];
-		frame_v4[9] = (uint8_t)sdata->src_ethaddr[3];
-		frame_v4[10] = (uint8_t)sdata->src_ethaddr[4];
-		frame_v4[11] = (uint8_t)sdata->src_ethaddr[5];
-		frame_v4[12] = ETH_P_IP / 256;
-		frame_v4[13] = ETH_P_IP % 256;
-
-		pckt4.iphdr.ip_hl = IP4_HDRLEN / sizeof(uint32_t);
-		pckt4.iphdr.ip_v = 4;
-		pckt4.iphdr.ip_tos = 0;
-		pckt4.iphdr.ip_len = htons(IP4_HDRLEN + ICMP_HDRLEN + ICMP_DATALEN);
-		pckt4.iphdr.ip_id = htons(0);
-
-		pckt4.data[0] = 'H';
-		pckt4.data[1] = 'o';
-		pckt4.data[2] = 'l';
-		pckt4.data[3] = 'a';
-
-		flags[0] = 0;
-		flags[1] = 0;
-		flags[2] = 0;
-		flags[3] = 0;
-
-		pckt4.iphdr.ip_off = htons((flags[0] << 15)
-			+ (flags[1] << 14) + (flags[2] << 13)
-			+  flags[3]);
-		pckt4.iphdr.ip_ttl = 255;
-		pckt4.iphdr.ip_p = IPPROTO_ICMP;
-		memcpy(&pckt4.iphdr.ip_src, sdata->src_ipaddr, sizeof(struct in_addr));
-		memcpy(&pckt4.iphdr.ip_dst, sdata->dst_ipaddr, sizeof(struct in_addr));
-		pckt4.iphdr.ip_sum = 0;
-		pckt4.iphdr.ip_sum = checksum ((uint16_t *) &pckt4.iphdr, IP4_HDRLEN);
-
-		pckt4.icmphdr.icmp_type = ICMP_ECHO;
-		pckt4.icmphdr.icmp_code = 0;
-		pckt4.icmphdr.icmp_id = htons(1000);
-		pckt4.icmphdr.icmp_seq = htons(0);
-		pckt4.icmphdr.icmp_cksum = icmp4_checksum (pckt4.icmphdr, pckt4.data, ICMP_DATALEN);
-
-		memcpy(frame_v4 + ETHER_HDRLEN, &pckt4.iphdr, IP4_HDRLEN * sizeof(uint8_t));
-		memcpy(frame_v4 + ETHER_HDRLEN + IP4_HDRLEN, &pckt4.icmphdr, ICMP_HDRLEN * sizeof(uint8_t));
-		memcpy(frame_v4 + ETHER_HDRLEN + IP4_HDRLEN + ICMP_HDRLEN, pckt4.data, ICMP_DATALEN * sizeof(uint8_t));
+		pdevice = (struct sockaddr *)&remote_addr;
+		sock = socket(PF_INET, SOCK_RAW, ICMP_PROTO);
 	}
 
-	sock = socket(PF_PACKET, SOCK_RAW, htons(ETH_P_ALL));
 	if (sock < 0) {
 		syslog(LOG_ERR, "%s():%d: open socket error", __FUNCTION__, __LINE__);
 		ret = -1;
 		goto out;
 	}
 
-	if (sendto(sock, frame, *frame_len, 0, (struct sockaddr *) &device, sizeof(device)) <= 0) {
+	if (sendto(sock, frame, *frame_len, 0, pdevice, sizeof(device)) <= 0) {
 		syslog(LOG_ERR, "%s():%d: sendto error", __FUNCTION__, __LINE__);
 		ret = -1;
 	}
@@ -258,6 +226,8 @@ static int data_attr_neigh_cb(const struct nlattr *attr, void *data)
 {
 	const struct nlattr **tb = data;
 	int type = mnl_attr_get_type(attr);
+
+	syslog(LOG_DEBUG, "%s():%d: launched cb neighbour", __FUNCTION__, __LINE__);
 
 	if (mnl_attr_type_valid(attr, NDA_MAX) < 0)
 		return MNL_CB_OK;
@@ -286,7 +256,6 @@ static int data_getdst_neigh_cb(const struct nlmsghdr *nlh, void *data)
 	struct in6_addr *ipaddr;
 	void *ethaddr;
 	char out[INET6_ADDRSTRLEN];
-	char out1[INET6_ADDRSTRLEN];
 	struct ntl_data *sdata = data;
 	int matches = 0;
 
@@ -298,14 +267,12 @@ static int data_getdst_neigh_cb(const struct nlmsghdr *nlh, void *data)
 		return MNL_CB_OK;
 
 	ipaddr = mnl_attr_get_payload(tb[NDA_DST]);
-
-	inet_ntop(sdata->family, ipaddr, out, INET6_ADDRSTRLEN);
-	inet_ntop(sdata->family, sdata->dst_ipaddr, out1, INET6_ADDRSTRLEN);
+	inet_ntop(sdata->family, ipaddr, out, GET_INET_LEN(sdata->family));
 
 	if (sdata->family == AF_INET6)
 		matches = (net_cmp_ipv6(ipaddr, sdata->dst_ipaddr) == 0);
 	else
-		matches = (memcmp(ipaddr, sdata->dst_ipaddr, INET_ADDRSTRLEN) == 0);
+		matches = (memcmp(ipaddr, sdata->dst_ipaddr, GET_INET_LEN(sdata->family)) == 0);
 
 	if (matches &&
 	    ((ndm->ndm_state & NUD_REACHABLE) || (ndm->ndm_state & NUD_PERMANENT) || (ndm->ndm_state & NUD_STALE))) {
@@ -331,6 +298,8 @@ static int data_route_attr_cb(const struct nlattr *attr, void *data)
 {
 	const struct nlattr **tb = data;
 	int type = mnl_attr_get_type(attr);
+
+	syslog(LOG_DEBUG, "%s():%d: route netlink attr", __FUNCTION__, __LINE__);
 
 	if (mnl_attr_type_valid(attr, RTA_MAX) < 0)
 		return MNL_CB_OK;
@@ -361,6 +330,8 @@ static int data_getdst_route_cb(const struct nlmsghdr *nlh, void *data)
 static int ntl_request(struct ntl_request *ntl)
 {
 	int ret, out = 0;
+
+	syslog(LOG_DEBUG, "%s():%d: launch netlink request", __FUNCTION__, __LINE__);
 
 	ntl->nl = mnl_socket_open(NETLINK_ROUTE);
 	if (ntl->nl == NULL) {
@@ -501,7 +472,7 @@ int net_get_local_ifidx_per_remote_host(char *dst_ipaddr, int *outdev)
 
 	ntl.rtm = mnl_nlmsg_put_extra_header(ntl.nlh, sizeof(struct rtmsg));
 	ntl.rtm->rtm_family = ipv;
-	ntl.rtm->rtm_dst_len = 128;
+	ntl.rtm->rtm_dst_len = GET_INET_LEN(ipv);
 	ntl.rtm->rtm_src_len = 0;
 	ntl.rtm->rtm_tos = 0;
 	ntl.rtm->rtm_protocol = RTPROT_UNSPEC;
@@ -531,7 +502,7 @@ int net_get_local_ifidx_per_remote_host(char *dst_ipaddr, int *outdev)
 		return -1;
 	}
 
-	mnl_attr_put(ntl.nlh, RTA_DST, 4 * sizeof(uint32_t), &(addr.sin6_addr));
+	mnl_attr_put(ntl.nlh, RTA_DST, GET_INET_LEN(ipv), &(addr.sin6_addr));
 
 	ret = ntl_request(&ntl);
 
@@ -592,12 +563,12 @@ int net_get_local_ifname_per_vip(char *strvip, char *outdev)
 	struct sockaddr_in6 *ipaddr6;
 	struct ifaddrs *ifaddrs, *ifaddr;
 
+	syslog(LOG_DEBUG, "%s():%d: netlink get local interface name for %s", __FUNCTION__, __LINE__, strvip);
+
 	if (!strvip || strcmp(strvip, "") == 0) {
 		syslog(LOG_ERR, "%s():%d: vip is not set yet", __FUNCTION__, __LINE__);
 		return -1;
 	}
-
-	syslog(LOG_DEBUG, "%s():%d: netlink get local interface name for %s", __FUNCTION__, __LINE__, strvip);
 
 	ipv = net_get_addr_family(strvip);
 
@@ -659,7 +630,7 @@ static int data_getev_cb(const struct nlmsghdr *nlh, void *data)
 
 	if (tb[NDA_DST]) {
 		ipaddr = mnl_attr_get_payload(tb[NDA_DST]);
-		inet_ntop(ndm->ndm_family, ipaddr, str_ipaddr, INET6_ADDRSTRLEN);
+		inet_ntop(ndm->ndm_family, ipaddr, str_ipaddr, GET_INET_STRLEN(ndm->ndm_family));
 	}
 
 	if (tb[NDA_LLADDR]) {

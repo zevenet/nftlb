@@ -27,6 +27,5 @@
 
 uint16_t checksum(uint16_t *addr, int len);
 uint16_t icmp6_checksum(struct ip6_hdr iphdr, struct icmp6_hdr icmp6hdr, uint8_t *payload, int payloadlen);
-uint16_t icmp4_checksum(struct icmp icmphdr, uint8_t *payload, int payloadlen);
 
 #endif /* _CHECKSUM_H_ */

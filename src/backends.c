@@ -190,6 +190,8 @@ static int backend_set_ipaddr_from_ether(struct backend *b)
 	unsigned char dst_ethaddr[ETH_HW_ADDR_LEN];
 	unsigned char src_ethaddr[ETH_HW_ADDR_LEN];
 	char streth[ETH_HW_STR_LEN] = {};
+	int *oface;
+	char **source_ip;
 
 	if (!farm_is_ingress_mode(f))
 		return 0;
@@ -201,10 +203,25 @@ static int backend_set_ipaddr_from_ether(struct backend *b)
 
 	sscanf(f->iethaddr, "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx", &src_ethaddr[0], &src_ethaddr[1], &src_ethaddr[2], &src_ethaddr[3], &src_ethaddr[4], &src_ethaddr[5]);
 
-	if (b->ofidx != DEFAULT_IFIDX)
-		ret = net_get_neigh_ether((unsigned char **) &dst_ethaddr, src_ethaddr, f->family, f->virtaddr, b->ipaddr, b->ofidx);
-	else
-		ret = net_get_neigh_ether((unsigned char **) &dst_ethaddr, src_ethaddr, f->family, f->virtaddr, b->ipaddr, f->ofidx);
+	oface = &f->ifidx;
+	source_ip = &f->virtaddr;
+
+	ret = net_get_neigh_ether((unsigned char **) &dst_ethaddr, src_ethaddr, f->family, *source_ip, b->ipaddr, *oface);
+
+	if (ret != 0) {
+		oface = &f->ofidx;
+
+		if (b->ofidx != DEFAULT_IFIDX)
+			oface = &b->ofidx;
+
+		if (f->srcaddr != DEFAULT_SRCADDR)
+			source_ip = &f->srcaddr;
+
+		if (b->srcaddr != DEFAULT_SRCADDR)
+			source_ip = &b->srcaddr;
+
+		ret = net_get_neigh_ether((unsigned char **) &dst_ethaddr, src_ethaddr, f->family, *source_ip, b->ipaddr, *oface);
+	}
 
 	if (ret == 0) {
 		sprintf(streth, "%02x:%02x:%02x:%02x:%02x:%02x", dst_ethaddr[0],

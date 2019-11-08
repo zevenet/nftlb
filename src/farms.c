@@ -608,7 +608,7 @@ int farm_set_ifinfo(struct farm *f, int key)
 		net_strim_netface(f->iface);
 
 		/* By default, use the same inbound and outbound interface until
-		 * the backends network configuration say a different thing */
+		 * the backends network configuration says a different thing */
 		if (f->ofidx == DEFAULT_IFIDX) {
 			f->ofidx = f->ifidx;
 			obj_set_attribute_string(f->iface, &f->oface);
@@ -638,9 +638,6 @@ int farm_set_ifinfo(struct farm *f, int key)
 
 		if (if_indextoname(if_index, if_str) == NULL) {
 			syslog(LOG_ERR, "%s():%d: unable to get the outbound interface name with index %d required by the farm %s", __FUNCTION__, __LINE__, if_index, f->name);
-			f->ofidx = f->ifidx;
-			if (f->iface != DEFAULT_IFNAME)
-				obj_set_attribute_string(f->iface, &f->oface);
 			return -1;
 		}
 
