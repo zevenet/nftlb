@@ -624,7 +624,7 @@ int backend_set_attribute(struct config_pair *c)
 		backend_set_mark(b, c->int_value);
 		break;
 	case KEY_STATE:
-		if (c->int_value != VALUE_STATE_CONFERR)
+		if (c->int_value == VALUE_STATE_CONFERR)
 			backend_set_state(b, VALUE_STATE_UP);
 		else
 			backend_set_state(b, c->int_value);
