@@ -28,7 +28,8 @@ for DIRTEST in `ls -d */`; do
 	TESTCASE=`ls *.api`
 	source $TESTCASE
 	INDEX_OUT=`printf %03d $INDEX`
-	echo -n "$INDEX_OUT - $DESC "
+	#~ echo -n "$INDEX_OUT - $DESC "
+	echo -n "$DIRTEST... "
 	logger NFTLB API TESTING $INDEX_OUT - $DESC
 
 	if [ "$VERB" = "POST" ] || [ "$VERB" = "PUT" ]; then
