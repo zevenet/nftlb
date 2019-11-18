@@ -206,6 +206,9 @@ static int backend_set_ipaddr_from_ether(struct backend *b)
 	oface = &f->ifidx;
 	source_ip = &f->virtaddr;
 
+	if (f->srcaddr != DEFAULT_SRCADDR)
+		source_ip = &f->srcaddr;
+
 	ret = net_get_neigh_ether((unsigned char **) &dst_ethaddr, src_ethaddr, f->family, *source_ip, b->ipaddr, *oface);
 
 	if (ret != 0) {
