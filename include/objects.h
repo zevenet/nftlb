@@ -67,7 +67,7 @@
 #define DEFAULT_SESSION_EXPIRATION		NULL
 
 #define UNDEFINED_VALUE					"UNDEFINED"
-
+#define IFACE_LOOPBACK					"lo"
 
 enum obj_start {
 	OBJ_START,

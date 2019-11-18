@@ -583,6 +583,11 @@ int farm_set_ifinfo(struct farm *f, int key)
 
 	switch (key) {
 	case KEY_IFACE:
+		if (f->iface && strcmp(f->iface, IFACE_LOOPBACK) == 0) {
+			syslog(LOG_DEBUG, "%s():%d: farm %s doesn't require input netinfo, loopback interface", __FUNCTION__, __LINE__, f->name);
+			f->ifidx = 0;
+			return 0;
+		}
 
 		ret = net_get_local_ifname_per_vip(f->virtaddr, if_str);
 
@@ -619,7 +624,14 @@ int farm_set_ifinfo(struct farm *f, int key)
 
 		obj_set_attribute_string(streth, ether_addr);
 		break;
+
 	case KEY_OFACE:
+		if (f->oface && strcmp(f->oface, IFACE_LOOPBACK) == 0) {
+			syslog(LOG_DEBUG, "%s():%d: farm %s doesn't require output netinfo, loopback interface", __FUNCTION__, __LINE__, f->name);
+			f->ofidx = 0;
+			return 0;
+		}
+
 		ether_addr = &f->oethaddr;
 
 		b = backend_get_first(f);

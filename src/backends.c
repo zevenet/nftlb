@@ -399,6 +399,12 @@ static int backend_set_ifinfo(struct backend *b, int key)
 		return 0;
 	}
 
+	if (f->oface && strcmp(f->oface, IFACE_LOOPBACK) == 0) {
+		syslog(LOG_DEBUG, "%s():%d: backend %s in farm %s doesn't require output netinfo, loopback interface", __FUNCTION__, __LINE__, b->name, f->name);
+		f->ifidx = 0;
+		return 0;
+	}
+
 	switch (key) {
 	case KEY_OFACE:
 		if (!b || b->ipaddr == DEFAULT_IPADDR) {
