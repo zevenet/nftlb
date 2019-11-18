@@ -1,0 +1,8 @@
+{
+	"farms" : [
+		{
+			"name" : "lb01",
+			"persistence" : "none"
+		}
+	]
+}

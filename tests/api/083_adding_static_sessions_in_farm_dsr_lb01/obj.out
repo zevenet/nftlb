@@ -1,0 +1,66 @@
+{
+        "farms": [
+                {
+                        "name": "lb01",
+                        "family": "ipv4",
+                        "virtual-addr": "192.168.0.100",
+                        "virtual-ports": "80",
+                        "source-addr": "",
+                        "mode": "dsr",
+                        "protocol": "tcp",
+                        "scheduler": "weight",
+                        "sched-param": "none",
+                        "persistence": "srcip srcport ",
+                        "persist-ttl": "50",
+                        "helper": "none",
+                        "log": "none",
+                        "mark": "0x0",
+                        "priority": "1",
+                        "state": "up",
+                        "new-rtlimit": "0",
+                        "new-rtlimit-burst": "0",
+                        "rst-rtlimit": "0",
+                        "rst-rtlimit-burst": "0",
+                        "est-connlimit": "0",
+                        "tcp-strict": "off",
+                        "queue": "-1",
+                        "backends": [
+                                {
+                                        "name": "bck0",
+                                        "ip-addr": "192.168.0.10",
+                                        "port": "10",
+                                        "weight": "5",
+                                        "priority": "1",
+                                        "mark": "0x0",
+                                        "est-connlimit": "0",
+                                        "state": "up"
+                                },
+                                {
+                                        "name": "bck1",
+                                        "ip-addr": "192.168.0.11",
+                                        "port": "20",
+                                        "weight": "5",
+                                        "priority": "1",
+                                        "mark": "0x0",
+                                        "est-connlimit": "0",
+                                        "state": "up"
+                                }
+                        ],
+                        "sessions": [
+                                {
+                                        "client": "192.168.44.5 . 91",
+                                        "backend": "bck1"
+                                },
+                                {
+                                        "client": "192.168.44.6 . 92",
+                                        "backend": "bck1"
+                                },
+                                {
+                                        "client": "192.168.44.7 . 91",
+                                        "backend": "bck0"
+                                }
+                        ],
+                        "policies": []
+                }
+        ]
+}

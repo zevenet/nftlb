@@ -175,6 +175,10 @@ struct backend * backend_lookup_by_key(struct farm *f, int key, const char *name
 			if (b->mark == value)
 				return b;
 			break;
+		case KEY_ETHADDR:
+			if (b->ethaddr && strcmp(b->ethaddr, name) == 0)
+				return b;
+			break;
 		default:
 			return NULL;
 		}

@@ -259,7 +259,7 @@ int element_get_list(struct policy *p)
 	const char *buf;
 	syslog(LOG_DEBUG, "%s():%d: policy %s", __FUNCTION__, __LINE__, p->name);
 
-	nft_get_rules_buffer(&buf, KEY_POLICIES, p->name);
+	nft_get_rules_buffer(&buf, KEY_POLICIES, NULL, p);
 	p->total_elem = 0;
 	nft_parse_elements(p, buf);
 	nft_del_rules_buffer(buf);

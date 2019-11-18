@@ -1,0 +1,9 @@
+{
+	"farms" : [
+		{
+			"name" : "lb01",
+			"persistence" : "srcip",
+			"persist-ttl" : "50"
+		}
+	]
+}
