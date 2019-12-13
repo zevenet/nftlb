@@ -27,6 +27,9 @@
 #include <syslog.h>
 #include <time.h>
 #include <unistd.h>
+#include <netdb.h>
+#include <sys/types.h>
+#include <sys/socket.h>
 
 #include "server.h"
 #include "config.h"
@@ -39,7 +42,7 @@
 #define SRV_MAX_IDENT			200
 #define SRV_KEY_LENGTH			16
 
-#define SRV_PORT_DEF			5555
+#define SRV_PORT_DEF			"5555"
 
 #define STR_GET_ACTION			"GET"
 #define STR_POST_ACTION			"POST"
@@ -89,14 +92,14 @@ struct nftlb_server {
 	char			*key;
 	int			family;
 	char			*host;
-	int			port;
+	char			*port;
 	int			sd;
 };
 
 static struct nftlb_server nftserver = {
 	.family	= AF_INET,
 	.host	= NULL,
-	.port	= SRV_PORT_DEF,
+	.port	= NULL,
 };
 
 static int auth_key(const char *recvkey)
@@ -431,8 +434,36 @@ static int send_response(struct nftlb_http_state *state)
 struct nftlb_client {
 	struct ev_io		io;
 	struct ev_timer		timer;
-	struct sockaddr_in	addr;
+	struct sockaddr_storage	addr;
 };
+
+static char *nftlb_client_address(struct sockaddr_storage *addr, char *str)
+{
+	unsigned short port;
+	if (!addr) {
+		str[0] = 0;
+		return str;
+	}
+
+	switch (addr->ss_family)
+	{
+	case AF_INET6:
+		port = htons(((struct sockaddr_in6 *)addr)->sin6_port);
+		sprintf(str,"%s:%hu",inet_ntop(addr->ss_family, 
+			&(((struct sockaddr_in6 *)addr)->sin6_addr), str, 
+			INET6_ADDRSTRLEN + 6),port);
+		break;
+	case AF_INET:
+		port = htons(((struct sockaddr_in *)addr)->sin_port);
+		sprintf(str,"%s:%hu",inet_ntop(addr->ss_family, 
+			&(((struct sockaddr_in *)addr)->sin_addr), str, 
+			INET6_ADDRSTRLEN + 6),port);
+		break;
+	default:
+		break;
+	}
+	return str;
+}
 
 static void nftlb_client_release(struct ev_loop *loop, struct nftlb_client *cli)
 {
@@ -458,6 +489,7 @@ static void nftlb_read_cb(struct ev_loop *loop, struct ev_io *io, int revents)
 	struct nftlb_http_state state;
 	struct nftlb_client *cli;
 	ssize_t size;
+	char cli_address[INET6_ADDRSTRLEN + 6]; //max address length + port length
 
 	if (EV_ERROR & revents) {
 		syslog(LOG_ERR, "Server got invalid event from client read");
@@ -474,8 +506,8 @@ static void nftlb_read_cb(struct ev_loop *loop, struct ev_io *io, int revents)
 	buf.next = size;
 
 	if (size == 0) {
-		syslog(LOG_DEBUG, "connection closed by client %s:%hu\n",
-		       inet_ntoa(cli->addr.sin_addr), ntohs(cli->addr.sin_port));
+		syslog(LOG_DEBUG, "connection closed by client %s\n",
+		       nftlb_client_address(&cli->addr, cli_address));
 		goto end;
 	}
 
@@ -492,8 +524,8 @@ static void nftlb_read_cb(struct ev_loop *loop, struct ev_io *io, int revents)
 	nftlb_http_send_response(io, &state, strlen(state.body_response));
 	send(io->fd, state.body_response, strlen(state.body_response), 0);
 
-	syslog(LOG_DEBUG, "connection closed by server %s:%hu\n",
-	       inet_ntoa(cli->addr.sin_addr), ntohs(cli->addr.sin_port));
+	syslog(LOG_DEBUG, "connection closed by server %s\n",
+		       nftlb_client_address(&cli->addr, cli_address));
 end:
 	if (state.body_response)
 		free(state.body_response);
@@ -510,21 +542,23 @@ end:
 static void nftlb_timer_cb(struct ev_loop *loop, ev_timer *timer, int events)
 {
 	struct nftlb_client *cli;
+	char cli_address[INET6_ADDRSTRLEN + 6]; //max address length + port length
 
 	cli = container_of(timer, struct nftlb_client, timer);
 
-	syslog(LOG_ERR, "timeout for client %s:%hu\n",
-	       inet_ntoa(cli->addr.sin_addr), ntohs(cli->addr.sin_port));
+	syslog(LOG_ERR, "timeout for client %s\n",
+	       nftlb_client_address(&cli->addr, cli_address));
 
 	nftlb_client_release(loop, cli);
 }
 
 static void accept_cb(struct ev_loop *loop, struct ev_io *io, int revents)
 {
-	struct sockaddr_in client_addr;
+	struct sockaddr_storage client_addr;
 	socklen_t addrlen = sizeof(client_addr);
 	struct nftlb_client *cli;
 	int client_sd;
+	char cli_address[INET6_ADDRSTRLEN + 6]; //max address length + port length
 
 	if (EV_ERROR & revents) {
 		syslog(LOG_ERR, "Server got an invalid event from client");
@@ -549,26 +583,58 @@ static void accept_cb(struct ev_loop *loop, struct ev_io *io, int revents)
 	ev_timer_init(&cli->timer, nftlb_timer_cb, NFTLB_CLIENT_TIMEOUT, 0.);
 	ev_timer_start(loop, &cli->timer);
 
-	syslog(LOG_DEBUG, "connection from %s:%hu",
-	       inet_ntoa(cli->addr.sin_addr), ntohs(cli->addr.sin_port));
+	syslog(LOG_DEBUG, "connection from %s",
+	       nftlb_client_address(&cli->addr, cli_address));
 	syslog(LOG_DEBUG, "%d client(s) connected", ++nftserver.clients);
 }
 
 int server_init(void)
 {
-	struct sockaddr_in addr = {};
-	socklen_t addrlen = sizeof(addr);
+	struct addrinfo hints = {};
+	struct addrinfo *result;
+	const char *host;
+	const char *port;
 	struct ev_loop *st_ev_loop = get_loop();
 	struct ev_io *st_ev_accept = events_create_srv();
 	int server_sd;
-	int yes = 1;
+	int yes = 1, s;
 
 	if (!nftserver.key)
 		server_set_key(NULL);
 
 	printf("Key: %s\n", nftserver.key);
 
-	server_sd = socket(nftserver.family, SOCK_STREAM, 0);
+	if (nftserver.host == NULL)
+		switch(nftserver.family) {
+		case AF_INET:
+			host = "0.0.0.0";
+			break;
+		case AF_INET6:
+			host = "::";
+			break;
+		default:
+			host = INADDR_ANY;
+			break;
+		}
+	else
+		host = nftserver.host;
+	if (nftserver.port == NULL)
+		port = SRV_PORT_DEF;
+	else
+		port = nftserver.port;
+
+	hints.ai_family = AF_UNSPEC;    /* Allow IPv4 or IPv6 */
+	hints.ai_socktype = SOCK_STREAM; /* Datagram socket */
+	hints.ai_flags = AI_PASSIVE;    /* For wildcard IP address */
+
+	s = getaddrinfo(host, port, &hints, &result);
+	if (s != 0) {
+		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(s));
+		syslog(LOG_ERR, "getaddrinfo: %s\n", gai_strerror(s));
+		return -1;
+	}
+
+	server_sd = socket(result->ai_family, SOCK_STREAM, 0);
 	if (server_sd < 0) {
 		fprintf(stderr, "Server socket error\n");
 		syslog(LOG_ERR, "Server socket error");
@@ -576,18 +642,13 @@ int server_init(void)
 	}
 	setsockopt(server_sd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int));
 
-	addr.sin_family = nftserver.family;
-	addr.sin_port = htons(nftserver.port);
-	if (nftserver.host == NULL)
-		addr.sin_addr.s_addr = INADDR_ANY;
-	else
-		inet_aton(nftserver.host, &addr.sin_addr);
-
-	if (bind(server_sd, (struct sockaddr *) &addr, addrlen) != 0) {
+	if (bind(server_sd, result->ai_addr, result->ai_addrlen) != 0) {
 		fprintf(stderr, "Server bind error\n");
 		syslog(LOG_ERR, "Server bind error");
+		freeaddrinfo(result);
 		return -1;
 	}
+	freeaddrinfo(result);
 
 	if (listen(server_sd, 2) < 0) {
 		fprintf(stderr, "Server listen error\n");
@@ -607,7 +668,7 @@ void server_fini(void)
 	close(nftserver.sd);
 }
 
-void server_set_host(char *host)
+void server_set_host(const char *host)
 {
 	nftserver.host = malloc(strlen(host)+1);
 
@@ -619,9 +680,15 @@ void server_set_host(char *host)
 	sprintf(nftserver.host, "%s", host);
 }
 
-void server_set_port(int port)
+void server_set_port(const char *port)
 {
-	nftserver.port = port;
+	nftserver.port = malloc(strlen(port)+1);
+	if (!nftserver.port) {
+		syslog(LOG_ERR, "No memory available to allocate the server port");
+		return;
+	}
+
+	sprintf(nftserver.port, "%s", port);
 }
 
 void server_set_key(char *key)
