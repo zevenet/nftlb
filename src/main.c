@@ -142,7 +142,7 @@ int main(int argc, char *argv[])
 			server_set_host(optarg);
 			break;
 		case 'P':
-			server_set_port(atoi(optarg));
+			server_set_port(optarg);
 			break;
 		case 'S':
 			serialize = 1;

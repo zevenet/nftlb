@@ -24,8 +24,8 @@
 
 int server_init(void);
 void server_fini(void);
-void server_set_host(char *host);
-void server_set_port(int port);
+void server_set_host(const char *host);
+void server_set_port(const char *port);
 void server_set_key(char *key);
 void server_set_ipv6(void);
 
