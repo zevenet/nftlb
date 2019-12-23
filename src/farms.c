@@ -174,7 +174,8 @@ static int farm_validate(struct farm *f)
 	}
 
 	if (farm_is_ingress_mode(f) &&
-		(!f->iethaddr || strcmp(f->iethaddr, "") == 0))
+		(!f->iethaddr || strcmp(f->iethaddr, "") == 0) &&
+		(!f->oethaddr || strcmp(f->oethaddr, "") == 0))
 		return 0;
 
 	return 1;
@@ -568,7 +569,6 @@ int farm_set_ifinfo(struct farm *f, int key)
 
 	switch (key) {
 	case KEY_IFACE:
-
 		ret = net_get_local_ifname_per_vip(f->virtaddr, if_str);
 
 		if (ret != 0) {
@@ -628,6 +628,13 @@ int farm_set_ifinfo(struct farm *f, int key)
 
 		obj_set_attribute_string(if_str, &f->oface);
 		net_strim_netface(f->oface);
+
+		net_get_local_ifinfo((unsigned char **)&ether, f->oface);
+		sprintf(streth, "%02x:%02x:%02x:%02x:%02x:%02x", ether[0],
+			ether[1], ether[2], ether[3], ether[4], ether[5]);
+
+		obj_set_attribute_string(streth, ether_addr);
+
 		break;
 	}
 
@@ -755,7 +762,8 @@ int farm_set_attribute(struct config_pair *c)
 		ret = PARSER_OK;
 		break;
 	case KEY_ETHADDR:
-		ret = obj_set_attribute_string(c->str_value, &f->iethaddr);
+		ret = obj_set_attribute_string(c->str_value, &f->iethaddr) ||
+			obj_set_attribute_string(c->str_value, &f->oethaddr);
 		break;
 	case KEY_VIRTADDR:
 		ret = obj_set_attribute_string(c->str_value, &f->virtaddr);

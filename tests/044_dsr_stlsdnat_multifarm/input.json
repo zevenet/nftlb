@@ -4,7 +4,6 @@
 			"name" : "lb01",
 			"family" : "ipv4",
 			"virtual-addr" : "192.168.0.100",
-			"ether-addr" : "01:01:01:01:01:01",
 			"virtual-ports" : "80",
 			"mode" : "dsr",
 			"protocol" : "tcp",
@@ -28,6 +27,7 @@
 					"state" : "up"
 				}
 			],
+			"ether-addr" : "01:01:01:01:01:01",
 			"iface" : "lo",
 			"oface" : "lo"
 		},
@@ -35,7 +35,6 @@
 			"name" : "lb02",
 			"family" : "ipv4",
 			"virtual-addr" : "192.168.0.100",
-			"ether-addr" : "01:01:01:01:01:01",
 			"virtual-ports" : "81",
 			"mode" : "stlsdnat",
 			"protocol" : "tcp",
@@ -59,6 +58,7 @@
 					"state" : "up"
 				}
 			],
+			"ether-addr" : "01:01:01:01:01:01",
 			"iface" : "lo",
 			"oface" : "lo"
 		}
