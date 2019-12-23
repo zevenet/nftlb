@@ -20,7 +20,7 @@ table netdev nftlb {
 
 	chain lb01 {
 		meta protocol ip update @map-lb01-back { ip saddr : ether saddr }
-		ip daddr set jhash ip saddr mod 10 map { 0-4 : 192.168.0.10, 5-9 : 192.168.0.11 } ether daddr set ip daddr map { 192.168.0.10 : 02:02:02:02:02:02, 192.168.0.11 : 03:03:03:03:03:03 } fwd to "lo"
+		ip daddr set jhash ip saddr mod 10 map { 0-4 : 192.168.0.10, 5-9 : 192.168.0.11 } ether daddr set ip daddr map { 192.168.0.10 : 02:02:02:02:02:02, 192.168.0.11 : 03:03:03:03:03:03 } ether saddr set 01:01:01:01:01:01 fwd to "lo"
 	}
 
 	chain lb01-back {

@@ -28,6 +28,7 @@
 					"state" : "up"
 				}
 			],
+			"ether-addr" : "01:01:01:01:01:01",
 			"iface" : "lo",
 			"oface" : "lo",
 			"ether-addr" : "01:01:01:01:01:01"

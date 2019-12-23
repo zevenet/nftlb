@@ -31,7 +31,7 @@ table netdev nftlb {
 	chain lb01 {
 		meta protocol ip update @map-lb01-back { ip saddr : ether saddr }
 		ip daddr set ip saddr . tcp sport map @static-sessions-lb01 ether daddr set ip daddr map { 192.168.0.10 : 02:02:02:02:02:02 } fwd to "lo"
-		ip daddr set numgen random mod 5 map { 0-4 : 192.168.0.10 } ether daddr set ip daddr map { 192.168.0.10 : 02:02:02:02:02:02 } update @persist-lb01 { ip saddr . tcp sport : ip daddr } fwd to "lo"
+		ip daddr set numgen random mod 5 map { 0-4 : 192.168.0.10 } ether daddr set ip daddr map { 192.168.0.10 : 02:02:02:02:02:02 } ether saddr set 01:01:01:01:01:01 update @persist-lb01 { ip saddr . tcp sport : ip daddr } fwd to "lo"
 	}
 
 	chain lb01-back {

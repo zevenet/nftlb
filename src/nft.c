@@ -1902,7 +1902,8 @@ static int run_farm_rules_gen_nat(struct sbuffer *buf, struct farm *f, int famil
 	case VALUE_MODE_DSR:
 		concat_buf(buf, " ; add rule %s %s %s", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain);
 		run_farm_log_prefix(buf, f, VALUE_LOG_INPUT, NFTLB_F_CHAIN_ING_FILTER, ACTION_START);
-		concat_buf(buf, " ether saddr set %s ether daddr set", f->iethaddr);
+		// TODO: support of different output interfaces per backend during saddr
+		concat_buf(buf, " ether saddr set %s ether daddr set", f->oethaddr);
 		run_farm_rules_gen_sched(buf, f, family);
 		run_farm_rules_gen_bck_map(buf, f, BCK_MAP_WEIGHT, BCK_MAP_ETHADDR);
 		run_farm_rules_ingress_persistence(buf, f, family);
@@ -1926,6 +1927,8 @@ static int run_farm_rules_gen_nat(struct sbuffer *buf, struct farm *f, int famil
 		run_farm_rules_gen_bck_map(buf, f, BCK_MAP_WEIGHT, BCK_MAP_IPADDR);
 		concat_buf(buf, " ether daddr set ip daddr");
 		run_farm_rules_gen_bck_map(buf, f, BCK_MAP_IPADDR, BCK_MAP_ETHADDR);
+		// TODO: support of different output interfaces per backend during saddr
+		concat_buf(buf, " ether saddr set %s", f->oethaddr);
 		run_farm_rules_ingress_persistence(buf, f, family);
 		run_farm_log_prefix(buf, f, VALUE_LOG_OUTPUT, NFTLB_F_CHAIN_EGR_DNAT, ACTION_START);
 		concat_buf(buf, " fwd to");
