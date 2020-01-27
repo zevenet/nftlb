@@ -174,6 +174,8 @@ static int reset_ndv_base(struct if_base_rule_list *ndv_if_rules)
 	int i;
 
 	for (i = 0; i < ndv_if_rules->n_interfaces; i++) {
+		if (!ndv_if_rules->interfaces[i])
+			break;
 		if (ndv_if_rules->interfaces[i]->ifname)
 			free(ndv_if_rules->interfaces[i]->ifname);
 		if (ndv_if_rules->interfaces[i])
@@ -2102,15 +2104,15 @@ int nft_reset(void)
 	int ret = 0;
 
 	create_buf(&buf);
-	if (nft_base_rules.dnat_rules_v4 |
-	    nft_base_rules.snat_rules_v4 |
-	    nft_base_rules.filter_rules_v4 |
+	if (nft_base_rules.dnat_rules_v4 ||
+	    nft_base_rules.snat_rules_v4 ||
+	    nft_base_rules.filter_rules_v4 ||
 	    nft_base_rules.fwd_rules_v4)
 		concat_buf(&buf, "delete table %s %s ;", NFTLB_IPV4_FAMILY, NFTLB_TABLE_NAME);
 
-	if (nft_base_rules.dnat_rules_v6 |
-	    nft_base_rules.snat_rules_v6 |
-	    nft_base_rules.filter_rules_v6 |
+	if (nft_base_rules.dnat_rules_v6 ||
+	    nft_base_rules.snat_rules_v6 ||
+	    nft_base_rules.filter_rules_v6 ||
 	    nft_base_rules.fwd_rules_v6)
 		concat_buf(&buf, "delete table %s %s ;", NFTLB_IPV6_FAMILY, NFTLB_TABLE_NAME);
 
@@ -2120,10 +2122,34 @@ int nft_reset(void)
 
 	exec_cmd(get_buf_data(&buf));
 	clean_buf(&buf);
-
 	clean_rules_counters();
 
 	return ret;
+}
+
+int nft_check_tables(void)
+{
+	char cmd[255] = { 0 };
+	const char *buf;
+
+	sprintf(cmd, "list table %s %s", NFTLB_IPV4_FAMILY, NFTLB_TABLE_NAME);
+	if (exec_cmd_open(cmd, &buf, 0) == 0)
+		nft_base_rules.dnat_rules_v4 = 1;
+	exec_cmd_close(buf);
+
+	sprintf(cmd, "list table %s %s", NFTLB_IPV6_FAMILY, NFTLB_TABLE_NAME);
+	if (exec_cmd_open(cmd, &buf, 0) == 0)
+		nft_base_rules.dnat_rules_v6 = 1;
+	exec_cmd_close(buf);
+
+	sprintf(cmd, "list table %s %s", NFTLB_NETDEV_FAMILY, NFTLB_TABLE_NAME);
+	if (exec_cmd_open(cmd, &buf, 0) == 0)
+		nft_base_rules.ndv_input_rules.n_interfaces = 1;
+	exec_cmd_close(buf);
+
+	return nft_base_rules.dnat_rules_v4 ||
+		   nft_base_rules.dnat_rules_v6 ||
+		   nft_base_rules.ndv_input_rules.n_interfaces;
 }
 
 int nft_rulerize(struct farm *f)

@@ -165,6 +165,9 @@ int main(int argc, char *argv[])
 
 	setlogmask(LOG_UPTO(loglevel));
 
+	// check no nftlb tables are already created
+	obj_check_clean();
+
 	objects_init();
 
 	loop_init();
