@@ -149,6 +149,9 @@ struct config_pair {
 };
 
 void config_pair_init(struct config_pair *c);
+char *config_get_output(void);
+void config_delete_output(void);
+void config_set_output(char *fmt, ...);
 int config_file(const char *file);
 int config_buffer(const char *buf);
 int config_print_farms(char **buf, char *name);
@@ -162,6 +165,6 @@ int config_set_policy_action(const char *name, const char *value);
 int config_set_element_action(const char *pname, const char *edata, const char *value);
 int config_get_elements(const char *pname);
 int config_delete_elements(const char *pname);
-void config_print_response(char **buf, const char *message);
+void config_print_response(char **buf, char *fmt, ...);
 
 #endif /* _CONFIG_H_ */

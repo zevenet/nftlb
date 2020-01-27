@@ -229,7 +229,7 @@ static int send_get_response(struct nftlb_http_state *state)
 				return 0;
 		}
 
-		config_print_response(&state->body_response,
+		config_print_response(&state->body_response, "%s",
 				      "invalid URI key");
 		state->status_code = WS_HTTP_400;
 		return -1;
@@ -272,7 +272,7 @@ static int send_delete_response(struct nftlb_http_state *state)
 		strcmp(thirdlevel, CONFIG_KEY_BCKS) == 0) {
 		ret = config_set_backend_action(secondlevel, fourthlevel, CONFIG_VALUE_ACTION_DELETE);
 		if (ret < 0) {
-			config_print_response(&state->body_response,
+			config_print_response(&state->body_response, "%s",
 					      "error deleting backend");
 			goto delete_end;
 		}
@@ -285,7 +285,7 @@ static int send_delete_response(struct nftlb_http_state *state)
 		}
 		ret = config_set_session_action(secondlevel, fourthlevel, CONFIG_VALUE_ACTION_DELETE);
 		if (ret < 0) {
-			config_print_response(&state->body_response,
+			config_print_response(&state->body_response, "%s",
 					      "error deleting session");
 			goto delete_end;
 		}
@@ -293,13 +293,13 @@ static int send_delete_response(struct nftlb_http_state *state)
 			   strcmp(thirdlevel, CONFIG_KEY_POLICIES) == 0) {
 		ret = config_set_farm_action(secondlevel, CONFIG_VALUE_ACTION_RELOAD);
 		if (ret < 0) {
-			config_print_response(&state->body_response,
+			config_print_response(&state->body_response, "%s",
 					      "error reloading farm");
 			goto delete_end;
 		}
 		ret = config_set_fpolicy_action(secondlevel, fourthlevel, CONFIG_VALUE_ACTION_DELETE);
 		if (ret != 0) {
-			config_print_response(&state->body_response,
+			config_print_response(&state->body_response, "%s",
 					      "error stopping farm policy");
 			goto delete_end;
 		}
@@ -308,13 +308,13 @@ static int send_delete_response(struct nftlb_http_state *state)
 			   strcmp(thirdlevel, CONFIG_KEY_ELEMENTS) == 0) {
 		ret = config_get_elements(secondlevel);
 		if (ret != 0) {
-			config_print_response(&state->body_response,
+			config_print_response(&state->body_response, "%s",
 					      "could not get the policy elements");
 			goto delete_end;
 		}
 		ret = config_set_element_action(secondlevel, fourthlevel, CONFIG_VALUE_ACTION_STOP);
 		if (ret < 0) {
-			config_print_response(&state->body_response,
+			config_print_response(&state->body_response, "%s",
 					      "error deleting policy element");
 			config_delete_elements(secondlevel);
 			goto delete_end;
@@ -329,7 +329,7 @@ static int send_delete_response(struct nftlb_http_state *state)
 			obj_rulerize(OBJ_START);
 		ret = config_set_farm_action(secondlevel, CONFIG_VALUE_ACTION_DELETE);
 		if (ret < 0) {
-			config_print_response(&state->body_response,
+			config_print_response(&state->body_response, "%s",
 					      "error deleting farm");
 			goto delete_end;
 		}
@@ -338,7 +338,7 @@ static int send_delete_response(struct nftlb_http_state *state)
 
 		ret = config_set_policy_action(secondlevel, CONFIG_VALUE_ACTION_STOP);
 		if (ret < 0) {
-			config_print_response(&state->body_response,
+			config_print_response(&state->body_response, "%s",
 					      "error stopping policy");
 			goto delete_end;
 		}
@@ -346,7 +346,7 @@ static int send_delete_response(struct nftlb_http_state *state)
 
 		ret = config_set_policy_action(secondlevel, CONFIG_VALUE_ACTION_DELETE);
 		if (ret < 0) {
-			config_print_response(&state->body_response,
+			config_print_response(&state->body_response, "%s",
 					      "error deleting policy");
 			goto delete_end;
 		}
@@ -355,7 +355,7 @@ static int send_delete_response(struct nftlb_http_state *state)
 		return -1;
 	}
 
-	config_print_response(&state->body_response, "success");
+	config_print_response(&state->body_response,  "%s", "success");
 
 delete_end:
 	state->status_code = WS_HTTP_200;
@@ -384,32 +384,39 @@ static int send_post_response(struct nftlb_http_state *state)
 	case PARSER_OK:
 		break;
 	case PARSER_STRUCT_FAILED:
-		config_print_response(&state->body_response,
-				      "the structure is invalid");
+		config_print_response(&state->body_response, "%s%s",
+				      "the structure is invalid", config_get_output());
+		config_delete_output();
+		state->status_code = WS_HTTP_400;
 		goto post_end;
 		break;
 	case PARSER_OBJ_UNKNOWN:
-		config_print_response(&state->body_response,
-				      "the object to modify is unknown");
+		config_print_response(&state->body_response, "%s%s",
+				      "the object to modify is unknown", config_get_output());
+		config_delete_output();
+		state->status_code = WS_HTTP_404;
 		goto post_end;
 		break;
 	default:
-		config_print_response(&state->body_response,
-				      "error parsing buffer");
+		config_print_response(&state->body_response, "%s%s",
+				      "error parsing buffer", config_get_output());
+		config_delete_output();
+		state->status_code = WS_HTTP_400;
 		goto post_end;
 		break;
 	}
 
 	if (obj_rulerize(OBJ_START) != 0) {
-		config_print_response(&state->body_response,
+		config_print_response(&state->body_response, "%s",
 				      "error generating rules");
 		goto post_end;
 	}
 
-	config_print_response(&state->body_response, "success");
+	config_print_response(&state->body_response, "%s%s", "success", config_get_output());
+	config_delete_output();
+	state->status_code = WS_HTTP_200;
 
 post_end:
-	state->status_code = WS_HTTP_200;
 	return 0;
 }
 

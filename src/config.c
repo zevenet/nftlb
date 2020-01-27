@@ -36,11 +36,13 @@
 #include "sessions.h"
 
 #define CONFIG_MAXBUF			4096
+#define CONFIG_OUTBUF_SIZE		255
 
 static int config_json(json_t *element, int level, int source, int key);
 
 struct config_pair c;
 unsigned int continue_obj = 0;
+char config_outbuf[CONFIG_OUTBUF_SIZE] = { 0 };
 
 static void init_pair(struct config_pair *c)
 {
@@ -69,7 +71,8 @@ static int config_value_family(const char *value)
 	if (strcmp(value, CONFIG_VALUE_FAMILY_INET) == 0)
 		return VALUE_FAMILY_INET;
 
-	syslog(LOG_INFO, "%s():%d: parsing unknown value'%s', using defaults", __FUNCTION__, __LINE__, value);
+	config_set_output(". Parsing unknown value '%s' in '%s', using default '%s'", value, CONFIG_KEY_FAMILY, CONFIG_VALUE_FAMILY_IPV4);
+	syslog(LOG_ERR, "%s():%d: parsing unknown value '%s' in '%s', using default '%s'", __FUNCTION__, __LINE__, value, CONFIG_KEY_FAMILY, CONFIG_VALUE_FAMILY_IPV4);
 	return VALUE_FAMILY_IPV4;
 }
 
@@ -86,7 +89,8 @@ static int config_value_mode(const char *value)
 	if (strcmp(value, CONFIG_VALUE_MODE_LOCAL) == 0)
 		return VALUE_MODE_LOCAL;
 
-	syslog(LOG_INFO, "%s():%d: parsing unknown value'%s', using defaults", __FUNCTION__, __LINE__, value);
+	config_set_output(". Parsing unknown value '%s' in '%s', using default '%s'", value, CONFIG_KEY_MODE, CONFIG_VALUE_MODE_SNAT);
+	syslog(LOG_ERR, "%s():%d: parsing unknown value '%s' in '%s', using default '%s'", __FUNCTION__, __LINE__, value, CONFIG_KEY_MODE, CONFIG_VALUE_MODE_SNAT);
 	return VALUE_MODE_SNAT;
 }
 
@@ -101,7 +105,8 @@ static int config_value_proto(const char *value)
 	if (strcmp(value, CONFIG_VALUE_PROTO_ALL) == 0)
 		return VALUE_PROTO_ALL;
 
-	syslog(LOG_INFO, "%s():%d: parsing unknown value'%s', using defaults", __FUNCTION__, __LINE__, value);
+	config_set_output(". Parsing unknown value '%s' in '%s', using default '%s'", value, CONFIG_KEY_PROTO, CONFIG_VALUE_PROTO_TCP);
+	syslog(LOG_ERR, "%s():%d: parsing unknown value '%s' in '%s', using default '%s'", __FUNCTION__, __LINE__, value, CONFIG_KEY_PROTO, CONFIG_VALUE_PROTO_TCP);
 	return VALUE_PROTO_TCP;
 }
 
@@ -116,7 +121,8 @@ static int config_value_sched(const char *value)
 	if (strcmp(value, CONFIG_VALUE_SCHED_SYMHASH) == 0)
 		return VALUE_SCHED_SYMHASH;
 
-	syslog(LOG_INFO, "%s():%d: parsing unknown value'%s', using defaults", __FUNCTION__, __LINE__, value);
+	config_set_output(". Parsing unknown value '%s' in '%s', using default '%s'", value, CONFIG_KEY_SCHED, CONFIG_VALUE_SCHED_RR);
+	syslog(LOG_ERR, "%s():%d: parsing unknown value '%s' in '%s', using default '%s'", __FUNCTION__, __LINE__, value, CONFIG_KEY_SCHED, CONFIG_VALUE_SCHED_RR);
 	return VALUE_SCHED_RR;
 }
 
@@ -141,6 +147,11 @@ static int config_value_meta(const char *value)
 		mask |= VALUE_META_SRCMAC;
 	if (strstr(value, CONFIG_VALUE_META_DSTMAC) != NULL)
 		mask |= VALUE_META_DSTMAC;
+
+	if (mask == 0) {
+		config_set_output(". Parsing unknown value '%s', using default '%s'", value, CONFIG_VALUE_META_NONE);
+		syslog(LOG_ERR, "%s():%d: parsing unknown value '%s', using default '%s'", __FUNCTION__, __LINE__, value, CONFIG_VALUE_META_NONE);
+	}
 
 	return mask;
 }
@@ -170,7 +181,8 @@ static int config_value_helper(const char *value)
 	if (strcmp(value, CONFIG_VALUE_HELPER_TFTP) == 0)
 		return VALUE_HELPER_TFTP;
 
-	syslog(LOG_INFO, "%s():%d: parsing unknown value'%s', using defaults", __FUNCTION__, __LINE__, value);
+	config_set_output(". Parsing unknown value '%s' in '%s', using default '%s'", value, CONFIG_KEY_HELPER, CONFIG_VALUE_HELPER_NONE);
+	syslog(LOG_ERR, "%s():%d: parsing unknown value '%s' in '%s', using default '%s'", __FUNCTION__, __LINE__, value, CONFIG_KEY_HELPER, CONFIG_VALUE_HELPER_NONE);
 	return VALUE_HELPER_NONE;
 }
 
@@ -190,6 +202,11 @@ static int config_value_log(const char *value)
 	if (strstr(value, CONFIG_VALUE_LOG_OUTPUT) != NULL)
 		logmask |= VALUE_LOG_OUTPUT;
 
+	if (logmask == 0) {
+		config_set_output(". Parsing unknown value '%s' in '%s', using default '%s'", value, CONFIG_KEY_LOG, CONFIG_VALUE_LOG_NONE);
+		syslog(LOG_ERR, "%s():%d: parsing unknown value '%s' in '%s', using default '%s'", __FUNCTION__, __LINE__, value, CONFIG_KEY_LOG, CONFIG_VALUE_LOG_NONE);
+	}
+
 	return logmask;
 }
 
@@ -200,7 +217,8 @@ static int config_value_switch(const char *value)
 	else
 		return VALUE_SWITCH_OFF;
 
-	syslog(LOG_INFO, "%s():%d: parsing unknown value'%s', using defaults", __FUNCTION__, __LINE__, value);
+	config_set_output(". Parsing unknown value '%s', using default '%s'", value, CONFIG_VALUE_SWITCH_OFF);
+	syslog(LOG_ERR, "%s():%d: parsing unknown value '%s', using default '%s'", __FUNCTION__, __LINE__, value, CONFIG_VALUE_SWITCH_OFF);
 	return VALUE_SWITCH_OFF;
 }
 
@@ -215,7 +233,8 @@ static int config_value_state(const char *value)
 	if (strcmp(value, CONFIG_VALUE_STATE_CONFERR) == 0)
 		return VALUE_STATE_CONFERR;
 
-	syslog(LOG_INFO, "%s():%d: parsing unknown value'%s', using defaults", __FUNCTION__, __LINE__, value);
+	config_set_output(". Parsing unknown value '%s' in '%s', using default '%s'", value, CONFIG_KEY_STATE, CONFIG_VALUE_STATE_UP);
+	syslog(LOG_ERR, "%s():%d: parsing unknown value '%s' in '%s', using default '%s'", __FUNCTION__, __LINE__, value, CONFIG_KEY_STATE, CONFIG_VALUE_STATE_UP);
 	return VALUE_STATE_UP;
 }
 
@@ -240,7 +259,8 @@ static int config_value_type(const char *value)
 	if (strcmp(value, CONFIG_VALUE_POLICIES_TYPE_WL) == 0)
 		return VALUE_TYPE_WHITE;
 
-	syslog(LOG_INFO, "%s():%d: parsing unknown value'%s', using defaults", __FUNCTION__, __LINE__, value);
+	config_set_output(". Parsing unknown value '%s' in '%s', using default '%s'", value, CONFIG_KEY_TYPE, CONFIG_VALUE_POLICIES_TYPE_BL);
+	syslog(LOG_ERR, "%s():%d: parsing unknown value '%s' in '%s', using default '%s'", __FUNCTION__, __LINE__, value, CONFIG_KEY_TYPE, CONFIG_VALUE_POLICIES_TYPE_BL);
 	return VALUE_TYPE_BLACK;
 }
 
@@ -618,6 +638,28 @@ int config_file(const char *file)
 
 	fclose(fd);
 	return ret;
+}
+
+char *config_get_output(void)
+{
+	return config_outbuf;
+}
+
+void config_delete_output(void)
+{
+	config_outbuf[0] = '\0';
+}
+
+void config_set_output(char *fmt, ...)
+{
+	int len;
+	va_list args;
+
+	len = strlen(config_outbuf);
+
+	va_start(args, fmt);
+	len = vsprintf(config_outbuf + len, fmt, args);
+	va_end(args);
 }
 
 int config_buffer(const char *buf)
@@ -1067,8 +1109,16 @@ int config_delete_elements(const char *pname)
 	return element_s_delete(p);
 }
 
-void config_print_response(char **buf, const char *message)
+void config_print_response(char **buf, char *fmt, ...)
 {
-	if (buf != NULL && *buf != NULL)
-		sprintf(*buf, "{\"response\": \"%s\"}", message);
+	int len = 0;
+	va_list args;
+
+	len = sprintf(*buf, "{\"response\": \"");
+
+	va_start(args, fmt);
+	len += vsprintf(*buf + len, fmt, args);
+	va_end(args);
+
+	sprintf(*buf + len, "\"}");
 }
