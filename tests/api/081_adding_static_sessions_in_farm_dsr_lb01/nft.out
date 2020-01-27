@@ -1,0 +1,29 @@
+table netdev nftlb {
+	map tcp-services-lo {
+		type ipv4_addr . inet_service : verdict
+		elements = { 192.168.0.100 . 80 : goto lb01 }
+	}
+
+	map static-sessions-lb01 {
+		type ipv4_addr . inet_service : ether_addr
+		elements = { 192.168.44.4 . 90 : 02:02:02:02:02:02,
+			     192.168.44.5 . 91 : 03:03:03:03:03:03,
+			     192.168.44.6 . 92 : 03:03:03:03:03:03 }
+	}
+
+	map persist-lb01 {
+		type ipv4_addr . inet_service : ether_addr
+		size 65535
+		timeout 50s
+	}
+
+	chain ingress-lo {
+		type filter hook ingress device "lo" priority 100; policy accept;
+		ip daddr . tcp dport vmap @tcp-services-lo
+	}
+
+	chain lb01 {
+		ether type ip ether daddr set ip saddr . tcp sport map @static-sessions-lb01 ether saddr set 01:01:01:01:01:01 fwd to "lo"
+		ether saddr set 01:01:01:01:01:01 ether daddr set numgen random mod 10 map { 0-4 : 02:02:02:02:02:02, 5-9 : 03:03:03:03:03:03 } ether type ip update @persist-lb01 { ip saddr . tcp sport : ether daddr } fwd to "lo"
+	}
+}

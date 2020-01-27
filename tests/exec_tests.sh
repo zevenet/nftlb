@@ -28,7 +28,6 @@ fi
 echo "" > /var/log/syslog
 
 if [ $APISERVER -eq 1 ]; then
-	$NFTBIN flush ruleset
 	$NFTLBIN $NFTLB_SERIAL -d -k "$APISRV_KEY" -l 7 > /dev/null
 fi
 
@@ -50,7 +49,6 @@ for test in `ls -d ${TESTS}`; do
 		$CURL -H "Expect:" -H "Key: $APISRV_KEY" -X POST http://localhost:$APISRV_PORT/farms -d "@${inputfile}"
 		statusexec=$?
 	else
-		$NFTBIN flush ruleset
 		$NFTLBIN $NFTLB_SERIAL -e -l 7 -c ${inputfile}
 		statusexec=$?
 	fi

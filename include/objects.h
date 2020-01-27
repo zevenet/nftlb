@@ -63,11 +63,11 @@
 #define DEFAULT_POLICY_TIMEOUT	0
 #define DEFAULT_POLICY_PRIORITY	-1
 #define DEFAULT_POLICY_LOGPREFIX	"KNAME-TYPE-PNAME-FNAME "
-#define DEFAULT_ELEMENT_TIME		""
+#define DEFAULT_ELEMENT_TIME			NULL
 #define DEFAULT_SESSION_EXPIRATION		NULL
 
 #define UNDEFINED_VALUE					"UNDEFINED"
-
+#define IFACE_LOOPBACK					"lo"
 
 enum obj_start {
 	OBJ_START,
@@ -146,6 +146,13 @@ enum keys {
 	KEY_BACKEND,
 };
 
+enum families {
+	VALUE_FAMILY_IPV4,
+	VALUE_FAMILY_IPV6,
+	VALUE_FAMILY_INET,
+	VALUE_FAMILY_NETDEV,
+};
+
 struct obj_config {
 	struct farm		*fptr;
 	struct backend		*bptr;
@@ -183,5 +190,6 @@ struct list_head * obj_get_policies(void);
 int obj_get_total_policies(void);
 void obj_set_total_policies(int new_value);
 char * obj_print_policy_type(int type);
+void obj_check_clean(void);
 
 #endif /* _OBJECTS_H_ */

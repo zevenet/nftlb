@@ -51,12 +51,26 @@ static struct session * session_create(struct farm *f, int type, char *client, c
 	s->action = ACTION_NONE;
 
 	s->bck = NULL;
-	if (bck && strcmp(bck, "") != 0 &&
-		strstr(bck, "0x") != NULL &&
-		(b = backend_lookup_by_key(f, KEY_MARK, NULL, (int)strtol(bck, NULL, 16))) != NULL) {
-		s->bck = b;
+	if (!bck || strcmp(bck, "") == 0 )
+		goto cont;
+
+	switch (f->mode) {
+	case VALUE_MODE_DNAT:
+	case VALUE_MODE_SNAT:
+		if (strstr(bck, "0x") != NULL &&
+			(b = backend_lookup_by_key(f, KEY_MARK, NULL, (int)strtol(bck, NULL, 16))) != NULL)
+			s->bck = b;
+		break;
+	case VALUE_MODE_DSR:
+	case VALUE_MODE_STLSDNAT:
+		if ((b = backend_lookup_by_key(f, KEY_ETHADDR, bck, 0)) != NULL)
+			s->bck = b;
+		break;
+	default:
+		break;
 	}
 
+cont:
 	s->expiration = DEFAULT_SESSION_EXPIRATION;
 
 	if (type == SESSION_TYPE_TIMED) {
@@ -269,7 +283,7 @@ int session_get_timed(struct farm *f)
 	const char *buf;
 	syslog(LOG_DEBUG, "%s():%d: farm %s", __FUNCTION__, __LINE__, f->name);
 
-	nft_get_rules_buffer(&buf, KEY_SESSIONS, f->name);
+	nft_get_rules_buffer(&buf, KEY_SESSIONS, f, NULL);
 	f->total_timed_sessions = 0;
 	nft_parse_sessions(f, buf);
 	nft_del_rules_buffer(buf);
@@ -298,14 +312,18 @@ int session_backend_action(struct farm *f, struct backend *b, int action)
 
 	if (f->total_static_sessions != 0) {
 		list_for_each_entry_safe(s, next, &f->static_sessions, list)
-			if (!b || b->mark == s->bck->mark)
+			if (!b ||
+				((f->mode == VALUE_MODE_DNAT || f->mode == VALUE_MODE_SNAT || f->mode == VALUE_MODE_LOCAL) && b->mark == s->bck->mark) ||
+				((f->mode == VALUE_MODE_DSR || f->mode == VALUE_MODE_STLSDNAT) && strcmp(b->ethaddr, s->bck->ethaddr) == 0))
 				session_set_action(s, SESSION_TYPE_STATIC, action);
 	}
 
 	session_get_timed(f);
 	if (f->total_static_sessions != 0) {
 		list_for_each_entry_safe(s, next, &f->timed_sessions, list)
-			if (!b || b->mark == s->bck->mark)
+			if (!b ||
+				((f->mode == VALUE_MODE_DNAT || f->mode == VALUE_MODE_SNAT || f->mode == VALUE_MODE_LOCAL) && b->mark == s->bck->mark) ||
+				((f->mode == VALUE_MODE_DSR || f->mode == VALUE_MODE_STLSDNAT) && strcmp(b->ethaddr, s->bck->ethaddr) == 0))
 				session_set_action(s, SESSION_TYPE_TIMED, action);
 	}
 	session_s_delete(f, SESSION_TYPE_TIMED);

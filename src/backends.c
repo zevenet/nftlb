@@ -112,7 +112,7 @@ static int backend_delete(struct backend *b)
 	backend_set_action(b, ACTION_STOP);
 
 	if (f->priority >= 1 && b->priority <= f->priority) {
-		f->priority--;
+		farm_set_priority(f, f->priority-1);
 		obj_rulerize(OBJ_START);
 	}
 
@@ -175,6 +175,10 @@ struct backend * backend_lookup_by_key(struct farm *f, int key, const char *name
 			if (b->mark == value)
 				return b;
 			break;
+		case KEY_ETHADDR:
+			if (b->ethaddr && strcmp(b->ethaddr, name) == 0)
+				return b;
+			break;
 		default:
 			return NULL;
 		}
@@ -190,6 +194,8 @@ static int backend_set_ipaddr_from_ether(struct backend *b)
 	unsigned char dst_ethaddr[ETH_HW_ADDR_LEN];
 	unsigned char src_ethaddr[ETH_HW_ADDR_LEN];
 	char streth[ETH_HW_STR_LEN] = {};
+	int *oface;
+	char **source_ip;
 
 	if (!farm_is_ingress_mode(f))
 		return 0;
@@ -201,10 +207,28 @@ static int backend_set_ipaddr_from_ether(struct backend *b)
 
 	sscanf(f->iethaddr, "%hhx:%hhx:%hhx:%hhx:%hhx:%hhx", &src_ethaddr[0], &src_ethaddr[1], &src_ethaddr[2], &src_ethaddr[3], &src_ethaddr[4], &src_ethaddr[5]);
 
-	if (b->ofidx)
-		ret = net_get_neigh_ether((unsigned char **) &dst_ethaddr, src_ethaddr, f->family, f->virtaddr, b->ipaddr, b->ofidx);
-	else
-		ret = net_get_neigh_ether((unsigned char **) &dst_ethaddr, src_ethaddr, f->family, f->virtaddr, b->ipaddr, f->ofidx);
+	oface = &f->ifidx;
+	source_ip = &f->virtaddr;
+
+	if (f->srcaddr != DEFAULT_SRCADDR)
+		source_ip = &f->srcaddr;
+
+	ret = net_get_neigh_ether((unsigned char **) &dst_ethaddr, src_ethaddr, f->family, *source_ip, b->ipaddr, *oface);
+
+	if (ret != 0) {
+		oface = &f->ofidx;
+
+		if (b->ofidx != DEFAULT_IFIDX)
+			oface = &b->ofidx;
+
+		if (f->srcaddr != DEFAULT_SRCADDR)
+			source_ip = &f->srcaddr;
+
+		if (b->srcaddr != DEFAULT_SRCADDR)
+			source_ip = &b->srcaddr;
+
+		ret = net_get_neigh_ether((unsigned char **) &dst_ethaddr, src_ethaddr, f->family, *source_ip, b->ipaddr, *oface);
+	}
 
 	if (ret == 0) {
 		sprintf(streth, "%02x:%02x:%02x:%02x:%02x:%02x", dst_ethaddr[0],
@@ -273,6 +297,9 @@ static int backend_set_priority(struct backend *b, int new_value)
 
 	syslog(LOG_DEBUG, "%s():%d: current value is %d, but new value will be %d",
 	       __FUNCTION__, __LINE__, old_value, new_value);
+
+	if (new_value <= 0)
+		return -1;
 
 	b->priority = new_value;
 	backend_s_update_counters(f);
@@ -379,6 +406,12 @@ static int backend_set_ifinfo(struct backend *b, int key)
 		return 0;
 	}
 
+	if (f->oface && strcmp(f->oface, IFACE_LOOPBACK) == 0) {
+		syslog(LOG_DEBUG, "%s():%d: backend %s in farm %s doesn't require output netinfo, loopback interface", __FUNCTION__, __LINE__, b->name, f->name);
+		f->ifidx = 0;
+		return 0;
+	}
+
 	switch (key) {
 	case KEY_OFACE:
 		if (!b || b->ipaddr == DEFAULT_IPADDR) {
@@ -436,7 +469,18 @@ static int backend_set_ipaddr(struct backend *b, char *new_value)
 	return 0;
 }
 
-static int backend_validate(struct backend *b)
+static int backend_is_usable(struct backend *b)
+{
+	struct farm *f = b->parent;
+
+	syslog(LOG_DEBUG, "%s():%d: backend %s state is %s and priority %d",
+	       __FUNCTION__, __LINE__, b->name, obj_print_state(b->state), b->priority);
+
+	return (b->state == VALUE_STATE_UP) &&
+			(b->priority <= f->priority);
+}
+
+int backend_validate(struct backend *b)
 {
 	struct farm *f = b->parent;
 
@@ -451,17 +495,6 @@ static int backend_validate(struct backend *b)
 		return 0;
 
 	return 1;
-}
-
-static int backend_is_usable(struct backend *b)
-{
-	struct farm *f = b->parent;
-
-	syslog(LOG_DEBUG, "%s():%d: backend %s state is %s and priority %d",
-	       __FUNCTION__, __LINE__, b->name, obj_print_state(b->state), b->priority);
-
-	return (b->state == VALUE_STATE_UP) &&
-			(b->priority <= f->priority);
 }
 
 int backend_is_available(struct backend *b)
@@ -604,7 +637,10 @@ int backend_set_attribute(struct config_pair *c)
 		backend_set_mark(b, c->int_value);
 		break;
 	case KEY_STATE:
-		backend_set_state(b, c->int_value);
+		if (c->int_value == VALUE_STATE_CONFERR)
+			backend_set_state(b, VALUE_STATE_UP);
+		else
+			backend_set_state(b, c->int_value);
 		break;
 	case KEY_ESTCONNLIMIT:
 		backend_set_estconnlimit(b, c->int_value);

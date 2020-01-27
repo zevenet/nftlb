@@ -44,6 +44,7 @@ static struct policy * policy_create(char *name)
 	obj_set_attribute_string(name, &p->name);
 
 	p->type = DEFAULT_POLICY_TYPE;
+	p->family = DEFAULT_FAMILY;
 	p->timeout = DEFAULT_POLICY_TIMEOUT;
 	p->priority = DEFAULT_POLICY_PRIORITY;
 	p->used = 0;
@@ -75,11 +76,33 @@ static int policy_delete(struct policy *p)
 	return 0;
 }
 
+static int policy_set_family(struct policy *p, int new_value)
+{
+	int old_value = p->family;
+
+	syslog(LOG_DEBUG, "%s():%d: policy %s old family %d new family %d", __FUNCTION__, __LINE__, p->name, old_value, new_value);
+
+	if (new_value != VALUE_FAMILY_IPV4 && new_value != VALUE_FAMILY_IPV6) {
+		syslog(LOG_INFO, "%s():%d: family %d not supported for policies", __FUNCTION__, __LINE__, new_value);
+		return 0;
+	}
+
+	if (old_value == new_value) {
+		syslog(LOG_DEBUG, "%s():%d: family %d without change for policy %s", __FUNCTION__, __LINE__, p->family, p->name);
+		return 0;
+	}
+
+	p->family = new_value;
+
+	return 0;
+}
+
 static void policy_print(struct policy *p)
 {
 	syslog(LOG_DEBUG," [policy] ");
 	syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_NAME, p->name);
 	syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_TYPE, obj_print_policy_type(p->type));
+	syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_FAMILY, obj_print_family(p->family));
 	syslog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_TIMEOUT, p->timeout);
 	syslog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_PRIORITY, p->priority);
 	if (p->logprefix)
@@ -138,6 +161,9 @@ int policy_set_attribute(struct config_pair *c)
 		break;
 	case KEY_TYPE:
 		p->type = c->int_value;
+		break;
+	case KEY_FAMILY:
+		policy_set_family(p, c->int_value);
 		break;
 	case KEY_TIMEOUT:
 		p->timeout = c->int_value;
@@ -205,6 +231,7 @@ int policy_pre_actionable(struct config_pair *c)
 	switch (c->key) {
 	case KEY_NAME:
 		break;
+	case KEY_FAMILY:
 	case KEY_TYPE:
 	case KEY_TIMEOUT:
 		policy_set_action(p, ACTION_STOP);
@@ -232,6 +259,7 @@ int policy_pos_actionable(struct config_pair *c)
 	switch (c->key) {
 	case KEY_NAME:
 		break;
+	case KEY_FAMILY:
 	case KEY_TYPE:
 	case KEY_TIMEOUT:
 		policy_set_action(p, ACTION_START);
@@ -246,6 +274,7 @@ int policy_pos_actionable(struct config_pair *c)
 
 int policy_rulerize(struct policy *p)
 {
+	int ret = 0;
 	syslog(LOG_DEBUG, "%s():%d: rulerize policy %s", __FUNCTION__, __LINE__, p->name);
 
 	policy_print(p);
@@ -255,7 +284,9 @@ int policy_rulerize(struct policy *p)
 		return 0;
 	}
 
-	return nft_rulerize_policies(p);
+	ret = nft_rulerize_policies(p);
+	element_s_delete(p);
+	return ret;
 }
 
 int policy_s_rulerize(void)

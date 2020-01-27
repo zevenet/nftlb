@@ -46,6 +46,7 @@ struct backend {
 
 void backend_s_print(struct farm *f);
 struct backend * backend_lookup_by_key(struct farm *f, int key, const char *name, int value);
+int backend_validate(struct backend *b);
 int backend_is_available(struct backend *b);
 
 int backend_set_action(struct backend *b, int action);

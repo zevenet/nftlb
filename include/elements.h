@@ -40,5 +40,6 @@ int element_s_set_action(struct policy *p, int action);
 int element_s_delete(struct policy *p);
 int element_set_attribute(struct config_pair *c);
 int element_pos_actionable(struct config_pair *c);
+int element_get_list(struct policy *p);
 
 #endif /* _ELEMENTS_H_ */

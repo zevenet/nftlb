@@ -1,0 +1,4 @@
+VERB="DELETE"
+URI="farms/lb01/sessions"
+DESC="Deleting sessions from lb01 ... "
+FILE="data.json"

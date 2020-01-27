@@ -403,3 +403,9 @@ char * obj_print_policy_type(int type)
 		return NULL;
 	}
 }
+
+void obj_check_clean(void)
+{
+	if (nft_check_tables())
+		nft_reset();
+}

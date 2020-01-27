@@ -148,6 +148,7 @@ Where every policy object has the following attributes:
 {
 	"name" : "<string>",				*Name of the policy (required)*
 	"type": "<blacklist | whitelist>",			*Policy type*
+	"family": "<ipv4 | ipv6>",			*Family of the policy (ipv4 by default)*
 	"log-prefix": "<string|KNAME|TYPE|FNAME|PNAME>",	*Policy established connections log prefix (default "KNAME-TYPE-PNAME-FNAME")*
 	"elements" : [					*List of IPs or networks*
 		{
