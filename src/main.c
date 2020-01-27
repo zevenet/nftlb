@@ -33,6 +33,7 @@
 #include "server.h"
 #include "events.h"
 #include "network.h"
+#include "nft.h"
 
 #define NFTLB_SERVER_MODE		0
 #define NFTLB_FG_MODE			0
@@ -165,8 +166,8 @@ int main(int argc, char *argv[])
 
 	setlogmask(LOG_UPTO(loglevel));
 
-	// check no nftlb tables are already created
-	obj_check_clean();
+	if (nft_check_tables())
+		nft_reset();
 
 	objects_init();
 

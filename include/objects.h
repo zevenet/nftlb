@@ -190,6 +190,5 @@ struct list_head * obj_get_policies(void);
 int obj_get_total_policies(void);
 void obj_set_total_policies(int new_value);
 char * obj_print_policy_type(int type);
-void obj_check_clean(void);
 
 #endif /* _OBJECTS_H_ */
