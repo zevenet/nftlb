@@ -840,7 +840,6 @@ static int run_farm_rules_gen_chain(struct sbuffer *buf, char *nft_family, char 
 		break;
 	case ACTION_STOP:
 	case ACTION_DELETE:
-		concat_exec_cmd(buf, " ; flush chain %s %s %s", nft_family, NFTLB_TABLE_NAME, chain);
 		concat_exec_cmd(buf, " ; delete chain %s %s %s", nft_family, NFTLB_TABLE_NAME, chain);
 		break;
 	default:
@@ -2103,7 +2102,22 @@ int nft_reset(void)
 	int ret = 0;
 
 	create_buf(&buf);
-	concat_buf(&buf, "flush ruleset");
+	if (nft_base_rules.dnat_rules_v4 |
+	    nft_base_rules.snat_rules_v4 |
+	    nft_base_rules.filter_rules_v4 |
+	    nft_base_rules.fwd_rules_v4)
+		concat_buf(&buf, "delete table %s %s ;", NFTLB_IPV4_FAMILY, NFTLB_TABLE_NAME);
+
+	if (nft_base_rules.dnat_rules_v6 |
+	    nft_base_rules.snat_rules_v6 |
+	    nft_base_rules.filter_rules_v6 |
+	    nft_base_rules.fwd_rules_v6)
+		concat_buf(&buf, "delete table %s %s ;", NFTLB_IPV6_FAMILY, NFTLB_TABLE_NAME);
+
+	if (nft_base_rules.ndv_input_rules.n_interfaces ||
+		nft_base_rules.ndv_output_rules.n_interfaces)
+		concat_buf(&buf, "delete table %s %s ;", NFTLB_NETDEV_FAMILY, NFTLB_TABLE_NAME);
+
 	exec_cmd(get_buf_data(&buf));
 	clean_buf(&buf);
 
@@ -2215,8 +2229,13 @@ static int run_policy_set(struct sbuffer *buf, struct policy *p)
 		break;
 	case ACTION_STOP:
 	case ACTION_DELETE:
-		concat_exec_cmd(buf, " ; flush set %s %s %s", NFTLB_NETDEV_FAMILY, NFTLB_TABLE_NAME, p->name);
 		concat_exec_cmd(buf, " ; delete set %s %s %s", NFTLB_NETDEV_FAMILY, NFTLB_TABLE_NAME, p->name);
+		// delete the netdev table if no farms or policies are used currently
+		if (obj_get_total_policies() == 1 &&
+			nft_base_rules.ndv_input_rules.n_interfaces == 0 &&
+			 nft_base_rules.ndv_output_rules.n_interfaces == 0)
+			concat_exec_cmd(buf, "; delete table %s %s ;", NFTLB_NETDEV_FAMILY, NFTLB_TABLE_NAME);
+
 		break;
 	case ACTION_NONE:
 	default:
