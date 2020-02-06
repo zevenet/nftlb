@@ -172,6 +172,7 @@ void obj_set_dsr_counter(int new_value);
 
 struct obj_config * obj_get_current_object(void);
 
+char * obj_print_key(int key);
 char * obj_print_family(int family);
 char * obj_print_mode(int mode);
 char * obj_print_proto(int protocol);

@@ -313,7 +313,10 @@ static int config_value(const char *value)
 		if (new_int_value >= 1) {
 			c.int_value = new_int_value;
 			ret = PARSER_OK;
+			break;
 		}
+		config_set_output(". Invalid value of key '%s' must be >=1", obj_print_key(c.key));
+		syslog(LOG_ERR, "%s():%d: invalid value of key '%s' must be >=1", __FUNCTION__, __LINE__, obj_print_key(c.key));
 		break;
 	case KEY_RESPONSETTL:
 	case KEY_PERSISTTM:
@@ -327,14 +330,20 @@ static int config_value(const char *value)
 		if (new_int_value >= 0) {
 			c.int_value = new_int_value;
 			ret = PARSER_OK;
+			break;
 		}
+		config_set_output(". Invalid value of key '%s' must be >=0", obj_print_key(c.key));
+		syslog(LOG_ERR, "%s():%d: invalid value of key '%s' must be >=0", __FUNCTION__, __LINE__, obj_print_key(c.key));
 		break;
 	case KEY_QUEUE:
 		new_int_value = atoi(value);
 		if (new_int_value >= -1) {
 			c.int_value = new_int_value;
 			ret = PARSER_OK;
+			break;
 		}
+		config_set_output(". Invalid value of key '%s' must be >=-1", obj_print_key(c.key));
+		syslog(LOG_ERR, "%s():%d: invalid value of key '%s' must be >=-1", __FUNCTION__, __LINE__, obj_print_key(c.key));
 		break;
 	case KEY_ACTION:
 		c.int_value = config_value_action(value);
@@ -351,27 +360,34 @@ static int config_value(const char *value)
 		break;
 	case KEY_NAME:
 	case KEY_NEWNAME:
+	case KEY_VIRTADDR:
+	case KEY_IPADDR:
+	case KEY_CLIENT:
+	case KEY_BACKEND:
+	case KEY_DATA:
+		if (strcmp(value, "") == 0) {
+			config_set_output(". Key '%s' cannot be empty", obj_print_key(c.key));
+			syslog(LOG_ERR, "%s():%d: key '%s' cannot be empty", __FUNCTION__, __LINE__, obj_print_key(c.key));
+			break;
+		}
+		/* fallthrough */
 	case KEY_IFACE:
 	case KEY_OFACE:
 	case KEY_ETHADDR:
-	case KEY_VIRTADDR:
 	case KEY_VIRTPORTS:
-	case KEY_IPADDR:
 	case KEY_SRCADDR:
 	case KEY_PORT:
-	case KEY_DATA:
 	case KEY_LOGPREFIX:
 	case KEY_NEWRTLIMIT_LOGPREFIX:
 	case KEY_RSTRTLIMIT_LOGPREFIX:
 	case KEY_ESTCONNLIMIT_LOGPREFIX:
 	case KEY_TCPSTRICT_LOGPREFIX:
-	case KEY_CLIENT:
-	case KEY_BACKEND:
 		c.str_value = (char *)value;
 		ret = PARSER_OK;
 		break;
 	default:
-		syslog(LOG_ERR, "%s():%d: unknown parsed key %d", __FUNCTION__, __LINE__, c.key);
+		config_set_output(". Unknown parsed key '%s'", obj_print_key(c.key));
+		syslog(LOG_ERR, "%s():%d: unknown parsed key '%s'", __FUNCTION__, __LINE__, obj_print_key(c.key));
 		ret = PARSER_OBJ_UNKNOWN;
 		break;
 	}

@@ -109,6 +109,114 @@ struct obj_config * obj_get_current_object(void)
 	return &current_obj;
 }
 
+char * obj_print_key(int key)
+{
+	switch (key) {
+	case KEY_FARMS:
+		return CONFIG_KEY_FARMS;
+	case KEY_NAME:
+		return CONFIG_KEY_NAME;
+	case KEY_NEWNAME:
+		return CONFIG_KEY_NEWNAME;
+	case KEY_FQDN:
+		return CONFIG_KEY_FQDN;
+	case KEY_IFACE:
+		return CONFIG_KEY_IFACE;
+	case KEY_OFACE:
+		return CONFIG_KEY_OFACE;
+	case KEY_FAMILY:
+		return CONFIG_KEY_FAMILY;
+	case KEY_ETHADDR:
+		return CONFIG_KEY_ETHADDR;
+	case KEY_VIRTADDR:
+		return CONFIG_KEY_VIRTADDR;
+	case KEY_VIRTPORTS:
+		return CONFIG_KEY_VIRTPORTS;
+	case KEY_IPADDR:
+		return CONFIG_KEY_IPADDR;
+	case KEY_SRCADDR:
+		return CONFIG_KEY_SRCADDR;
+	case KEY_PORT:
+		return CONFIG_KEY_PORT;
+	case KEY_MODE:
+		return CONFIG_KEY_MODE;
+	case KEY_RESPONSETTL:
+		return CONFIG_KEY_RESPONSETTL;
+	case KEY_PROTO:
+		return CONFIG_KEY_PROTO;
+	case KEY_SCHED:
+		return CONFIG_KEY_SCHED;
+	case KEY_SCHEDPARAM:
+		return CONFIG_KEY_SCHEDPARAM;
+	case KEY_PERSISTENCE:
+		return CONFIG_KEY_PERSIST;
+	case KEY_PERSISTTM:
+		return CONFIG_KEY_PERSISTTM;
+	case KEY_HELPER:
+		return CONFIG_KEY_HELPER;
+	case KEY_LOG:
+		return CONFIG_KEY_LOG;
+	case KEY_LOGPREFIX:
+		return CONFIG_KEY_LOGPREFIX;
+	case KEY_MARK:
+		return CONFIG_KEY_MARK;
+	case KEY_STATE:
+		return CONFIG_KEY_STATE;
+	case KEY_BCKS:
+		return CONFIG_KEY_BCKS;
+	case KEY_WEIGHT:
+		return CONFIG_KEY_WEIGHT;
+	case KEY_PRIORITY:
+		return CONFIG_KEY_PRIORITY;
+	case KEY_ACTION:
+		return CONFIG_KEY_ACTION;
+	case KEY_NEWRTLIMIT:
+		return CONFIG_KEY_NEWRTLIMIT;
+	case KEY_NEWRTLIMITBURST:
+		return CONFIG_KEY_NEWRTLIMITBURST;
+	case KEY_NEWRTLIMIT_LOGPREFIX:
+		return CONFIG_KEY_NEWRTLIMIT_LOGPREFIX;
+	case KEY_RSTRTLIMIT:
+		return CONFIG_KEY_RSTRTLIMIT;
+	case KEY_RSTRTLIMITBURST:
+		return CONFIG_KEY_RSTRTLIMITBURST;
+	case KEY_RSTRTLIMIT_LOGPREFIX:
+		return CONFIG_KEY_RSTRTLIMIT_LOGPREFIX;
+	case KEY_ESTCONNLIMIT:
+		return CONFIG_KEY_ESTCONNLIMIT;
+	case KEY_ESTCONNLIMIT_LOGPREFIX:
+		return CONFIG_KEY_ESTCONNLIMIT_LOGPREFIX;
+	case KEY_TCPSTRICT:
+		return CONFIG_KEY_TCPSTRICT;
+	case KEY_TCPSTRICT_LOGPREFIX:
+		return CONFIG_KEY_TCPSTRICT_LOGPREFIX;
+	case KEY_QUEUE:
+		return CONFIG_KEY_QUEUE;
+	case KEY_FLOWOFFLOAD:
+		return CONFIG_KEY_FLOWOFFLOAD;
+	case KEY_POLICIES:
+		return CONFIG_KEY_POLICIES;
+	case KEY_TYPE:
+		return CONFIG_KEY_TYPE;
+	case KEY_TIMEOUT:
+		return CONFIG_KEY_TIMEOUT;
+	case KEY_ELEMENTS:
+		return CONFIG_KEY_ELEMENTS;
+	case KEY_DATA:
+		return CONFIG_KEY_DATA;
+	case KEY_TIME:
+		return CONFIG_KEY_TIME;
+	case KEY_SESSIONS:
+		return CONFIG_KEY_SESSIONS;
+	case KEY_CLIENT:
+		return CONFIG_KEY_CLIENT;
+	case KEY_BACKEND:
+		return CONFIG_KEY_BACKEND;
+	default:
+		return NULL;
+	}
+}
+
 char * obj_print_family(int family)
 {
 	switch (family) {

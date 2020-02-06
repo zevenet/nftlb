@@ -1,0 +1,15 @@
+{
+ "farms": [
+  {
+   "name": "lb01",
+   "family": "ipv4",
+   "virtual-addr": "",
+   "virtual-ports": "6595",
+   "mode": "dnat",
+   "protocol": "tcp",
+   "scheduler": "weight",
+   "state": "down",
+   "backends": []
+  }
+ ]
+}
