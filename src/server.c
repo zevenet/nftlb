@@ -409,6 +409,7 @@ static int send_post_response(struct nftlb_http_state *state)
 	if (obj_rulerize(OBJ_START) != 0) {
 		config_print_response(&state->body_response, "%s",
 				      "error generating rules");
+		state->status_code = WS_HTTP_500;
 		goto post_end;
 	}
 
