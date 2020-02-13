@@ -999,7 +999,7 @@ int farm_rulerize(struct farm *f)
 		syslog(LOG_INFO, "%s():%d: farm %s won't be rulerized", __FUNCTION__, __LINE__, f->name);
 		if (f->state == VALUE_STATE_UP)
 			farm_set_state(f, VALUE_STATE_CONFERR);
-		return -1;
+		return 0;
 	}
 
 	return nft_rulerize(f);
