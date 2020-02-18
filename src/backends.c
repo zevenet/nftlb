@@ -519,7 +519,7 @@ int backend_set_action(struct backend *b, int action)
 	}
 
 	if (action == ACTION_STOP) {
-		if (b->state == VALUE_STATE_UP)
+		if (backend_is_available(b))
 		{
 			b->action = action;
 			is_actionated = 1;
@@ -530,7 +530,7 @@ int backend_set_action(struct backend *b, int action)
 	}
 
 	if (action == ACTION_START) {
-		if (b->state != VALUE_STATE_UP)
+		if (!backend_is_available(b))
 		{
 			b->action = action;
 			is_actionated = 1;

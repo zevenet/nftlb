@@ -1,0 +1,46 @@
+{
+        "farms": [
+                {
+                        "name": "Ex-SMTP",
+                        "family": "ipv4",
+                        "virtual-addr": "10.20.10.50",
+                        "virtual-ports": "25",
+                        "source-addr": "10.20.10.50",
+                        "mode": "snat",
+                        "protocol": "tcp",
+                        "scheduler": "weight",
+                        "sched-param": "none",
+                        "persistence": "none",
+                        "persist-ttl": "60",
+                        "helper": "none",
+                        "log": "input ",
+                        "mark": "0x0",
+                        "priority": "1",
+                        "state": "up",
+                        "backends": [
+                                {
+                                        "name": "bck0",
+                                        "ip-addr": "10.20.10.25",
+                                        "port": "25",
+                                        "source-addr": "",
+                                        "weight": "5",
+                                        "priority": "5",
+                                        "mark": "0x200",
+                                        "est-connlimit": "0",
+                                        "state": "up"
+                                },
+                                {
+                                        "name": "bck1",
+                                        "ip-addr": "10.20.10.26",
+                                        "port": "25",
+                                        "source-addr": "",
+                                        "weight": "5",
+                                        "priority": "5",
+                                        "mark": "0x201",
+                                        "est-connlimit": "0",
+                                        "state": "up"
+                                }
+                        ]
+                }
+        ]
+}
