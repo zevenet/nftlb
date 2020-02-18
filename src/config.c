@@ -386,8 +386,8 @@ static int config_value(const char *value)
 		ret = PARSER_OK;
 		break;
 	default:
-		config_set_output(". Unknown parsed key '%s'", obj_print_key(c.key));
-		syslog(LOG_ERR, "%s():%d: unknown parsed key '%s'", __FUNCTION__, __LINE__, obj_print_key(c.key));
+		config_set_output(". Unknown parsed key with index '%d'", c.key);
+		syslog(LOG_ERR, "%s():%d: unknown parsed key with index '%d'", __FUNCTION__, __LINE__, c.key);
 		ret = PARSER_OBJ_UNKNOWN;
 		break;
 	}
@@ -498,6 +498,7 @@ static int config_key(const char *key)
 	if (strcmp(key, CONFIG_KEY_BACKEND) == 0)
 		return KEY_BACKEND;
 
+	config_set_output(". Unknown key '%s'", key);
 	syslog(LOG_ERR, "%s():%d: unknown key '%s'", __FUNCTION__, __LINE__, key);
 	return -1;
 }
@@ -522,11 +523,12 @@ static int config_json_object(json_t *element, int level, int source)
 
 	json_object_foreach(element, key, value) {
 		c.level = level;
-		c.key = config_key(key);
+		ret = config_key(key);
 
-		if (ret)
+		if (ret == -1)
 			return ret;
 
+		c.key = ret;
 		if (jump_config_value(level, c.key) == 0) {
 			ret = config_json(value, level, source, c.key);
 			if (ret) {
