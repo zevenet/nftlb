@@ -1,4 +1,3 @@
 FILE="data.json"
 VERB="PUT"
 URI="farms"
-DESC="Setting source address lb01... "

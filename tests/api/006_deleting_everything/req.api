@@ -1,3 +1,2 @@
 VERB="DELETE"
 URI="farms"
-DESC="Deleting everything... "

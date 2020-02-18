@@ -1,4 +1,3 @@
 VERB="POST"
 URI="farms"
-DESC="Adding backend in farm test1... "
 FILE="data.json"

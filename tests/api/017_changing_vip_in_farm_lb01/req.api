@@ -1,4 +1,3 @@
 FILE="data.json"
 VERB="POST"
 URI="farms"
-DESC="Changing vip in farm lb01... "

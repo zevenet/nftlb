@@ -1,4 +1,3 @@
 VERB="POST"
 URI="farms"
-DESC="Setting new farm test1... "
 FILE="data.json"

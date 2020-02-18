@@ -1,4 +1,3 @@
 FILE="data.json"
 VERB="PUT"
 URI="farms"
-DESC="Creating backend bck0 into farm newfarm... "

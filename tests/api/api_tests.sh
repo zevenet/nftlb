@@ -35,8 +35,8 @@ for DIRTEST in `ls -d */`; do
 	if [ "$VERB" = "POST" ] || [ "$VERB" = "PUT" ]; then
 		CURL_ARGS="-d @${FILE}"
 	fi
-
 	CURL_OUTPUT="report-${INDEX_OUT}-req.out"
+	rm -f report-*-req.out
 	echo $CURL -H \"Key: $APISRV_KEY\" -X $VERB $CURL_ARGS http://$APISRV_ADDR:$APISRV_PORT/$URI
 	$CURL -H "Key: $APISRV_KEY" -X $VERB $CURL_ARGS http://$APISRV_ADDR:$APISRV_PORT/$URI -o "$CURL_OUTPUT" 2> /dev/null
 
@@ -48,7 +48,7 @@ for DIRTEST in `ls -d */`; do
 			echo -en "\e[31mFAILURE\e[0m) "
 		else
 			echo -en "\e[32mOK\e[0m) "
-			rm -f "$CURL_OUTPUT"
+			rm -f report-*-req.out
 		fi
 	else
 		echo -en "\e[33mUNKNOWN\e[0m) "
@@ -57,6 +57,7 @@ for DIRTEST in `ls -d */`; do
 	# check nft output
 	CHECK_OUTPUT="nft.out"
 	NFT_OUTPUT="report-${INDEX_OUT}-nft.out"
+	rm -f report-*-nft.out
 	echo -n "(nft:"
 	$NFTBIN list ruleset > $NFT_OUTPUT
 	if [ -f "$CHECK_OUTPUT" ] && [ -f "$NFT_OUTPUT" ]; then
@@ -64,7 +65,7 @@ for DIRTEST in `ls -d */`; do
 			echo -en "\e[31mFAILURE\e[0m) "
 		else
 			echo -en "\e[32mOK\e[0m) "
-			rm -f "$NFT_OUTPUT"
+			rm -f report-*-nft.out
 		fi
 	else
 		echo -en "\e[33mUNKNOWN\e[0m) "
@@ -73,6 +74,7 @@ for DIRTEST in `ls -d */`; do
 	# check nftlb objects
 	CURL_OUTPUT="report-${INDEX_OUT}-obj.out"
 	OBJ=`echo $URI | awk -F'/' '{ printf $1 }'`
+	rm -f report-*-obj.out
 	$CURL -H "Key: $APISRV_KEY" -X GET http://$APISRV_ADDR:$APISRV_PORT/$OBJ -o "$CURL_OUTPUT" 2> /dev/null
 
 	CHECK_OUTPUT="obj.out"
@@ -82,7 +84,7 @@ for DIRTEST in `ls -d */`; do
 			echo -en "\e[31mFAILURE\e[0m) "
 		else
 			echo -en "\e[32mOK\e[0m) "
-			rm -f "$CURL_OUTPUT"
+			rm -f report-*-obj.out
 		fi
 	else
 		echo -en "\e[33mUNKNOWN\e[0m) "
@@ -101,7 +103,6 @@ for DIRTEST in `ls -d */`; do
 			break;
 		fi
 	fi
-
 done
 
 if [ $STOPPED -eq 0 ]; then
@@ -109,6 +110,8 @@ if [ $STOPPED -eq 0 ]; then
 	kill `pidof nftlb`
 fi
 
-if [ "`grep 'nft command error' /var/log/syslog`" != "" ]; then
+ERRORS="`grep 'nft command error' /var/log/syslog`"
+if [ "$ERRORS" != "" ]; then
 	echo -e "\e[33m* command errors found, please check syslog\e[0m"
+	echo "$ERRORS"
 fi

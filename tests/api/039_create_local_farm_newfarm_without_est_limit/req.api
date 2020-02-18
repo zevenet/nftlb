@@ -1,4 +1,3 @@
 FILE="data.json"
 VERB="PUT"
 URI="farms"
-DESC="Create local farm newfarm without est limit... "

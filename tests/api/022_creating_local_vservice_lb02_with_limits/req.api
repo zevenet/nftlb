@@ -1,4 +1,3 @@
 FILE="data.json"
 VERB="PUT"
 URI="farms"
-DESC="Creating local vservice lb02 with limits... "

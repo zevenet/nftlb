@@ -1,4 +1,3 @@
 VERB="POST"
 URI="policies"
-DESC="Setting policy blacklist with overlap... "
 FILE="data.json"

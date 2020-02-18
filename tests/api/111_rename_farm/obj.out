@@ -1,0 +1,31 @@
+{
+        "farms": [
+                {
+                        "name": "lb012",
+                        "family": "ipv4",
+                        "virtual-addr": "2.2.2.2",
+                        "virtual-ports": "6595",
+                        "source-addr": "",
+                        "mode": "dnat",
+                        "protocol": "tcp",
+                        "scheduler": "weight",
+                        "sched-param": "none",
+                        "persistence": "none",
+                        "persist-ttl": "60",
+                        "helper": "none",
+                        "log": "none",
+                        "mark": "0x0",
+                        "priority": "1",
+                        "state": "down",
+                        "new-rtlimit": "0",
+                        "new-rtlimit-burst": "0",
+                        "rst-rtlimit": "0",
+                        "rst-rtlimit-burst": "0",
+                        "est-connlimit": "0",
+                        "tcp-strict": "off",
+                        "queue": "-1",
+                        "backends": [],
+                        "policies": []
+                }
+        ]
+}

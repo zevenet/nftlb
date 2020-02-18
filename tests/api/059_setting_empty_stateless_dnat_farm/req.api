@@ -1,4 +1,3 @@
 VERB="POST"
 URI="farms"
-DESC="Setting empty stateless dnat farm... "
 FILE="data.json"

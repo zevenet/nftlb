@@ -1,4 +1,3 @@
 VERB="POST"
 URI="farms"
-DESC="Disable flow offload in farm lb01... "
 FILE="data.json"
