@@ -47,7 +47,7 @@ table ip nftlb {
 	}
 
 	chain filter-newfarm {
-		ct state new ct mark set ip saddr map @static-sessions-newfarm
+		ct mark set ip saddr map @static-sessions-newfarm accept
 		ct state new ct mark set ip saddr map @persist-newfarm
 		ct state new ct mark 0x00000000 ct mark set numgen random mod 2 map { 0 : 0x00000200, 1 : 0x00000201 }
 		update @persist-newfarm { ip saddr : ct mark }

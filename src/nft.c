@@ -1388,9 +1388,9 @@ static int run_farm_rules_filter_static_sessions(struct sbuffer *buf, struct far
 		s->action = ACTION_NONE;
 	}
 
-	concat_buf(buf, " ; add rule %s %s %s ct state new ct mark set", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain);
+	concat_buf(buf, " ; add rule %s %s %s ct mark set", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain);
 	run_farm_rules_gen_meta_param(buf, f, family, f->persistence, NFTLB_MAP_KEY_RULE);
-	concat_exec_cmd(buf, " map @%s", map_str);
+	concat_exec_cmd(buf, " map @%s accept", map_str);
 
 	return 0;
 }
