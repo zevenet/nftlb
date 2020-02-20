@@ -865,8 +865,6 @@ static struct json_t *add_dump_list(json_t *obj, const char *objname, int object
 			if (p->logprefix && strcmp(p->logprefix, DEFAULT_POLICY_LOGPREFIX) != 0)
 				add_dump_obj(item, CONFIG_KEY_LOGPREFIX, p->logprefix);
 
-			config_dump_int(value, p->used);
-			add_dump_obj(item, "used", value);
 			add_dump_elements(item, p);
 			json_array_append_new(jarray, item);
 		}
