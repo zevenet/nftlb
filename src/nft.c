@@ -1752,15 +1752,11 @@ static int run_farm_rules_ingress_static_sessions(struct sbuffer *buf, struct fa
 	char *client;
 	struct session *s;
 
-			syslog(LOG_DEBUG, "%s():%d: 1", __FUNCTION__, __LINE__);
-
 	if (f->persistence == VALUE_META_NONE)
 		return 0;
-			syslog(LOG_DEBUG, "%s():%d: 2", __FUNCTION__, __LINE__);
 
 	if (f->bcks_available == 0)
 		return 0;
-			syslog(LOG_DEBUG, "%s():%d: 3", __FUNCTION__, __LINE__);
 
 	get_farm_chain(chain, f, NFTLB_F_CHAIN_ING_FILTER);
 
@@ -1773,7 +1769,6 @@ static int run_farm_rules_ingress_static_sessions(struct sbuffer *buf, struct fa
 
 	if ((action != ACTION_START && action != ACTION_RELOAD))
 		return 0;
-			syslog(LOG_DEBUG, "%s():%d: 4 action %d", __FUNCTION__, __LINE__, action);
 
 	list_for_each_entry(s, &f->static_sessions, list) {
 		client = (char *) malloc(255);
@@ -1783,16 +1778,13 @@ static int run_farm_rules_ingress_static_sessions(struct sbuffer *buf, struct fa
 		}
 
 		session_get_client(s, &client);
-			syslog(LOG_DEBUG, "%s():%d: 5 client %s sess action %d", __FUNCTION__, __LINE__, client, s->action);
 
 		if (f->mode == VALUE_MODE_DSR) {
 			if ((action == ACTION_START || s->action == ACTION_START) && s->bck && s->bck->ethaddr != DEFAULT_ETHADDR)
 				concat_exec_cmd(buf, " ; add element %s %s %s { %s : %s }", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, map_str, client, s->bck->ethaddr);
 		} else if(f->mode == VALUE_MODE_STLSDNAT) {
-			if ((action == ACTION_START || s->action == ACTION_START) && s->bck && s->bck->ipaddr != DEFAULT_IPADDR) {
-				syslog(LOG_DEBUG, "%s():%d: -5- action %d client %s sess action %d", __FUNCTION__, __LINE__, action, client, s->action);
+			if ((action == ACTION_START || s->action == ACTION_START) && s->bck && s->bck->ipaddr != DEFAULT_IPADDR)
 				concat_exec_cmd(buf, " ; add element %s %s %s { %s : %s }", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, map_str, client, s->bck->ipaddr);
-			}
 		}
 		if (action == ACTION_RELOAD && (s->action == ACTION_STOP || s->action == ACTION_DELETE))
 			concat_exec_cmd(buf, " ; delete element %s %s %s { %s }", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, map_str, client);
