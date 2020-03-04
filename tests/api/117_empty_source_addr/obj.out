@@ -31,7 +31,7 @@
                                         "port": "25",
                                         "source-addr": "",
                                         "weight": "5",
-                                        "priority": "5",
+                                        "priority": "1",
                                         "mark": "0x200",
                                         "est-connlimit": "0",
                                         "state": "up"
@@ -42,7 +42,7 @@
                                         "port": "25",
                                         "source-addr": "",
                                         "weight": "5",
-                                        "priority": "5",
+                                        "priority": "1",
                                         "mark": "0x201",
                                         "est-connlimit": "0",
                                         "state": "up"

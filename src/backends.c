@@ -302,8 +302,6 @@ static int backend_set_priority(struct backend *b, int new_value)
 		return -1;
 
 	b->priority = new_value;
-	backend_s_update_counters(f);
-
 	return 0;
 }
 
@@ -828,10 +826,8 @@ int bck_pos_actionable(struct config_pair *c)
 	case KEY_PRIORITY:
 	case KEY_ESTCONNLIMIT:
 
-		if (backend_set_action(b, ACTION_START)) {
+		if (backend_set_action(b, ACTION_START))
 			farm_set_action(f, ACTION_RELOAD);
-			farm_rulerize(f);
-		}
 
 		break;
 	case KEY_STATE:
@@ -865,6 +861,8 @@ int backend_s_gen_priority(struct farm *f)
 
 	syslog(LOG_DEBUG, "%s():%d: priority is %d",
 		   __FUNCTION__, __LINE__, f->priority);
+
+	backend_s_update_counters(f);
 
 	return f->priority != old_prio;
 }

@@ -15,7 +15,15 @@
                         "helper": "none",
                         "log": "input ",
                         "mark": "0x0",
+                        "priority": "1",
                         "state": "up",
+                        "new-rtlimit": "0",
+                        "new-rtlimit-burst": "0",
+                        "rst-rtlimit": "0",
+                        "rst-rtlimit-burst": "0",
+                        "est-connlimit": "0",
+                        "tcp-strict": "off",
+                        "queue": "-1",
                         "backends": [
                                 {
                                         "name": "bck0",
@@ -38,8 +46,29 @@
                                         "mark": "0x201",
                                         "est-connlimit": "0",
                                         "state": "up"
+                                },
+                                {
+                                        "name": "bck2",
+                                        "ip-addr": "10.20.10.27",
+                                        "port": "25",
+                                        "weight": "5",
+                                        "priority": "4",
+                                        "mark": "0x202",
+                                        "est-connlimit": "0",
+                                        "state": "up"
+                                },
+                                {
+                                        "name": "bck3",
+                                        "ip-addr": "10.20.10.28",
+                                        "port": "25",
+                                        "weight": "5",
+                                        "priority": "4",
+                                        "mark": "0x203",
+                                        "est-connlimit": "0",
+                                        "state": "up"
                                 }
-                        ]
+                        ],
+                        "policies": []
                 }
         ]
 }

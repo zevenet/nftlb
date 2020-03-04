@@ -10,7 +10,6 @@ table ip nftlb {
 
 	map tcp-services-back-m {
 		type mark : ipv4_addr
-		elements = { 0x00000200 : 10.20.10.50, 0x00000201 : 10.20.10.50 }
 	}
 
 	map filter-tcp-services {
@@ -37,12 +36,8 @@ table ip nftlb {
 	}
 
 	chain filter-Ex-SMTP {
-		ct state new ct mark 0x00000000 ct mark set numgen random mod 10 map { 0-4 : 0x00000200, 5-9 : 0x00000201 }
 	}
 
 	chain nat-Ex-SMTP {
-		log prefix "IN-Ex-SMTP "
-		ip protocol tcp ct mark 0x00000200 dnat to 10.20.10.25:25
-		ip protocol tcp ct mark 0x00000201 dnat to 10.20.10.26:25
 	}
 }
