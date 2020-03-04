@@ -292,7 +292,6 @@ static void backend_s_update_counters(struct farm *f)
 
 static int backend_set_priority(struct backend *b, int new_value)
 {
-	struct farm *f = b->parent;
 	int old_value = b->priority;
 
 	syslog(LOG_DEBUG, "%s():%d: current value is %d, but new value will be %d",
