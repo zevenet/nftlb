@@ -1,0 +1,13 @@
+{
+        "farms": [
+                {
+                        "name": "Ex-SMTP",
+                        "backends": [
+                                {
+                                        "name": "bck2",
+                                        "state": "down"
+                                }
+                        ]
+                }
+        ]
+}

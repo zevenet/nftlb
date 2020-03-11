@@ -301,6 +301,7 @@ static int backend_set_priority(struct backend *b, int new_value)
 		return -1;
 
 	b->priority = new_value;
+
 	return 0;
 }
 
@@ -773,12 +774,20 @@ int bck_pre_actionable(struct config_pair *c)
 
 	syslog(LOG_DEBUG, "%s():%d: pre actionable backend %s of farm %s with param %d", __FUNCTION__, __LINE__, b->name, f->name, c->key);
 
+	// changing priority of a down backend could affect others, force a farm restart
+	if (b->state != VALUE_STATE_UP && b->state != VALUE_STATE_CONFERR && c->key == KEY_PRIORITY) {
+		farm_set_action(f, ACTION_STOP);
+		farm_rulerize(f);
+		return ACTION_FLUSH;
+	}
+
 	if (b->state != VALUE_STATE_UP && c->key != KEY_STATE)
-		return 1;
+		return ACTION_NONE;
 
 	switch (c->key) {
 	case KEY_NAME:
 		break;
+
 	case KEY_ETHADDR:
 	case KEY_IPADDR:
 	case KEY_PORT:
@@ -786,21 +795,27 @@ int bck_pre_actionable(struct config_pair *c)
 	case KEY_MARK:
 	case KEY_PRIORITY:
 	case KEY_ESTCONNLIMIT:
-
 		if (backend_set_action(b, ACTION_STOP)) {
 			farm_set_action(f, ACTION_RELOAD);
 			farm_rulerize(f);
 		}
-
+		return ACTION_START;
 		break;
+
+	case KEY_STATE:
+	case KEY_WEIGHT:
+	case KEY_ESTCONNLIMIT_LOGPREFIX:
+		return ACTION_RELOAD;
+		break;
+
 	default:
 		break;
 	}
 
-	return 0;
+	return ACTION_NONE;
 }
 
-int bck_pos_actionable(struct config_pair *c)
+int bck_pos_actionable(struct config_pair *c, int action)
 {
 	struct obj_config *cur = obj_get_current_object();
 	struct farm *f;
@@ -812,29 +827,19 @@ int bck_pos_actionable(struct config_pair *c)
 	f = cur->fptr;
 	b = cur->bptr;
 
-	syslog(LOG_DEBUG, "%s():%d: pos actionable backend %s of farm %s with param %d", __FUNCTION__, __LINE__, b->name, f->name, c->key);
+	syslog(LOG_DEBUG, "%s():%d: pos actionable backend %s of farm %s with param %d action %d", __FUNCTION__, __LINE__, b->name, f->name, c->key, action);
 
-	switch (c->key) {
-	case KEY_NAME:
-		break;
-	case KEY_ETHADDR:
-	case KEY_IPADDR:
-	case KEY_PORT:
-	case KEY_SRCADDR:
-	case KEY_MARK:
-	case KEY_PRIORITY:
-	case KEY_ESTCONNLIMIT:
-
+	switch (action) {
+	case ACTION_START:
 		if (backend_set_action(b, ACTION_START))
 			farm_set_action(f, ACTION_RELOAD);
-
 		break;
-	case KEY_STATE:
-	case KEY_WEIGHT:
-	case KEY_ESTCONNLIMIT_LOGPREFIX:
-
+	case ACTION_RELOAD:
 		farm_set_action(f, ACTION_RELOAD);
-
+		break;
+	case ACTION_FLUSH:
+		farm_set_action(f, ACTION_START);
+		farm_rulerize(f);
 		break;
 	default:
 		break;
@@ -846,17 +851,22 @@ int bck_pos_actionable(struct config_pair *c)
 int backend_s_gen_priority(struct farm *f)
 {
 	struct backend *b, *next;
-	int are_down = 0;
+	int are_down;
 	int old_prio = f->priority;
+	int new_prio = DEFAULT_PRIORITY;
 
 	syslog(LOG_DEBUG, "%s():%d: farm %s", __FUNCTION__, __LINE__, f->name);
 
-	list_for_each_entry_safe(b, next, &f->backends, list) {
-		if (b->priority <= f->priority && b->state != VALUE_STATE_UP)
-			are_down++;
-	}
+	do {
+		are_down = 0;
+		list_for_each_entry_safe(b, next, &f->backends, list) {
+			if (b->priority == new_prio && b->state != VALUE_STATE_UP)
+				are_down++;
+		}
+		new_prio += are_down;
+	} while (are_down);
 
-	f->priority = DEFAULT_PRIORITY + are_down;
+	f->priority = new_prio;
 
 	syslog(LOG_DEBUG, "%s():%d: priority is %d",
 		   __FUNCTION__, __LINE__, f->priority);

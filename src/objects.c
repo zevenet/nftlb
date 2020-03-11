@@ -403,7 +403,7 @@ char * obj_print_switch(int state)
 int obj_set_attribute(struct config_pair *c, int actionable)
 {
 	int ret;
-	int status;
+	int action = ACTION_NONE;
 	syslog(LOG_DEBUG, "%s():%d: actionable is %d", __FUNCTION__, __LINE__, actionable);
 
 	switch (c->level) {
@@ -418,16 +418,16 @@ int obj_set_attribute(struct config_pair *c, int actionable)
 		break;
 	case LEVEL_BCKS:
 		if (actionable)
-			status = bck_pre_actionable(c);
+			action = bck_pre_actionable(c);
 
 		ret = backend_set_attribute(c);
 
-		if (actionable && status == 0)
-			bck_pos_actionable(c);
+		if (actionable && action != ACTION_NONE)
+			bck_pos_actionable(c, action);
 		break;
 	case LEVEL_SESSIONS:
 		if (actionable)
-			status = session_pre_actionable(c);
+			session_pre_actionable(c);
 
 		ret = session_set_attribute(c);
 
