@@ -16,6 +16,7 @@
 					"ip-addr" : "192.168.0.10",
 					"weight" : "5",
 					"priority" : "1",
+					"mark" : "0x200",
 					"state" : "up"
 				},
 				{
@@ -23,6 +24,7 @@
 					"ip-addr" : "192.168.0.11",
 					"weight" : "5",
 					"priority" : "1",
+					"mark" : "0x201",
 					"state" : "up"
 				}
 			]

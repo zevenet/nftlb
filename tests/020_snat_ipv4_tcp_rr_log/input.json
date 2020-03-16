@@ -16,14 +16,16 @@
 					"ip-addr" : "192.168.0.10",
 					"weight" : "5",
 					"priority" : "1",
-					"state" : "up"
+					"state" : "up",
+					"mark" : "0x200"
 				},
 				{
 					"name" : "bck1",
 					"ip-addr" : "192.168.0.11",
 					"weight" : "5",
 					"priority" : "1",
-					"state" : "up"
+					"state" : "up",
+					"mark" : "0x201"
 				}
 			]
 		}

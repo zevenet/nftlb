@@ -18,8 +18,8 @@ table ip nftlb {
 	}
 
 	map forward-tcp-services {
-		type ipv4_addr . inet_service : verdict
-		elements = { 192.168.1.100 . 80 : goto forward-lb01 }
+		type mark : verdict
+		elements = { 0x80000200 : goto forward-lb01, 0x80000201 : goto forward-lb01 }
 	}
 
 	chain prerouting {
@@ -41,17 +41,17 @@ table ip nftlb {
 	}
 
 	chain filter-lb01 {
-		ct state new ct mark 0x00000000 ct mark set 0x80000000
+		ct state new ct mark 0x00000000 ct mark set numgen inc mod 10 map { 0-4 : 0x80000200, 5-9 : 0x80000201 }
 	}
 
 	chain nat-lb01 {
 		log prefix "IN-lb01 "
-		dnat to numgen inc mod 10 map { 0-4 : 192.168.0.10, 5-9 : 192.168.0.11 }
+		dnat to ct mark map { 0x80000200 : 192.168.0.10, 0x80000201 : 192.168.0.11 }
 	}
 
 	chain forward {
 		type filter hook forward priority filter; policy accept;
-		ip daddr . tcp dport vmap @forward-tcp-services
+		ct mark vmap @forward-tcp-services
 	}
 
 	chain forward-lb01 {

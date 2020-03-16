@@ -18,7 +18,7 @@ table ip nftlb {
 	}
 
 	map forward-tcp-services {
-		type ipv4_addr . inet_service : verdict
+		type mark : verdict
 	}
 
 	chain prerouting {
@@ -41,7 +41,7 @@ table ip nftlb {
 
 	chain forward {
 		type filter hook forward priority filter; policy accept;
-		ip daddr . tcp dport vmap @forward-tcp-services
+		ct mark vmap @forward-tcp-services
 	}
 
 	chain filter-lb01 {
