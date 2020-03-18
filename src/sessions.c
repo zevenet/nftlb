@@ -333,19 +333,12 @@ int session_backend_action(struct farm *f, struct backend *b, int action)
 
 int session_set_attribute(struct config_pair *c)
 {
-	struct obj_config *cur = obj_get_current_object();
-	struct session *s;
-	struct backend *b;
-	struct farm *f;
+	struct farm *f = obj_get_current_farm();
+	struct session *s = obj_get_current_session();
+	struct backend *b = obj_get_current_backend();
 
-	if (!cur->fptr)
+	if (!f || (c->key != KEY_CLIENT && !s))
 		return PARSER_OBJ_UNKNOWN;
-	f = cur->fptr;
-
-	if (c->key != KEY_CLIENT && !cur->sptr)
-		return PARSER_OBJ_UNKNOWN;
-
-	s = cur->sptr;
 
 	switch (c->key) {
 	case KEY_CLIENT:
@@ -355,13 +348,13 @@ int session_set_attribute(struct config_pair *c)
 			if (!s)
 				return PARSER_FAILED;
 		}
-		cur->sptr = s;
+		obj_set_current_session(s);
 		break;
 	case KEY_BACKEND:
 		b = backend_lookup_by_key(f, KEY_NAME, c->str_value, 0);
 		if (!b)
 			return PARSER_OBJ_UNKNOWN;
-		cur->sptr->bck = b;
+		s->bck = b;
 		if (session_set_action(s, SESSION_TYPE_STATIC, ACTION_START))
 			farm_set_action(f, ACTION_RELOAD);
 		break;
@@ -374,15 +367,11 @@ int session_set_attribute(struct config_pair *c)
 
 int session_pre_actionable(struct config_pair *c)
 {
-	struct obj_config *cur = obj_get_current_object();
-	struct farm *f;
-	struct session *s;
+	struct farm *f = obj_get_current_farm();
+	struct session *s = obj_get_current_session();
 
-	if (!cur->fptr || !cur->sptr)
+	if (!f || !s)
 		return -1;
-
-	f = cur->fptr;
-	s = cur->sptr;
 
 	syslog(LOG_DEBUG, "%s():%d: pre actionable session farm %s", __FUNCTION__, __LINE__, f->name);
 
@@ -404,15 +393,11 @@ int session_pre_actionable(struct config_pair *c)
 
 int session_pos_actionable(struct config_pair *c)
 {
-	struct obj_config *cur = obj_get_current_object();
-	struct farm *f;
-	struct session *s;
+	struct farm *f = obj_get_current_farm();
+	struct session *s = obj_get_current_session();
 
-	if (!cur->fptr || !cur->sptr)
+	if (!f || !s)
 		return -1;
-
-	f = cur->fptr;
-	s = cur->sptr;
 
 	syslog(LOG_DEBUG, "%s():%d: pos actionable session %s of farm %s with param %d", __FUNCTION__, __LINE__, s->client, f->name, c->key);
 

@@ -62,6 +62,7 @@ int backend_s_find_ethers(struct farm *f);
 
 struct backend * backend_get_first(struct farm *f);
 
+int backend_changed(struct config_pair *c);
 int bck_pre_actionable(struct config_pair *c);
 int bck_pos_actionable(struct config_pair *c, int action);
 

@@ -109,6 +109,66 @@ struct obj_config * obj_get_current_object(void)
 	return &current_obj;
 }
 
+struct farm * obj_get_current_farm(void)
+{
+	return current_obj.fptr;
+}
+
+struct backend * obj_get_current_backend(void)
+{
+	return current_obj.bptr;
+}
+
+struct policy * obj_get_current_policy(void)
+{
+	return current_obj.pptr;
+}
+
+struct farmpolicy * obj_get_current_farmpolicy(void)
+{
+	return current_obj.fpptr;
+}
+
+struct element * obj_get_current_element(void)
+{
+	return current_obj.eptr;
+}
+
+struct session * obj_get_current_session(void)
+{
+	return current_obj.sptr;
+}
+
+void obj_set_current_farm(struct farm *f)
+{
+	current_obj.fptr = f;
+}
+
+void obj_set_current_backend(struct backend *b)
+{
+	current_obj.bptr = b;
+}
+
+void obj_set_current_policy(struct policy *p)
+{
+	current_obj.pptr = p;
+}
+
+void obj_set_current_farmpolicy(struct farmpolicy *fp)
+{
+	current_obj.fpptr = fp;
+}
+
+void obj_set_current_element(struct element *e)
+{
+	current_obj.eptr = e;
+}
+
+void obj_set_current_session(struct session *s)
+{
+	current_obj.sptr = s;
+}
+
 char * obj_print_key(int key)
 {
 	switch (key) {
@@ -402,21 +462,27 @@ char * obj_print_switch(int state)
 
 int obj_set_attribute(struct config_pair *c, int actionable)
 {
-	int ret;
+	int ret = 0;
 	int action = ACTION_NONE;
 	syslog(LOG_DEBUG, "%s():%d: actionable is %d", __FUNCTION__, __LINE__, actionable);
 
 	switch (c->level) {
 	case LEVEL_FARMS:
+		if (!farm_changed(c))
+			return PARSER_OK;
+
 		if (actionable)
-			farm_pre_actionable(c);
+			action = farm_pre_actionable(c);
 
 		ret = farm_set_attribute(c);
 
-		if (actionable && ret == PARSER_OK)
+		if (actionable && ret == PARSER_OK && action != ACTION_NONE)
 			farm_pos_actionable(c);
 		break;
 	case LEVEL_BCKS:
+		if (!backend_changed(c))
+			return PARSER_OK;
+
 		if (actionable)
 			action = bck_pre_actionable(c);
 
@@ -478,6 +544,23 @@ int obj_set_attribute_string(char *src, char **dst)
 	sprintf(*dst, "%s", src);
 
 	return 0;
+}
+
+int obj_equ_attribute_string(char *stra, char *strb)
+{
+	return (stra == strb ||
+			(stra == NULL && strcmp(strb, "") == 0) ||
+			(stra && strb && strcmp(stra, strb) == 0));
+}
+
+void obj_set_attribute_int(int *src, int value)
+{
+	*src = value;
+}
+
+int obj_equ_attribute_int(int valuea, int valueb)
+{
+	return valuea == valueb;
 }
 
 void obj_print(void)

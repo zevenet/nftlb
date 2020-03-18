@@ -171,6 +171,18 @@ int obj_get_dsr_counter(void);
 void obj_set_dsr_counter(int new_value);
 
 struct obj_config * obj_get_current_object(void);
+struct farm * obj_get_current_farm(void);
+struct backend * obj_get_current_backend(void);
+struct policy * obj_get_current_policy(void);
+struct farmpolicy * obj_get_current_farmpolicy(void);
+struct element * obj_get_current_element(void);
+struct session * obj_get_current_session(void);
+void obj_set_current_farm(struct farm *f);
+void obj_set_current_backend(struct backend *b);
+void obj_set_current_policy(struct policy *p);
+void obj_set_current_farmpolicy(struct farmpolicy *fp);
+void obj_set_current_element(struct element *e);
+void obj_set_current_session(struct session *s);
 
 char * obj_print_key(int key);
 char * obj_print_family(int family);
@@ -184,6 +196,9 @@ char * obj_print_state(int state);
 char * obj_print_switch(int value);
 int obj_set_attribute(struct config_pair *c, int actionable);
 int obj_set_attribute_string(char *src, char **dst);
+int obj_equ_attribute_string(char *stra, char *strb);
+void obj_set_attribute_int(int *src, int value);
+int obj_equ_attribute_int(int valuea, int valueb);
 void obj_print(void);
 int obj_rulerize(int mode);
 

@@ -478,6 +478,66 @@ static int backend_is_usable(struct backend *b)
 			(b->priority <= f->priority);
 }
 
+int backend_changed(struct config_pair *c)
+{
+	struct farm *f = obj_get_current_farm();
+	struct backend *b = obj_get_current_backend();
+
+	if (!f || !b)
+		return -1;
+
+	syslog(LOG_DEBUG, "%s():%d: farm %s backend %s with param %d", __FUNCTION__, __LINE__, f->name, b->name, c->key);
+
+	switch (c->key) {
+	case KEY_NAME:
+		return 1;
+		break;
+	case KEY_NEWNAME:
+		return !obj_equ_attribute_string(b->name, c->str_value);
+		break;
+	case KEY_FQDN:
+		return !obj_equ_attribute_string(b->fqdn, c->str_value);
+		break;
+	case KEY_IPADDR:
+		return !obj_equ_attribute_string(b->ipaddr, c->str_value);
+		break;
+	case KEY_ETHADDR:
+		return !obj_equ_attribute_string(b->ethaddr, c->str_value);
+		break;
+	case KEY_PORT:
+		return !obj_equ_attribute_string(b->port, c->str_value);
+		break;
+	case KEY_SRCADDR:
+		return !obj_equ_attribute_string(b->srcaddr, c->str_value);
+		break;
+	case KEY_WEIGHT:
+		return !obj_equ_attribute_int(b->weight, c->int_value);
+		break;
+	case KEY_PRIORITY:
+		return !obj_equ_attribute_int(b->priority, c->int_value);
+		break;
+	case KEY_MARK:
+		return !obj_equ_attribute_int(b->mark, c->int_value);
+		break;
+	case KEY_STATE:
+		return !obj_equ_attribute_int(b->state, c->int_value);
+		break;
+	case KEY_ACTION:
+		return !obj_equ_attribute_int(b->action, c->int_value);
+		break;
+	case KEY_ESTCONNLIMIT:
+		return !obj_equ_attribute_int(b->estconnlimit, c->int_value);
+		break;
+	case KEY_ESTCONNLIMIT_LOGPREFIX:
+		return !obj_equ_attribute_string(b->estconnlimit_logprefix, c->str_value);
+		break;
+	default:
+		break;
+	}
+
+	return 0;
+}
+
 int backend_validate(struct backend *b)
 {
 	struct farm *f = b->parent;
@@ -586,26 +646,21 @@ int backend_s_validate(struct farm *f)
 
 int backend_set_attribute(struct config_pair *c)
 {
-	struct obj_config *cur = obj_get_current_object();
-	struct backend *b;
+	struct farm *f = obj_get_current_farm();
+	struct backend *b = obj_get_current_backend();
 
-	if (!cur->fptr)
+	if (!f || (c->key != KEY_NAME && !b))
 		return PARSER_OBJ_UNKNOWN;
-
-	if (c->key != KEY_NAME && !cur->bptr)
-		return PARSER_OBJ_UNKNOWN;
-
-	b = cur->bptr;
 
 	switch (c->key) {
 	case KEY_NAME:
-		b = backend_lookup_by_key(cur->fptr, KEY_NAME, c->str_value, 0);
+		b = backend_lookup_by_key(f, KEY_NAME, c->str_value, 0);
 		if (!b) {
-			b = backend_create(cur->fptr, c->str_value);
+			b = backend_create(f, c->str_value);
 			if (!b)
 				return -1;
 		}
-		cur->bptr = b;
+		obj_set_current_backend(b);
 		break;
 	case KEY_NEWNAME:
 		obj_set_attribute_string(c->str_value, &b->name);
@@ -762,15 +817,11 @@ struct backend * backend_get_first(struct farm *f)
 
 int bck_pre_actionable(struct config_pair *c)
 {
-	struct obj_config *cur = obj_get_current_object();
-	struct farm *f;
-	struct backend *b;
+	struct farm *f = obj_get_current_farm();
+	struct backend *b = obj_get_current_backend();
 
-	if (!cur->fptr || !cur->bptr)
+	if (!f || !b)
 		return -1;
-
-	f = cur->fptr;
-	b = cur->bptr;
 
 	syslog(LOG_DEBUG, "%s():%d: pre actionable backend %s of farm %s with param %d", __FUNCTION__, __LINE__, b->name, f->name, c->key);
 
@@ -817,15 +868,11 @@ int bck_pre_actionable(struct config_pair *c)
 
 int bck_pos_actionable(struct config_pair *c, int action)
 {
-	struct obj_config *cur = obj_get_current_object();
-	struct farm *f;
-	struct backend *b;
+	struct farm *f = obj_get_current_farm();
+	struct backend *b = obj_get_current_backend();
 
-	if (!cur->fptr || !cur->bptr)
+	if (!f || !b)
 		return -1;
-
-	f = cur->fptr;
-	b = cur->bptr;
 
 	syslog(LOG_DEBUG, "%s():%d: pos actionable backend %s of farm %s with param %d action %d", __FUNCTION__, __LINE__, b->name, f->name, c->key, action);
 

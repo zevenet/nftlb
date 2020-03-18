@@ -515,6 +515,128 @@ static int farm_set_estconnlimit(struct farm *f, int new_value)
 	return PARSER_OK;
 }
 
+int farm_changed(struct config_pair *c)
+{
+	struct farm *f = obj_get_current_farm();
+
+	if (!f)
+		return -1;
+
+	syslog(LOG_DEBUG, "%s():%d: farm %s with param %d", __FUNCTION__, __LINE__, f->name, c->key);
+
+	switch (c->key) {
+	case KEY_NAME:
+		return 1;
+		break;
+	case KEY_NEWNAME:
+		return !obj_equ_attribute_string(f->name, c->str_value);
+		break;
+	case KEY_FQDN:
+		return !obj_equ_attribute_string(f->fqdn, c->str_value);
+		break;
+	case KEY_IFACE:
+		return !obj_equ_attribute_string(f->iface, c->str_value);
+		break;
+	case KEY_OFACE:
+		return !obj_equ_attribute_string(f->oface, c->str_value);
+		break;
+	case KEY_ETHADDR:
+		return !obj_equ_attribute_string(f->iethaddr, c->str_value);
+		break;
+	case KEY_FAMILY:
+		return !obj_equ_attribute_int(f->family, c->int_value);
+		break;
+	case KEY_VIRTADDR:
+		return !obj_equ_attribute_string(f->virtaddr, c->str_value);
+		break;
+	case KEY_VIRTPORTS:
+		return !obj_equ_attribute_string(f->virtports, c->str_value);
+		break;
+	case KEY_SRCADDR:
+		return !obj_equ_attribute_string(f->srcaddr, c->str_value);
+		break;
+	case KEY_MODE:
+		return !obj_equ_attribute_int(f->mode, c->int_value);
+		break;
+	case KEY_RESPONSETTL:
+		return !obj_equ_attribute_int(f->responsettl, c->int_value);
+		break;
+	case KEY_PROTO:
+		return !obj_equ_attribute_int(f->protocol, c->int_value);
+		break;
+	case KEY_SCHED:
+		return !obj_equ_attribute_int(f->scheduler, c->int_value);
+		break;
+	case KEY_SCHEDPARAM:
+		return !obj_equ_attribute_int(f->schedparam, c->int_value);
+		break;
+	case KEY_PERSISTENCE:
+		return !obj_equ_attribute_int(f->persistence, c->int_value);
+		break;
+	case KEY_PERSISTTM:
+		return !obj_equ_attribute_int(f->persistttl, c->int_value);
+		break;
+	case KEY_HELPER:
+		return !obj_equ_attribute_int(f->helper, c->int_value);
+		break;
+	case KEY_LOG:
+		return !obj_equ_attribute_int(f->log, c->int_value);
+		break;
+	case KEY_LOGPREFIX:
+		return !obj_equ_attribute_string(f->logprefix, c->str_value);
+		break;
+	case KEY_MARK:
+		return !obj_equ_attribute_int(f->mark, c->int_value);
+		break;
+	case KEY_STATE:
+		return !obj_equ_attribute_int(f->state, c->int_value);
+		break;
+	case KEY_ACTION:
+		return !obj_equ_attribute_int(f->action, c->int_value);
+		break;
+	case KEY_NEWRTLIMIT:
+		return !obj_equ_attribute_int(f->newrtlimit, c->int_value);
+		break;
+	case KEY_NEWRTLIMITBURST:
+		return !obj_equ_attribute_int(f->newrtlimitbst, c->int_value);
+		break;
+	case KEY_RSTRTLIMIT:
+		return !obj_equ_attribute_int(f->rstrtlimit, c->int_value);
+		break;
+	case KEY_RSTRTLIMITBURST:
+		return !obj_equ_attribute_int(f->rstrtlimitbst, c->int_value);
+		break;
+	case KEY_ESTCONNLIMIT:
+		return !obj_equ_attribute_int(f->estconnlimit, c->int_value);
+		break;
+	case KEY_TCPSTRICT:
+		return !obj_equ_attribute_int(f->tcpstrict, c->int_value);
+		break;
+	case KEY_QUEUE:
+		return !obj_equ_attribute_int(f->queue, c->int_value);
+		break;
+	case KEY_FLOWOFFLOAD:
+		return !obj_equ_attribute_int(f->flow_offload, c->int_value);
+		break;
+	case KEY_NEWRTLIMIT_LOGPREFIX:
+		return !obj_equ_attribute_string(f->newrtlimit_logprefix, c->str_value);
+		break;
+	case KEY_RSTRTLIMIT_LOGPREFIX:
+		return !obj_equ_attribute_string(f->rstrtlimit_logprefix, c->str_value);
+		break;
+	case KEY_ESTCONNLIMIT_LOGPREFIX:
+		return !obj_equ_attribute_string(f->estconnlimit_logprefix, c->str_value);
+		break;
+	case KEY_TCPSTRICT_LOGPREFIX:
+		return !obj_equ_attribute_string(f->tcpstrict_logprefix, c->str_value);
+		break;
+	default:
+		break;
+	}
+
+	return 0;
+}
+
 int farm_set_priority(struct farm *f, int new_value)
 {
 	int old_value = f->priority;
@@ -665,13 +787,10 @@ int farm_set_ifinfo(struct farm *f, int key)
 
 int farm_pre_actionable(struct config_pair *c)
 {
-	struct obj_config *cur = obj_get_current_object();
-	struct farm *f;
+	struct farm *f = obj_get_current_farm();
 
-	if (!cur->fptr)
+	if (!f)
 		return -1;
-
-	f = cur->fptr;
 
 	syslog(LOG_DEBUG, "%s():%d: pre actionable farm %s with param %d", __FUNCTION__, __LINE__, f->name, c->key);
 
@@ -689,25 +808,23 @@ int farm_pre_actionable(struct config_pair *c)
 	case KEY_PERSISTENCE:
 	case KEY_PERSISTTM:
 	case KEY_FLOWOFFLOAD:
+	case KEY_LOG:
 		if (farm_set_action(f, ACTION_STOP))
 			farm_rulerize(f);
 		break;
 	default:
-		return 0;
+		break;
 	}
 
-	return 0;
+	return ACTION_START;
 }
 
 int farm_pos_actionable(struct config_pair *c)
 {
-	struct obj_config *cur = obj_get_current_object();
-	struct farm *f;
+	struct farm *f = obj_get_current_farm();
 
-	if (!cur->fptr)
+	if (!f)
 		return -1;
-
-	f = cur->fptr;
 
 	syslog(LOG_DEBUG, "%s():%d: pos actionable farm %s with param %d", __FUNCTION__, __LINE__, f->name, c->key);
 
@@ -725,6 +842,7 @@ int farm_pos_actionable(struct config_pair *c)
 	case KEY_PERSISTENCE:
 	case KEY_PERSISTTM:
 	case KEY_FLOWOFFLOAD:
+	case KEY_LOG:
 		farm_set_action(f, ACTION_START);
 		break;
 	case KEY_STATE:
@@ -739,15 +857,12 @@ int farm_pos_actionable(struct config_pair *c)
 
 int farm_set_attribute(struct config_pair *c)
 {
-	struct obj_config *cur = obj_get_current_object();
-	struct farm *f;
+	struct farm *f = obj_get_current_farm();
 	struct farm *nf;
 	int ret = PARSER_FAILED;
 
-	if (c->key != KEY_NAME && !cur->fptr)
+	if (c->key != KEY_NAME && !f)
 		return PARSER_OBJ_UNKNOWN;
-
-	f = cur->fptr;
 
 	switch (c->key) {
 	case KEY_NAME:
@@ -757,7 +872,7 @@ int farm_set_attribute(struct config_pair *c)
 			if (!f)
 				return -1;
 		}
-		cur->fptr = f;
+		obj_set_current_farm(f);
 		ret = PARSER_OK;
 		break;
 	case KEY_NEWNAME:

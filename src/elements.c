@@ -201,26 +201,21 @@ int element_s_delete(struct policy *p)
 
 int element_set_attribute(struct config_pair *c)
 {
-	struct obj_config *cur = obj_get_current_object();
-	struct element *e;
+	struct policy *p = obj_get_current_policy();
+	struct element *e = obj_get_current_element();
 
-	if (!cur->pptr)
+	if (!p || (c->key != KEY_DATA && !e))
 		return PARSER_OBJ_UNKNOWN;
-
-	if (c->key != KEY_DATA && !cur->eptr)
-		return PARSER_OBJ_UNKNOWN;
-
-	e = cur->eptr;
 
 	switch (c->key) {
 	case KEY_DATA:
-		e = element_lookup_by_name(cur->pptr, c->str_value);
+		e = element_lookup_by_name(p, c->str_value);
 		if (!e) {
-			e = element_create(cur->pptr, c->str_value, NULL);
+			e = element_create(p, c->str_value, NULL);
 			if (!e)
 				return -1;
 		}
-		cur->eptr = e;
+		obj_set_current_element(e);
 		break;
 	case KEY_TIME:
 		obj_set_attribute_string(c->str_value, &e->time);
@@ -237,15 +232,11 @@ int element_set_attribute(struct config_pair *c)
 
 int element_pos_actionable(struct config_pair *c)
 {
-	struct obj_config *cur = obj_get_current_object();
-	struct policy *p;
-	struct element *e;
+	struct policy *p = obj_get_current_policy();
+	struct element *e = obj_get_current_element();
 
-	if (!cur->pptr || !cur->eptr)
+	if (!p || !e)
 		return -1;
-
-	p = cur->pptr;
-	e = cur->eptr;
 
 	syslog(LOG_DEBUG, "%s():%d: pos actionable element %s of policy %s with param %d", __FUNCTION__, __LINE__, e->data, p->name, c->key);
 

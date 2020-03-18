@@ -152,11 +152,11 @@ int farmpolicy_s_lookup_policy_action(struct farm *f, char *name, int action)
 
 int farmpolicy_set_attribute(struct config_pair *c)
 {
-	struct obj_config *cur = obj_get_current_object();
-	struct farmpolicy *fp = cur->fpptr;
+	struct farmpolicy *fp = obj_get_current_farmpolicy();
+	struct farm *f = obj_get_current_farm();
 	struct policy *p;
 
-	if (!cur->fptr)
+	if (!f)
 		return PARSER_OBJ_UNKNOWN;
 
 	switch (c->key) {
@@ -164,11 +164,11 @@ int farmpolicy_set_attribute(struct config_pair *c)
 		p = policy_lookup_by_name(c->str_value);
 		if (!p)
 			return -1;
-		fp = farmpolicy_lookup_by_name(cur->fptr, c->str_value);
+		fp = farmpolicy_lookup_by_name(f, c->str_value);
 		if (fp)
 			return 0;
-		fp = farmpolicy_create(cur->fptr, p);
-		cur->fpptr = fp;
+		fp = farmpolicy_create(f, p);
+		obj_set_current_farmpolicy(fp);
 		if (fp->farm->policies_used > 0 && fp->farm->iface == DEFAULT_IFNAME)
 			farm_set_ifinfo(fp->farm, KEY_IFACE);
 		break;
@@ -181,13 +181,10 @@ int farmpolicy_set_attribute(struct config_pair *c)
 
 int farmpolicy_pre_actionable(struct config_pair *c)
 {
-	struct obj_config *cur = obj_get_current_object();
-	struct farm *f;
+	struct farm *f = obj_get_current_farm();
 
-	if (!cur->fptr)
+	if (!f)
 		return -1;
-
-	f = cur->fptr;
 
 	syslog(LOG_DEBUG, "%s():%d: pre actionable farm policy for farm %s", __FUNCTION__, __LINE__, f->name);
 
@@ -198,15 +195,11 @@ int farmpolicy_pre_actionable(struct config_pair *c)
 
 int farmpolicy_pos_actionable(struct config_pair *c)
 {
-	struct obj_config *cur = obj_get_current_object();
-	struct farmpolicy *fp;
-	struct farm *f;
+	struct farmpolicy *fp = obj_get_current_farmpolicy();
+	struct farm *f = obj_get_current_farm();
 
-	if (!cur->fpptr || !cur->fptr)
+	if (!fp || !f)
 		return -1;
-
-	fp = cur->fpptr;
-	f = cur->fptr;
 
 	syslog(LOG_DEBUG, "%s():%d: pos actionable farm policy %s for farm %s with param %d", __FUNCTION__, __LINE__, fp->policy->name, f->name, c->key);
 

@@ -141,13 +141,10 @@ struct policy * policy_lookup_by_name(const char *name)
 
 int policy_set_attribute(struct config_pair *c)
 {
-	struct obj_config *cur = obj_get_current_object();
-	struct policy *p;
+	struct policy *p = obj_get_current_policy();
 
-	if (c->key != KEY_NAME && !cur->pptr)
+	if (c->key != KEY_NAME && !p)
 		return PARSER_OBJ_UNKNOWN;
-
-	p = cur->pptr;
 
 	switch (c->key) {
 	case KEY_NAME:
@@ -157,7 +154,7 @@ int policy_set_attribute(struct config_pair *c)
 			if (!p)
 				return -1;
 		}
-		cur->pptr = p;
+		obj_set_current_policy(p);
 		break;
 	case KEY_TYPE:
 		p->type = c->int_value;
@@ -218,13 +215,10 @@ int policy_s_set_action(int action)
 
 int policy_pre_actionable(struct config_pair *c)
 {
-	struct obj_config *cur = obj_get_current_object();
-	struct policy *p;
+	struct policy *p = obj_get_current_policy();
 
-	if (!cur->pptr)
+	if (!p)
 		return -1;
-
-	p = cur->pptr;
 
 	syslog(LOG_DEBUG, "%s():%d: pos actionable policy %s with param %d action is %d", __FUNCTION__, __LINE__, p->name, c->key, p->action);
 
@@ -246,13 +240,10 @@ int policy_pre_actionable(struct config_pair *c)
 
 int policy_pos_actionable(struct config_pair *c)
 {
-	struct obj_config *cur = obj_get_current_object();
-	struct policy *p;
+	struct policy *p = obj_get_current_policy();
 
-	if (!cur->pptr)
+	if (!p)
 		return -1;
-
-	p = cur->pptr;
 
 	syslog(LOG_DEBUG, "%s():%d: pos actionable policy %s with param %d action is %d", __FUNCTION__, __LINE__, p->name, c->key, p->action);
 
