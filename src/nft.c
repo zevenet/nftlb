@@ -1679,17 +1679,24 @@ static int run_farm_rules_forward(struct sbuffer *buf, struct farm *f, int famil
 
 	switch (action) {
 	case ACTION_START:
+		run_base_chain(buf, f, NFTLB_F_CHAIN_FWD_FILTER, family);
+		run_farm_rules_gen_chain(buf, print_nft_table_family(family, f->mode), chain, action);
+		run_farm_rules_gen_srv_map_by_type(buf, f, NFTLB_F_CHAIN_FWD_FILTER, family, action);
+		run_farm_gen_log_rules(buf,f, family, chain, VALUE_LOG_FORWARD, NFTLB_F_CHAIN_FWD_FILTER, action);
+		run_farm_flowtable(buf, f, family, flowtable, action);
+		run_farm_gen_flowtable_rules(buf, f, family, chain, flowtable, action);
+		break;
 	case ACTION_RELOAD:
 		run_base_chain(buf, f, NFTLB_F_CHAIN_FWD_FILTER, family);
-		run_farm_rules_gen_vsrv(buf, f, NFTLB_F_CHAIN_FWD_FILTER, family, action);
+		run_farm_rules_gen_chain(buf, print_nft_table_family(family, f->mode), chain, action);
+		run_farm_rules_gen_srv_map_by_type(buf, f, NFTLB_F_CHAIN_FWD_FILTER, family, action);
 		run_farm_gen_log_rules(buf,f, family, chain, VALUE_LOG_FORWARD, NFTLB_F_CHAIN_FWD_FILTER, action);
-		if (action != ACTION_RELOAD)
-			run_farm_flowtable(buf, f, family, flowtable, action);
 		run_farm_gen_flowtable_rules(buf, f, family, chain, flowtable, action);
 		break;
 	case ACTION_DELETE:
 	case ACTION_STOP:
-		run_farm_rules_gen_vsrv(buf, f, NFTLB_F_CHAIN_FWD_FILTER, family, action);
+		run_farm_rules_gen_srv_map_by_type(buf, f, NFTLB_F_CHAIN_FWD_FILTER, family, action);
+		run_farm_rules_gen_chain(buf, print_nft_table_family(family, f->mode), chain, action);
 		run_farm_flowtable(buf, f, family, flowtable, action);
 		break;
 	default:

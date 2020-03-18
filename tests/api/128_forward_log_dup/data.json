@@ -1,0 +1,8 @@
+{
+        "farms": [
+                {
+                        "name": "Ex-SMTP",
+			"log": "forward"
+                }
+        ]
+}
