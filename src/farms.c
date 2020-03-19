@@ -809,6 +809,7 @@ int farm_pre_actionable(struct config_pair *c)
 	case KEY_PERSISTTM:
 	case KEY_FLOWOFFLOAD:
 	case KEY_LOG:
+	case KEY_HELPER:
 		if (farm_set_action(f, ACTION_STOP))
 			farm_rulerize(f);
 		break;
@@ -843,6 +844,7 @@ int farm_pos_actionable(struct config_pair *c)
 	case KEY_PERSISTTM:
 	case KEY_FLOWOFFLOAD:
 	case KEY_LOG:
+	case KEY_HELPER:
 		farm_set_action(f, ACTION_START);
 		break;
 	case KEY_STATE:

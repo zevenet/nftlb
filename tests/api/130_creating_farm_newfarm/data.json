@@ -1,0 +1,1 @@
+{"farms" : [ { "name" : "newfarm", "virtual-addr" : "192.168.105.189", "virtual-ports" : "80", "protocol" : "tcp", "mode" : "snat", "log" : "none", "persistence" : "srcip", "persist-ttl" : "120" } ] }
