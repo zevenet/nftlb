@@ -205,6 +205,17 @@ final:
 	return 0;
 }
 
+static int init_http_state(struct nftlb_http_state *state)
+{
+	state->body_response = malloc(SRV_MAX_BUF);
+	if (!state->body_response) {
+		state->status_code = WS_HTTP_500;
+		return -1;
+	}
+
+	return 0;
+}
+
 static int send_get_response(struct nftlb_http_state *state)
 {
 	char firstlevel[SRV_MAX_IDENT] = {0};
@@ -214,6 +225,9 @@ static int send_get_response(struct nftlb_http_state *state)
 
 	sscanf(state->uri, "/%199[^/]/%199[^/]/%199[^/]/%199[^\n]",
 	       firstlevel, secondlevel, thirdlevel, fourthlevel);
+
+	if (init_http_state(state))
+		return -1;
 
 	if (strcmp(firstlevel, CONFIG_KEY_FARMS) == 0) {
 
@@ -231,18 +245,19 @@ static int send_get_response(struct nftlb_http_state *state)
 
 		config_print_response(&state->body_response, "%s",
 				      "invalid URI key");
-		state->status_code = WS_HTTP_400;
-		return -1;
+		state->status_code = WS_HTTP_404;
+		return 0;
 
-	} else if (strcmp(firstlevel, CONFIG_KEY_POLICIES) == 0) {
-		if (config_print_policies(&state->body_response, secondlevel) == 0) {
-			state->status_code = WS_HTTP_200;
-			return 0;
-		}
+	} else if (strcmp(firstlevel, CONFIG_KEY_POLICIES) == 0 &&
+			   config_print_policies(&state->body_response, secondlevel) == 0) {
+		state->status_code = WS_HTTP_200;
+		return 0;
 	}
 
+	config_print_response(&state->body_response, "%s",
+					  "unknown request");
 	state->status_code = WS_HTTP_400;
-	return -1;
+	return 0;
 }
 
 static int send_delete_response(struct nftlb_http_state *state)
@@ -258,15 +273,14 @@ static int send_delete_response(struct nftlb_http_state *state)
 
 	if (strcmp(firstlevel, CONFIG_KEY_FARMS) != 0 &&
 		strcmp(firstlevel, CONFIG_KEY_POLICIES) != 0) {
-		state->status_code = WS_HTTP_500;
-		return -1;
+		config_print_response(&state->body_response, "%s",
+						  "unknown request");
+		state->status_code = WS_HTTP_400;
+		return 0;
 	}
 
-	state->body_response = malloc(SRV_MAX_BUF);
-	if (!state->body_response) {
-		state->status_code = WS_HTTP_500;
+	if (init_http_state(state))
 		return -1;
-	}
 
 	if (strcmp(firstlevel, CONFIG_KEY_FARMS) == 0 &&
 		strcmp(thirdlevel, CONFIG_KEY_BCKS) == 0) {
@@ -274,6 +288,7 @@ static int send_delete_response(struct nftlb_http_state *state)
 		if (ret < 0) {
 			config_print_response(&state->body_response, "%s",
 					      "error deleting backend");
+			state->status_code = WS_HTTP_500;
 			goto delete_end;
 		}
 	} else if (strcmp(firstlevel, CONFIG_KEY_FARMS) == 0 &&
@@ -287,6 +302,7 @@ static int send_delete_response(struct nftlb_http_state *state)
 		if (ret < 0) {
 			config_print_response(&state->body_response, "%s",
 					      "error deleting session");
+			state->status_code = WS_HTTP_500;
 			goto delete_end;
 		}
 	} else if (strcmp(firstlevel, CONFIG_KEY_FARMS) == 0 &&
@@ -295,12 +311,14 @@ static int send_delete_response(struct nftlb_http_state *state)
 		if (ret < 0) {
 			config_print_response(&state->body_response, "%s",
 					      "error reloading farm");
+			state->status_code = WS_HTTP_500;
 			goto delete_end;
 		}
 		ret = config_set_fpolicy_action(secondlevel, fourthlevel, CONFIG_VALUE_ACTION_DELETE);
 		if (ret != 0) {
 			config_print_response(&state->body_response, "%s",
 					      "error stopping farm policy");
+			state->status_code = WS_HTTP_500;
 			goto delete_end;
 		}
 		obj_rulerize(OBJ_START);
@@ -310,12 +328,14 @@ static int send_delete_response(struct nftlb_http_state *state)
 		if (ret != 0) {
 			config_print_response(&state->body_response, "%s",
 					      "could not get the policy elements");
+			state->status_code = WS_HTTP_500;
 			goto delete_end;
 		}
 		ret = config_set_element_action(secondlevel, fourthlevel, CONFIG_VALUE_ACTION_STOP);
 		if (ret < 0) {
 			config_print_response(&state->body_response, "%s",
 					      "error deleting policy element");
+			state->status_code = WS_HTTP_500;
 			config_delete_elements(secondlevel);
 			goto delete_end;
 		}
@@ -331,6 +351,7 @@ static int send_delete_response(struct nftlb_http_state *state)
 		if (ret < 0) {
 			config_print_response(&state->body_response, "%s",
 					      "error deleting farm");
+			state->status_code = WS_HTTP_500;
 			goto delete_end;
 		}
 	} else if (strcmp(firstlevel, CONFIG_KEY_POLICIES) == 0 &&
@@ -340,6 +361,7 @@ static int send_delete_response(struct nftlb_http_state *state)
 		if (ret < 0) {
 			config_print_response(&state->body_response, "%s",
 					      "error stopping policy");
+			state->status_code = WS_HTTP_500;
 			goto delete_end;
 		}
 		obj_rulerize(OBJ_START_INV);
@@ -348,17 +370,20 @@ static int send_delete_response(struct nftlb_http_state *state)
 		if (ret < 0) {
 			config_print_response(&state->body_response, "%s",
 					      "error deleting policy");
+			state->status_code = WS_HTTP_500;
 			goto delete_end;
 		}
 	} else {
-		state->status_code = WS_HTTP_500;
-		return -1;
+		config_print_response(&state->body_response, "%s",
+						  "unknown request");
+		state->status_code = WS_HTTP_400;
+		return 0;
 	}
 
 	config_print_response(&state->body_response,  "%s", "success");
+	state->status_code = WS_HTTP_200;
 
 delete_end:
-	state->status_code = WS_HTTP_200;
 	return 0;
 }
 
@@ -370,15 +395,14 @@ static int send_post_response(struct nftlb_http_state *state)
 
 	if ((strcmp(firstlevel, CONFIG_KEY_FARMS) != 0) &&
 		(strcmp(firstlevel, CONFIG_KEY_POLICIES) != 0)) {
-		state->status_code = WS_HTTP_404;
-		return -1;
+		config_print_response(&state->body_response, "%s",
+						  "unknown request");
+		state->status_code = WS_HTTP_400;
+		return 0;
 	}
 
-	state->body_response = malloc(SRV_MAX_BUF);
-	if (!state->body_response) {
-		state->status_code = WS_HTTP_500;
+	if (init_http_state(state))
 		return -1;
-	}
 
 	switch (config_buffer(state->body)) {
 	case PARSER_OK:
