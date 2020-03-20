@@ -986,8 +986,10 @@ int config_set_farm_action(const char *name, const char *value)
 		return farm_s_set_action(config_value_action(value));
 
 	f = farm_lookup_by_name(name);
-	if (!f)
+	if (!f) {
+		config_set_output(". Unknown farm '%s'", name);
 		return -1;
+	}
 
 	return farm_set_action(f, config_value_action(value));
 }
@@ -1001,15 +1003,19 @@ int config_set_backend_action(const char *fname, const char *bname, const char *
 		return -1;
 
 	f = farm_lookup_by_name(fname);
-	if (!f)
+	if (!f) {
+		config_set_output(". Unknown farm '%s'", fname);
 		return -1;
+	}
 
 	if (!bname || strcmp(bname, "") == 0)
 		return backend_s_set_action(f, config_value_action(value));
 
 	b = backend_lookup_by_key(f, KEY_NAME, bname, 0);
-	if (!b)
+	if (!b) {
+		config_set_output(". Unknown backend '%s' in farm '%s'", bname, fname);
 		return -1;
+	}
 
 	return backend_set_action(b, config_value_action(value));
 }
@@ -1021,12 +1027,16 @@ int config_set_session_action(const char *fname, const char *sname, const char *
 	char name[255] = { 0 };
 	char *c;
 
-	if (!fname || strcmp(fname, "") == 0)
+	if (!fname || strcmp(fname, "") == 0) {
+		config_set_output(". Please select a valid farm");
 		return -1;
+	}
 
 	f = farm_lookup_by_name(fname);
-	if (!f)
+	if (!f) {
+		config_set_output(". Unknown farm '%s'", fname);
 		return -1;
+	}
 
 	if (!sname || strcmp(sname, "") == 0)
 		return session_s_set_action(f, config_value_action(value));
@@ -1037,8 +1047,10 @@ int config_set_session_action(const char *fname, const char *sname, const char *
 		*c = ' ';
 
 	s = session_lookup_by_key(f, SESSION_TYPE_STATIC, KEY_CLIENT, name);
-	if (!s)
+	if (!s) {
+		config_set_output(". Unknown session '%s' in farm '%s'", sname, fname);
 		return -1;
+	}
 
 	return session_set_action(s, SESSION_TYPE_STATIC, config_value_action(value));
 }
@@ -1048,19 +1060,25 @@ int config_set_fpolicy_action(const char *fname, const char *fpname, const char 
 	struct farm *f;
 	struct farmpolicy *fp;
 
-	if (!fname || strcmp(fname, "") == 0)
+	if (!fname || strcmp(fname, "") == 0) {
+		config_set_output(". Please select a valid farm");
 		return -1;
+	}
 
 	f = farm_lookup_by_name(fname);
-	if (!f)
+	if (!f) {
+		config_set_output(". Unknown farm '%s'", fname);
 		return -1;
+	}
 
 	if (!fpname || strcmp(fpname, "") == 0)
 		return farmpolicy_s_set_action(f, config_value_action(value));
 
 	fp = farmpolicy_lookup_by_name(f, fpname);
-	if (!fp)
+	if (!fp) {
+		config_set_output(". Unknown farm policy '%s' in farm '%s'", fpname, fname);
 		return -1;
+	}
 
 	farmpolicy_set_action(fp, config_value_action(value));
 
@@ -1075,8 +1093,10 @@ int config_set_policy_action(const char *name, const char *value)
 		return policy_s_set_action(config_value_action(value));
 
 	p = policy_lookup_by_name(name);
-	if (!p)
+	if (!p) {
+		config_set_output(". Unknown policy '%s'", name);
 		return -1;
+	}
 
 	return policy_set_action(p, config_value_action(value));
 }
@@ -1086,19 +1106,25 @@ int config_set_element_action(const char *pname, const char *edata, const char *
 	struct policy *p;
 	struct element *e;
 
-	if (!pname || strcmp(pname, "") == 0)
+	if (!pname || strcmp(pname, "") == 0) {
+		config_set_output(". Please select a valid policy");
 		return -1;
+	}
 
 	p = policy_lookup_by_name(pname);
-	if (!p)
+	if (!p) {
+		config_set_output(". Unknown policy '%s'", pname);
 		return -1;
+	}
 
 	if (!edata || strcmp(edata, "") == 0)
 		return element_s_set_action(p, config_value_action(value));
 
 	e = element_lookup_by_name(p, edata);
-	if (!e)
+	if (!e) {
+		config_set_output(". Unknown element '%s' in policy '%s'", edata, pname);
 		return -1;
+	}
 
 	return element_set_action(e, config_value_action(value));
 }
@@ -1108,8 +1134,10 @@ int config_get_elements(const char *pname)
 	struct policy *p;
 
 	p = policy_lookup_by_name(pname);
-	if (!p)
+	if (!p) {
+		config_set_output(". Unknown policy '%s'", pname);
 		return -1;
+	}
 
 	return element_get_list(p);
 }
@@ -1119,8 +1147,10 @@ int config_delete_elements(const char *pname)
 	struct policy *p;
 
 	p = policy_lookup_by_name(pname);
-	if (!p)
+	if (!p) {
+		config_set_output(". Unknown policy '%s'", pname);
 		return -1;
+	}
 
 	return element_s_delete(p);
 }
