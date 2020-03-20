@@ -628,8 +628,7 @@ static void print_log_format(char *buf, int key, int type, struct farm *f, struc
 static int need_filter(struct farm *f)
 {
 	return (!farm_is_ingress_mode(f)) && (f->helper != DEFAULT_HELPER || f->bcks_are_marked || f->mark != DEFAULT_MARK || farm_get_masquerade(f) ||
-			f->newrtlimit != DEFAULT_NEWRTLIMIT || f->rstrtlimit != DEFAULT_RSTRTLIMIT || f->estconnlimit != DEFAULT_ESTCONNLIMIT ||
-			f->tcpstrict != DEFAULT_TCPSTRICT || f->queue != DEFAULT_QUEUE || f->persistence != DEFAULT_PERSIST ||
+			f->reload_action != 0 || f->persistence != DEFAULT_PERSIST ||
 			(f->srcaddr != DEFAULT_SRCADDR && strcmp(f->srcaddr, "") != 0) || f->bcks_have_srcaddr);
 }
 
@@ -1508,6 +1507,7 @@ static int run_farm_rules_filter_policies(struct sbuffer *buf, struct farm *f, i
 	if ((action == ACTION_START || action == ACTION_RELOAD) && f->estconnlimit != DEFAULT_ESTCONNLIMIT)
 		concat_exec_cmd(buf, " ; add rule %s %s %s ct state new add @%s { ip saddr ct count over %d } log prefix \"%s\" drop",
 						print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain, meter_str, f->estconnlimit, logprefix_str);
+
 	if ((action == ACTION_START || action == ACTION_RELOAD) && f->queue != DEFAULT_QUEUE)
 		concat_exec_cmd(buf, " ; add rule %s %s %s tcp flags syn queue num %d bypass",
 						print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain, f->queue);

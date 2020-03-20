@@ -1,0 +1,44 @@
+table ip nftlb {
+	map nat-tcp-services {
+		type ipv4_addr . inet_service : verdict
+		elements = { 192.168.105.189 . 80 : goto nat-newfarm }
+	}
+
+	map tcp-services-back {
+		type ipv4_addr . inet_service : ipv4_addr
+	}
+
+	map tcp-services-back-m {
+		type mark : ipv4_addr
+	}
+
+	map filter-tcp-services {
+		type ipv4_addr . inet_service : verdict
+		elements = { 192.168.105.189 . 80 : goto filter-newfarm }
+	}
+
+	chain prerouting {
+		type nat hook prerouting priority filter; policy accept;
+		ip daddr . tcp dport vmap @nat-tcp-services
+	}
+
+	chain postrouting {
+		type nat hook postrouting priority srcnat; policy accept;
+		ct mark 0x80000000/1 masquerade
+		snat to ip daddr . tcp dport map @tcp-services-back
+		snat to ct mark map @tcp-services-back-m
+	}
+
+	chain filter {
+		type filter hook prerouting priority mangle; policy accept;
+		meta mark set ct mark
+		ip daddr . tcp dport vmap @filter-tcp-services
+	}
+
+	chain filter-newfarm {
+		tcp flags syn queue num 0 bypass
+	}
+
+	chain nat-newfarm {
+	}
+}

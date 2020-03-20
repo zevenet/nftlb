@@ -1,0 +1,1 @@
+{"farms" : [ { "name" : "newfarm6", "virtual-addr" : "192.168.105.189", "virtual-ports" : "53", "protocol" : "udp", "mode" : "snat", "tcp-strict" : "off"  } ] }

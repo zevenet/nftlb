@@ -94,6 +94,10 @@ enum states {
 #define VALUE_RLD_RSTRTLIMIT_STOP		(1 << 3)
 #define VALUE_RLD_ESTCONNLIMIT_START	(1 << 4)
 #define VALUE_RLD_ESTCONNLIMIT_STOP		(1 << 5)
+#define VALUE_RLD_TCPSTRICT_START		(1 << 6)
+#define VALUE_RLD_TCPSTRICT_STOP		(1 << 7)
+#define VALUE_RLD_QUEUE_START			(1 << 8)
+#define VALUE_RLD_QUEUE_STOP			(1 << 9)
 
 struct farm {
 	struct list_head	list;

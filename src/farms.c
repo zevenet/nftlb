@@ -515,6 +515,28 @@ static int farm_set_estconnlimit(struct farm *f, int new_value)
 	return PARSER_OK;
 }
 
+static int farm_set_tcpstrict(struct farm *f, int new_value)
+{
+	if (new_value == VALUE_SWITCH_OFF)
+		f->reload_action |= VALUE_RLD_TCPSTRICT_STOP;
+	else
+		f->reload_action |= VALUE_RLD_TCPSTRICT_START;
+
+	f->tcpstrict = new_value;
+	return PARSER_OK;
+}
+
+static int farm_set_queue(struct farm *f, int new_value)
+{
+	if (new_value == -1)
+		f->reload_action |= VALUE_RLD_QUEUE_STOP;
+	else
+		f->reload_action |= VALUE_RLD_QUEUE_START;
+
+	f->queue = new_value;
+	return PARSER_OK;
+}
+
 int farm_changed(struct config_pair *c)
 {
 	struct farm *f = obj_get_current_farm();
@@ -981,11 +1003,11 @@ int farm_set_attribute(struct config_pair *c)
 		ret = farm_set_estconnlimit(f, c->int_value);
 		break;
 	case KEY_TCPSTRICT:
-		f->tcpstrict = c->int_value;
+		ret = farm_set_tcpstrict(f, c->int_value);
 		ret = PARSER_OK;
 		break;
 	case KEY_QUEUE:
-		f->queue = c->int_value;
+		ret = farm_set_queue(f, c->int_value);
 		ret = PARSER_OK;
 		break;
 	case KEY_FLOWOFFLOAD:
