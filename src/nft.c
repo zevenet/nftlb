@@ -1411,6 +1411,8 @@ static int run_farm_rules_filter_static_sessions(struct sbuffer *buf, struct far
 static int run_farm_rules_filter_persistence(struct sbuffer *buf, struct farm *f, int family, char *chain, int action)
 {
 	char map_str[255] = { 0 };
+	char *client;
+	struct session *s;
 
 	if (f->persistence == VALUE_META_NONE)
 		return 0;
@@ -1420,6 +1422,21 @@ static int run_farm_rules_filter_persistence(struct sbuffer *buf, struct farm *f
 
 	if ((action != ACTION_START && action != ACTION_RELOAD) || (!f->bcks_are_marked))
 		return 0;
+
+	list_for_each_entry(s, &f->timed_sessions, list) {
+		client = (char *) malloc(255);
+		if (!client) {
+			syslog(LOG_ERR, "%s():%d: unable to allocate parsed client %s for farm %s", __FUNCTION__, __LINE__, s->client, f->name);
+			continue;
+		}
+		session_get_client(s, &client);
+		if ((action == ACTION_START || s->action == ACTION_START) && s->bck && s->bck->mark != DEFAULT_MARK)
+			concat_exec_cmd(buf, " ; add element %s %s %s { %s : 0x%x }", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, map_str, client, s->bck->mark);
+		if (action == ACTION_RELOAD && (s->action == ACTION_STOP || s->action == ACTION_DELETE))
+			concat_exec_cmd(buf, " ; delete element %s %s %s { %s }", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, map_str, client);
+		free(client);
+		s->action = ACTION_NONE;
+	}
 
 	concat_buf(buf, " ; add rule %s %s %s ct state new ct mark set", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain);
 	run_farm_rules_gen_meta_param(buf, f, family, f->persistence, NFTLB_MAP_KEY_RULE);
@@ -1865,14 +1882,67 @@ static int run_farm_ingress_persistence_map(struct sbuffer *buf, struct farm *f,
 	return 0;
 }
 
-static int run_farm_rules_ingress_persistence(struct sbuffer *buf, struct farm *f, int family)
+static int run_farm_rules_ingress_timed_sessions(struct sbuffer *buf, struct farm *f, int family, int action)
 {
+	char chain[255] = { 0 };
+	char map_str[255] = { 0 };
+	char *client;
+	struct session *s;
+
+	if (f->persistence == VALUE_META_NONE)
+		return 0;
+
+	if (f->bcks_available == 0)
+		return 0;
+
+	get_farm_chain(chain, f, NFTLB_F_CHAIN_ING_FILTER);
+
+	sprintf(map_str, "persist-%s", f->name);
+
+	if ((action != ACTION_START && action != ACTION_RELOAD))
+		return 0;
+
+	list_for_each_entry(s, &f->timed_sessions, list) {
+		client = (char *) malloc(255);
+		if (!client) {
+			syslog(LOG_ERR, "%s():%d: unable to allocate parsed client %s for farm %s", __FUNCTION__, __LINE__, s->client, f->name);
+			continue;
+		}
+
+		session_get_client(s, &client);
+
+		if (f->mode == VALUE_MODE_DSR) {
+			if ((action == ACTION_START || s->action == ACTION_START) && s->bck && s->bck->ethaddr != DEFAULT_ETHADDR)
+				concat_exec_cmd(buf, " ; add element %s %s %s { %s : %s }", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, map_str, client, s->bck->ethaddr);
+		} else if(f->mode == VALUE_MODE_STLSDNAT) {
+			if ((action == ACTION_START || s->action == ACTION_START) && s->bck && s->bck->ipaddr != DEFAULT_IPADDR)
+				concat_exec_cmd(buf, " ; add element %s %s %s { %s : %s }", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, map_str, client, s->bck->ipaddr);
+		}
+		if (action == ACTION_RELOAD && (s->action == ACTION_STOP || s->action == ACTION_DELETE))
+			concat_exec_cmd(buf, " ; delete element %s %s %s { %s }", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, map_str, client);
+		free(client);
+		s->action = ACTION_NONE;
+	}
+
+	concat_exec_cmd(buf, "");
+
+	return 0;
+}
+
+static int run_farm_rules_ingress_persistence(struct sbuffer *buf, struct farm *f, int family, int action)
+{
+	char chain[255] = { 0 };
 	char map_str[255] = { 0 };
 
 	if (f->persistence == VALUE_META_NONE)
 		return 0;
 
+	get_farm_chain(chain, f, NFTLB_F_CHAIN_ING_FILTER);
+
 	sprintf(map_str, "persist-%s", f->name);
+
+	if ((action != ACTION_START && action != ACTION_RELOAD))
+		return 0;
 
 	concat_buf(buf, " update @%s { ",  map_str);
 	run_farm_rules_gen_meta_param(buf, f, family, f->persistence, NFTLB_MAP_KEY_RULE);
@@ -1920,7 +1990,7 @@ static int run_farm_rules_gen_nat(struct sbuffer *buf, struct farm *f, int famil
 		concat_buf(buf, " ether saddr set %s ether daddr set", f->oethaddr);
 		run_farm_rules_gen_sched(buf, f, family);
 		run_farm_rules_gen_bck_map(buf, f, BCK_MAP_WEIGHT, BCK_MAP_ETHADDR);
-		run_farm_rules_ingress_persistence(buf, f, family);
+		run_farm_rules_ingress_persistence(buf, f, family, action);
 		run_farm_log_prefix(buf, f, VALUE_LOG_OUTPUT, NFTLB_F_CHAIN_EGR_DNAT, ACTION_START);
 		concat_buf(buf, " fwd to");
 		if (f->bcks_have_if) {
@@ -1943,7 +2013,7 @@ static int run_farm_rules_gen_nat(struct sbuffer *buf, struct farm *f, int famil
 		run_farm_rules_gen_bck_map(buf, f, BCK_MAP_IPADDR, BCK_MAP_ETHADDR);
 		// TODO: support of different output interfaces per backend during saddr
 		concat_buf(buf, " ether saddr set %s", f->oethaddr);
-		run_farm_rules_ingress_persistence(buf, f, family);
+		run_farm_rules_ingress_persistence(buf, f, family, action);
 		run_farm_log_prefix(buf, f, VALUE_LOG_OUTPUT, NFTLB_F_CHAIN_EGR_DNAT, ACTION_START);
 		concat_buf(buf, " fwd to");
 		if (f->bcks_have_if) {
@@ -1992,6 +2062,7 @@ static int run_farm_rules(struct sbuffer *buf, struct farm *f, int family, int a
 		run_farm_stlsnat(buf, f, family, action);
 		run_farm_ingress_persistence_map(buf, f, family, action);
 		run_farm_rules_gen_nat(buf, f, family, NFTLB_F_CHAIN_ING_FILTER, action);
+		run_farm_rules_ingress_timed_sessions(buf, f, family, action);
 		break;
 	case VALUE_MODE_DSR:
 		run_base_table(buf, NFTLB_NETDEV_FAMILY);
@@ -2001,6 +2072,7 @@ static int run_farm_rules(struct sbuffer *buf, struct farm *f, int family, int a
 		run_farm_rules_ingress_static_sessions(buf, f, family, action);
 		run_farm_ingress_persistence_map(buf, f, family, action);
 		run_farm_rules_gen_nat(buf, f, family, NFTLB_F_CHAIN_ING_FILTER, action);
+		run_farm_rules_ingress_timed_sessions(buf, f, family, action);
 		break;
 	case VALUE_MODE_LOCAL:
 		run_farm_rules_filter(buf, f, family, action);

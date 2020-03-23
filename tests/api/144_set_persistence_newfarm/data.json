@@ -1,0 +1,1 @@
+{"farms" : [ { "name" : "newfarm", "persistence" : "srcip", "backends" : [ { "name" : "bck0", "ip-addr" : "111.111.11.11", "mark" : "0x200", "state" : "up" } ] } ] }

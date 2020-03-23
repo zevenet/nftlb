@@ -165,6 +165,8 @@ struct backend * backend_lookup_by_key(struct farm *f, int key, const char *name
 {
 	struct backend *b;
 
+	syslog(LOG_ERR, "%s():%d: farm %s key %d name %s value %d", __FUNCTION__, __LINE__, f->name, key, name, value);
+
 	list_for_each_entry(b, &f->backends, list) {
 		switch (key) {
 		case KEY_NAME:
@@ -177,6 +179,10 @@ struct backend * backend_lookup_by_key(struct farm *f, int key, const char *name
 			break;
 		case KEY_ETHADDR:
 			if (b->ethaddr && strcmp(b->ethaddr, name) == 0)
+				return b;
+			break;
+		case KEY_IPADDR:
+			if (b->ipaddr && strcmp(b->ipaddr, name) == 0)
 				return b;
 			break;
 		default:

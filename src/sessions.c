@@ -34,6 +34,8 @@ static struct session * session_create(struct farm *f, int type, char *client, c
 	struct session *s;
 	struct backend *b;
 
+	syslog(LOG_ERR, "%s():%d: farm %s type %d client %s bck %s expiration %s", __FUNCTION__, __LINE__, f->name, type, client, bck, expiration);
+
 	if (!client || strcmp(client, "") == 0) {
 		syslog(LOG_ERR, "%s():%d: missing data", __FUNCTION__, __LINE__);
 		return NULL;
@@ -62,8 +64,11 @@ static struct session * session_create(struct farm *f, int type, char *client, c
 			s->bck = b;
 		break;
 	case VALUE_MODE_DSR:
-	case VALUE_MODE_STLSDNAT:
 		if ((b = backend_lookup_by_key(f, KEY_ETHADDR, bck, 0)) != NULL)
+			s->bck = b;
+		break;
+	case VALUE_MODE_STLSDNAT:
+		if ((b = backend_lookup_by_key(f, KEY_IPADDR, bck, 0)) != NULL)
 			s->bck = b;
 		break;
 	default:
@@ -74,6 +79,7 @@ cont:
 	s->expiration = DEFAULT_SESSION_EXPIRATION;
 
 	if (type == SESSION_TYPE_TIMED) {
+		s->state = VALUE_STATE_UP;
 		list_add_tail(&s->list, &f->timed_sessions);
 		f->total_timed_sessions++;
 		obj_set_attribute_string(expiration, &s->expiration);
@@ -310,6 +316,7 @@ int session_backend_action(struct farm *f, struct backend *b, int action)
 {
 	struct session *s, *next;
 
+
 	if (f->total_static_sessions != 0) {
 		list_for_each_entry_safe(s, next, &f->static_sessions, list)
 			if (!b ||
@@ -319,13 +326,14 @@ int session_backend_action(struct farm *f, struct backend *b, int action)
 	}
 
 	session_get_timed(f);
-	if (f->total_static_sessions != 0) {
+	if (f->total_timed_sessions != 0) {
 		list_for_each_entry_safe(s, next, &f->timed_sessions, list)
 			if (!b ||
 				((f->mode == VALUE_MODE_DNAT || f->mode == VALUE_MODE_SNAT || f->mode == VALUE_MODE_LOCAL) && b->mark == s->bck->mark) ||
 				((f->mode == VALUE_MODE_DSR || f->mode == VALUE_MODE_STLSDNAT) && strcmp(b->ethaddr, s->bck->ethaddr) == 0))
 				session_set_action(s, SESSION_TYPE_TIMED, action);
 	}
+
 	session_s_delete(f, SESSION_TYPE_TIMED);
 
 	return 0;

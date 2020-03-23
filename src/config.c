@@ -1023,9 +1023,12 @@ int config_set_backend_action(const char *fname, const char *bname, const char *
 int config_set_session_action(const char *fname, const char *sname, const char *value)
 {
 	struct farm *f;
-	struct session *s;
+	struct session *s = NULL;
 	char name[255] = { 0 };
 	char *c;
+	int ret = -1;
+	int timed = 0;
+	int action = config_value_action(value);
 
 	if (!fname || strcmp(fname, "") == 0) {
 		config_set_output(". Please select a valid farm");
@@ -1038,8 +1041,10 @@ int config_set_session_action(const char *fname, const char *sname, const char *
 		return -1;
 	}
 
-	if (!sname || strcmp(sname, "") == 0)
-		return session_s_set_action(f, config_value_action(value));
+	if (!sname || strcmp(sname, "") == 0) {
+		ret = session_s_set_action(f, action);
+		goto apply;
+	}
 
 	/* Traduce URL to plain text */
 	sprintf(name, "%s", sname);
@@ -1047,12 +1052,43 @@ int config_set_session_action(const char *fname, const char *sname, const char *
 		*c = ' ';
 
 	s = session_lookup_by_key(f, SESSION_TYPE_STATIC, KEY_CLIENT, name);
-	if (!s) {
-		config_set_output(". Unknown session '%s' in farm '%s'", sname, fname);
-		return -1;
+	if (s) {
+		ret = session_set_action(s, SESSION_TYPE_STATIC, action);
+		goto apply;
 	}
 
-	return session_set_action(s, SESSION_TYPE_STATIC, config_value_action(value));
+	if (action == ACTION_STOP) {
+		timed = 1;
+		session_get_timed(f);
+		s = session_lookup_by_key(f, SESSION_TYPE_TIMED, KEY_CLIENT, name);
+		if (s) {
+			ret = session_set_action(s, SESSION_TYPE_TIMED, action);
+			goto apply;
+		}
+		return 0;
+	}
+
+	config_set_output(". Unknown session '%s' in farm '%s'", sname, fname);
+	return -1;
+
+apply:
+	if (ret > 0) {
+		config_set_farm_action(fname, CONFIG_VALUE_ACTION_RELOAD);
+		obj_rulerize(OBJ_START);
+	}
+
+	if (timed) {
+		session_s_delete(f, SESSION_TYPE_TIMED);
+		return 0;
+	}
+
+	if (action != ACTION_STOP)
+		return 0;
+
+	if (!s)
+		return session_s_set_action(f, ACTION_DELETE);
+
+	return session_set_action(s, SESSION_TYPE_STATIC, ACTION_DELETE);
 }
 
 int config_set_fpolicy_action(const char *fname, const char *fpname, const char *value)

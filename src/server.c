@@ -295,14 +295,10 @@ static int send_delete_response(struct nftlb_http_state *state)
 			state->status_code = WS_HTTP_500;
 			goto delete_end;
 		}
+
 	} else if (strcmp(firstlevel, CONFIG_KEY_FARMS) == 0 &&
 		strcmp(thirdlevel, CONFIG_KEY_SESSIONS) == 0) {
 		ret = config_set_session_action(secondlevel, fourthlevel, CONFIG_VALUE_ACTION_STOP);
-		if (ret > 0) {
-			config_set_farm_action(secondlevel, CONFIG_VALUE_ACTION_RELOAD);
-			obj_rulerize(OBJ_START);
-		}
-		ret = config_set_session_action(secondlevel, fourthlevel, CONFIG_VALUE_ACTION_DELETE);
 		if (ret < 0) {
 			config_print_response(&state->body_response, "%s%s", "error deleting session",
 									config_get_output());
@@ -310,6 +306,7 @@ static int send_delete_response(struct nftlb_http_state *state)
 			state->status_code = WS_HTTP_500;
 			goto delete_end;
 		}
+
 	} else if (strcmp(firstlevel, CONFIG_KEY_FARMS) == 0 &&
 			   strcmp(thirdlevel, CONFIG_KEY_POLICIES) == 0) {
 		ret = config_set_farm_action(secondlevel, CONFIG_VALUE_ACTION_RELOAD);
@@ -329,6 +326,7 @@ static int send_delete_response(struct nftlb_http_state *state)
 			goto delete_end;
 		}
 		obj_rulerize(OBJ_START);
+
 	} else if (strcmp(firstlevel, CONFIG_KEY_POLICIES) == 0 &&
 			   strcmp(thirdlevel, CONFIG_KEY_ELEMENTS) == 0) {
 		ret = config_get_elements(secondlevel);
@@ -351,12 +349,10 @@ static int send_delete_response(struct nftlb_http_state *state)
 		config_set_policy_action(secondlevel, CONFIG_VALUE_ACTION_RELOAD);
 		obj_rulerize(OBJ_START);
 		config_delete_elements(secondlevel);
+
 	} else if (strcmp(firstlevel, CONFIG_KEY_FARMS) == 0 &&
 			   strcmp(thirdlevel, "") == 0) {
 		ret = config_set_farm_action(secondlevel, CONFIG_VALUE_ACTION_STOP);
-		if (ret > 0)
-			obj_rulerize(OBJ_START);
-		ret = config_set_farm_action(secondlevel, CONFIG_VALUE_ACTION_DELETE);
 		if (ret < 0) {
 			config_print_response(&state->body_response, "%s%s", "error deleting farm",
 									config_get_output());
@@ -364,6 +360,9 @@ static int send_delete_response(struct nftlb_http_state *state)
 			state->status_code = WS_HTTP_500;
 			goto delete_end;
 		}
+		obj_rulerize(OBJ_START);
+		config_set_farm_action(secondlevel, CONFIG_VALUE_ACTION_DELETE);
+
 	} else if (strcmp(firstlevel, CONFIG_KEY_POLICIES) == 0 &&
 			   strcmp(thirdlevel, "") == 0) {
 
@@ -385,6 +384,7 @@ static int send_delete_response(struct nftlb_http_state *state)
 			state->status_code = WS_HTTP_500;
 			goto delete_end;
 		}
+
 	} else {
 		config_print_response(&state->body_response, "%s%s", "invalid request",
 								config_get_output());

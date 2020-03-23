@@ -467,7 +467,7 @@ static void farm_print(struct farm *f)
 	if (f->total_bcks != 0)
 		backend_s_print(f);
 
-	if (f->total_static_sessions != 0)
+	if (f->total_static_sessions || f->total_timed_sessions)
 		session_s_print(f);
 
 	farmpolicy_s_print(f);

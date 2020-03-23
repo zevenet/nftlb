@@ -1,0 +1,5 @@
+{"farms" : [ { "name" : "newfarm", "virtual-addr" : "127.0.0.1", "mode" : "stlsdnat", "backends" : [ { "name" : "bck0", "ip-addr" : "127.0.0.2", "ether-addr" : "03:03:03:03:03:03", "oface" : "lo", "state" : "up" } ],
+			"iface" : "lo",
+			"oface" : "lo",
+			"ether-addr" : "01:01:01:01:01:01"
+ } ] }
