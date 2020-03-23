@@ -6,6 +6,7 @@
                         "type": "blacklist",
                         "timeout": "0",
                         "priority": "1",
+                        "used": "0",
                         "elements": []
                 }
         ]

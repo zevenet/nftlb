@@ -174,6 +174,8 @@ int policy_set_attribute(struct config_pair *c)
 	case KEY_LOGPREFIX:
 		obj_set_attribute_string(c->str_value, &p->logprefix);
 		break;
+	case KEY_USED:
+		break;
 	default:
 		return PARSER_STRUCT_FAILED;
 	}
@@ -230,6 +232,8 @@ int policy_pre_actionable(struct config_pair *c)
 	case KEY_TIMEOUT:
 		policy_set_action(p, ACTION_STOP);
 		break;
+	case KEY_USED:
+		break;
 	default:
 		policy_set_action(p, ACTION_RELOAD);
 		return 0;
@@ -254,6 +258,8 @@ int policy_pos_actionable(struct config_pair *c)
 	case KEY_TYPE:
 	case KEY_TIMEOUT:
 		policy_set_action(p, ACTION_START);
+		break;
+	case KEY_USED:
 		break;
 	default:
 		policy_set_action(p, ACTION_RELOAD);

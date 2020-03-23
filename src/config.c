@@ -385,6 +385,9 @@ static int config_value(const char *value)
 		c.str_value = (char *)value;
 		ret = PARSER_OK;
 		break;
+	case KEY_USED:
+		ret = PARSER_OK;
+		break;
 	default:
 		config_set_output(". Unknown parsed key with index '%d'", c.key);
 		syslog(LOG_ERR, "%s():%d: unknown parsed key with index '%d'", __FUNCTION__, __LINE__, c.key);
@@ -497,6 +500,8 @@ static int config_key(const char *key)
 		return KEY_CLIENT;
 	if (strcmp(key, CONFIG_KEY_BACKEND) == 0)
 		return KEY_BACKEND;
+	if (strcmp(key, CONFIG_KEY_USED) == 0)
+		return KEY_USED;
 
 	config_set_output(". Unknown key '%s'", key);
 	syslog(LOG_ERR, "%s():%d: unknown key '%s'", __FUNCTION__, __LINE__, key);
@@ -845,7 +850,7 @@ static struct json_t *add_dump_list(json_t *obj, const char *objname, int object
 	case LEVEL_FARMPOLICY:
 		list_for_each_entry(fp, head, list) {
 			item = json_object();
-			add_dump_obj(item, "name", fp->policy->name);
+			add_dump_obj(item, CONFIG_KEY_NAME, fp->policy->name);
 			json_array_append_new(jarray, item);
 		}
 		break;
@@ -855,16 +860,19 @@ static struct json_t *add_dump_list(json_t *obj, const char *objname, int object
 				continue;
 
 			item = json_object();
-			add_dump_obj(item, "name", p->name);
+			add_dump_obj(item, CONFIG_KEY_NAME, p->name);
 			add_dump_obj(item, CONFIG_KEY_FAMILY, obj_print_family(p->family));
-			add_dump_obj(item, "type", obj_print_policy_type(p->type));
+			add_dump_obj(item, CONFIG_KEY_TYPE, obj_print_policy_type(p->type));
 			config_dump_int(value, p->timeout);
-			add_dump_obj(item, "timeout", value);
+			add_dump_obj(item, CONFIG_KEY_TIMEOUT, value);
 			config_dump_int(value, p->priority);
-			add_dump_obj(item, "priority", value);
+			add_dump_obj(item, CONFIG_KEY_PRIORITY, value);
 			if (p->logprefix && strcmp(p->logprefix, DEFAULT_POLICY_LOGPREFIX) != 0)
 				add_dump_obj(item, CONFIG_KEY_LOGPREFIX, p->logprefix);
 
+
+			config_dump_int(value, p->used);
+			add_dump_obj(item, CONFIG_KEY_USED, value);
 			add_dump_elements(item, p);
 			json_array_append_new(jarray, item);
 		}
@@ -872,24 +880,24 @@ static struct json_t *add_dump_list(json_t *obj, const char *objname, int object
 	case LEVEL_ELEMENTS:
 		list_for_each_entry(e, head, list) {
 			item = json_object();
-			add_dump_obj(item, "data", e->data);
+			add_dump_obj(item, CONFIG_KEY_DATA, e->data);
 			if (e->time)
-				add_dump_obj(item, "time", e->time);
+				add_dump_obj(item, CONFIG_KEY_TIME, e->time);
 			json_array_append_new(jarray, item);
 		}
 		break;
 	case LEVEL_SESSIONS:
 		list_for_each_entry(s, head, list) {
 			item = json_object();
-			add_dump_obj(item, "client", s->client);
+			add_dump_obj(item, CONFIG_KEY_CLIENT, s->client);
 
 			if (!s->bck)
-				add_dump_obj(item, "backend", UNDEFINED_VALUE);
+				add_dump_obj(item, CONFIG_KEY_BACKEND, UNDEFINED_VALUE);
 			else
-				add_dump_obj(item, "backend", s->bck->name);
+				add_dump_obj(item, CONFIG_KEY_BACKEND, s->bck->name);
 
 			if (s->expiration)
-				add_dump_obj(item, "expiration", s->expiration);
+				add_dump_obj(item, CONFIG_KEY_EXPIRATION, s->expiration);
 
 			json_array_append_new(jarray, item);
 		}

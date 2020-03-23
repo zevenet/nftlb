@@ -144,6 +144,7 @@ enum keys {
 	KEY_SESSIONS,
 	KEY_CLIENT,
 	KEY_BACKEND,
+	KEY_USED,
 };
 
 enum families {

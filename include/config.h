@@ -75,6 +75,9 @@
 #define CONFIG_KEY_CLIENT		"client"
 #define CONFIG_KEY_BACKEND		"backend"
 
+#define CONFIG_KEY_USED				"used"
+#define CONFIG_KEY_EXPIRATION			"expiration"
+
 #define CONFIG_VALUE_FAMILY_IPV4	"ipv4"
 #define CONFIG_VALUE_FAMILY_IPV6	"ipv6"
 #define CONFIG_VALUE_FAMILY_INET	"inet"
