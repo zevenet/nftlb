@@ -25,12 +25,18 @@ sleep 1s
 
 for DIRTEST in `ls -d */`; do
 	cd ${DIRTEST}
+
 	TESTCASE=`ls *.api`
 	source $TESTCASE
 	INDEX_OUT=`printf %03d $INDEX`
 	#~ echo -n "$INDEX_OUT - $DESC "
 	echo -n "$DIRTEST... "
 	logger NFTLB API TESTING $INDEX_OUT - $DESC
+
+	FEXEC="pre.sh"
+	if [ -x $FEXEC ]; then
+		./$FEXEC
+	fi
 
 	if [ "$VERB" = "POST" ] || [ "$VERB" = "PUT" ]; then
 		CURL_ARGS="-d @${FILE}"
@@ -88,6 +94,11 @@ for DIRTEST in `ls -d */`; do
 		fi
 	else
 		echo -en "\e[33mUNKNOWN\e[0m) "
+	fi
+
+	FEXEC="pos.sh"
+	if [ -x $FEXEC ]; then
+		./$FEXEC
 	fi
 
 	echo ""
