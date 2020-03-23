@@ -273,6 +273,9 @@ static int send_delete_response(struct nftlb_http_state *state)
 	sscanf(state->uri, "/%199[^/]/%199[^/]/%199[^/]/%199[^\n]",
 	       firstlevel, secondlevel, thirdlevel, fourthlevel);
 
+	if (init_http_state(state))
+		return -1;
+
 	if (strcmp(firstlevel, CONFIG_KEY_FARMS) != 0 &&
 		strcmp(firstlevel, CONFIG_KEY_POLICIES) != 0) {
 		config_print_response(&state->body_response, "%s%s", "invalid request",
@@ -281,9 +284,6 @@ static int send_delete_response(struct nftlb_http_state *state)
 		state->status_code = WS_HTTP_404;
 		return 0;
 	}
-
-	if (init_http_state(state))
-		return -1;
 
 	if (strcmp(firstlevel, CONFIG_KEY_FARMS) == 0 &&
 		strcmp(thirdlevel, CONFIG_KEY_BCKS) == 0) {
@@ -407,6 +407,9 @@ static int send_post_response(struct nftlb_http_state *state)
 
 	sscanf(state->uri, "/%199[^\n]", firstlevel);
 
+	if (init_http_state(state))
+		return -1;
+
 	if ((strcmp(firstlevel, CONFIG_KEY_FARMS) != 0) &&
 		(strcmp(firstlevel, CONFIG_KEY_POLICIES) != 0)) {
 		config_print_response(&state->body_response, "%s%s", "invalid request",
@@ -415,9 +418,6 @@ static int send_post_response(struct nftlb_http_state *state)
 		state->status_code = WS_HTTP_404;
 		return 0;
 	}
-
-	if (init_http_state(state))
-		return -1;
 
 	switch (config_buffer(state->body)) {
 	case PARSER_OK:
