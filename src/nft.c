@@ -447,28 +447,6 @@ next:
 	return index;
 }
 
-static int get_farm_mark(struct farm *f)
-{
-	int mark = f->mark;
-
-	if (farm_get_masquerade(f))
-		mark |= NFTLB_POSTROUTING_MARK;
-
-	return mark;
-}
-
-static int get_bck_mark(struct backend *b)
-{
-	int mark = b->mark;
-
-	if (b->srcaddr && strcmp(b->srcaddr, "") != 0)
-		mark |= b->parent->mark;
-	else
-		mark |= get_farm_mark(b->parent);
-
-	return mark;
-}
-
 static unsigned int get_rules_needed(int family, int protocol)
 {
 	unsigned int ret = 0;
@@ -1376,6 +1354,7 @@ static int run_farm_rules_filter_static_sessions(struct sbuffer *buf, struct far
 	char map_str[255] = { 0 };
 	char *client;
 	struct session *s;
+	int bckmark;
 
 	if (f->persistence == VALUE_META_NONE)
 		return 0;
@@ -1393,8 +1372,10 @@ static int run_farm_rules_filter_static_sessions(struct sbuffer *buf, struct far
 			continue;
 		}
 		session_get_client(s, &client);
-		if ((action == ACTION_START || s->action == ACTION_START) && s->bck && s->bck->mark != DEFAULT_MARK)
-			concat_exec_cmd(buf, " ; add element %s %s %s { %s : 0x%x }", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, map_str, client, s->bck->mark);
+		if ((action == ACTION_START || s->action == ACTION_START) && s->bck && s->bck->mark != DEFAULT_MARK) {
+			bckmark = get_bck_mark(s->bck);
+			concat_exec_cmd(buf, " ; add element %s %s %s { %s : 0x%x }", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, map_str, client, bckmark);
+		}
 		if (action == ACTION_RELOAD && (s->action == ACTION_STOP || s->action == ACTION_DELETE))
 			concat_exec_cmd(buf, " ; delete element %s %s %s { %s }", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, map_str, client);
 		free(client);
@@ -1413,6 +1394,7 @@ static int run_farm_rules_filter_persistence(struct sbuffer *buf, struct farm *f
 	char map_str[255] = { 0 };
 	char *client;
 	struct session *s;
+	int bckmark;
 
 	if (f->persistence == VALUE_META_NONE)
 		return 0;
@@ -1430,8 +1412,10 @@ static int run_farm_rules_filter_persistence(struct sbuffer *buf, struct farm *f
 			continue;
 		}
 		session_get_client(s, &client);
-		if ((action == ACTION_START || s->action == ACTION_START) && s->bck && s->bck->mark != DEFAULT_MARK)
-			concat_exec_cmd(buf, " ; add element %s %s %s { %s : 0x%x }", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, map_str, client, s->bck->mark);
+		if ((action == ACTION_START || s->action == ACTION_START) && s->bck && s->bck->mark != DEFAULT_MARK) {
+			bckmark = get_bck_mark(s->bck);
+			concat_exec_cmd(buf, " ; add element %s %s %s { %s : 0x%x }", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, map_str, client, bckmark);
+		}
 		if (action == ACTION_RELOAD && (s->action == ACTION_STOP || s->action == ACTION_DELETE))
 			concat_exec_cmd(buf, " ; delete element %s %s %s { %s }", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, map_str, client);
 		free(client);
@@ -2181,6 +2165,28 @@ static int nft_actions_done(struct farm *f)
 	f->reload_action = VALUE_RLD_NONE;
 
 	return 0;
+}
+
+int get_farm_mark(struct farm *f)
+{
+	int mark = f->mark;
+
+	if (farm_get_masquerade(f))
+		mark |= NFTLB_POSTROUTING_MARK;
+
+	return mark;
+}
+
+int get_bck_mark(struct backend *b)
+{
+	int mark = b->mark;
+
+	if (b->srcaddr && strcmp(b->srcaddr, "") != 0)
+		mark |= b->parent->mark;
+	else
+		mark |= get_farm_mark(b->parent);
+
+	return mark;
 }
 
 int nft_reset(void)

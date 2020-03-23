@@ -19,8 +19,8 @@ table ip nftlb {
 
 	map static-sessions-lb01 {
 		type ipv4_addr : mark
-		elements = { 192.168.44.5 : 0x00000002, 192.168.44.6 : 0x00000002,
-			     192.168.44.7 : 0x00000001 }
+		elements = { 192.168.44.5 : 0x80000002, 192.168.44.6 : 0x80000002,
+			     192.168.44.7 : 0x80000001 }
 	}
 
 	map persist-lb01 {

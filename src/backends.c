@@ -30,6 +30,7 @@
 #include "objects.h"
 #include "network.h"
 #include "sessions.h"
+#include "nft.h"
 
 static int backend_s_set_marked(struct farm *f)
 {
@@ -164,8 +165,9 @@ void backend_s_print(struct farm *f)
 struct backend * backend_lookup_by_key(struct farm *f, int key, const char *name, int value)
 {
 	struct backend *b;
+	int bckmark;
 
-	syslog(LOG_ERR, "%s():%d: farm %s key %d name %s value %d", __FUNCTION__, __LINE__, f->name, key, name, value);
+	syslog(LOG_DEBUG, "%s():%d: farm %s key %d name %s value %d", __FUNCTION__, __LINE__, f->name, key, name, value);
 
 	list_for_each_entry(b, &f->backends, list) {
 		switch (key) {
@@ -174,7 +176,8 @@ struct backend * backend_lookup_by_key(struct farm *f, int key, const char *name
 				return b;
 			break;
 		case KEY_MARK:
-			if (b->mark == value)
+			bckmark = get_bck_mark(b);
+			if (bckmark == value)
 				return b;
 			break;
 		case KEY_ETHADDR:

@@ -26,6 +26,9 @@
 
 #define NFTLB_POSTROUTING_MARK		0x80000000
 
+int get_farm_mark(struct farm *f);
+int get_bck_mark(struct backend *b);
+
 int nft_reset(void);
 int nft_check_tables(void);
 int nft_rulerize(struct farm *f);

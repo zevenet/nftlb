@@ -34,7 +34,7 @@ static struct session * session_create(struct farm *f, int type, char *client, c
 	struct session *s;
 	struct backend *b;
 
-	syslog(LOG_ERR, "%s():%d: farm %s type %d client %s bck %s expiration %s", __FUNCTION__, __LINE__, f->name, type, client, bck, expiration);
+	syslog(LOG_DEBUG, "%s():%d: farm %s type %d client %s bck %s expiration %s", __FUNCTION__, __LINE__, f->name, type, client, bck, expiration);
 
 	if (!client || strcmp(client, "") == 0) {
 		syslog(LOG_ERR, "%s():%d: missing data", __FUNCTION__, __LINE__);
@@ -59,8 +59,7 @@ static struct session * session_create(struct farm *f, int type, char *client, c
 	switch (f->mode) {
 	case VALUE_MODE_DNAT:
 	case VALUE_MODE_SNAT:
-		if (strstr(bck, "0x") != NULL &&
-			(b = backend_lookup_by_key(f, KEY_MARK, NULL, (int)strtol(bck, NULL, 16))) != NULL)
+		if ((b = backend_lookup_by_key(f, KEY_MARK, NULL, (int) strtol(bck, NULL, 16))) != NULL)
 			s->bck = b;
 		break;
 	case VALUE_MODE_DSR:
