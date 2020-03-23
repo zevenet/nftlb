@@ -928,8 +928,16 @@ static int add_dump_elements(json_t *jdata, struct policy *p)
 int config_print_farms(char **buf, char *name)
 {
 	struct list_head *farms = obj_get_farms();
-	json_t* jdata = json_object();
+	json_t* jdata;
+	struct farm *f;
 
+	if (name && strcmp(name, "") != 0) {
+		f = farm_lookup_by_name(name);
+		if (!f)
+			return -1;
+	}
+
+	jdata = json_object();
 	add_dump_list(jdata, CONFIG_KEY_FARMS, LEVEL_FARMS, farms, name);
 
 	*buf = json_dumps(jdata, JSON_INDENT(8));
