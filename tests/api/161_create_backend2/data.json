@@ -1,0 +1,1 @@
+{"farms" : [ { "name" : "farm01", "backends" : [ { "name" : "bck2", "ip-addr" : "192.168.102.254", "port" : "80", "mark" : "0x202", "weight" : "1", "priority" : "1", "est-connlimit" : "10", "state" : "up" } ] } ] }

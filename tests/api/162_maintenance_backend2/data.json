@@ -1,0 +1,1 @@
+{"farms" : [ { "name" : "farm01", "backends" : [ { "name" : "bck2", "state" : "off" } ] } ] }

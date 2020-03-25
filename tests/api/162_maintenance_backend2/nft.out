@@ -1,0 +1,52 @@
+table ip nftlb {
+	map nat-tcp-services {
+		type ipv4_addr . inet_service : verdict
+		elements = { 192.168.101.63 . 80 : goto nat-farm01 }
+	}
+
+	map tcp-services-back {
+		type ipv4_addr . inet_service : ipv4_addr
+	}
+
+	map tcp-services-back-m {
+		type mark : ipv4_addr
+	}
+
+	map filter-tcp-services {
+		type ipv4_addr . inet_service : verdict
+		elements = { 192.168.101.63 . 80 : goto filter-farm01 }
+	}
+
+	set est-connlimit-farm01-bck0 {
+		type ipv4_addr
+		size 65535
+		flags dynamic
+	}
+
+	chain prerouting {
+		type nat hook prerouting priority filter; policy accept;
+		ip daddr . tcp dport vmap @nat-tcp-services
+	}
+
+	chain postrouting {
+		type nat hook postrouting priority srcnat; policy accept;
+		ct mark 0x80000000/1 masquerade
+		snat to ip daddr . tcp dport map @tcp-services-back
+		snat to ct mark map @tcp-services-back-m
+	}
+
+	chain filter {
+		type filter hook prerouting priority mangle; policy accept;
+		meta mark set ct mark
+		ip daddr . tcp dport vmap @filter-tcp-services
+	}
+
+	chain filter-farm01 {
+		ct state new ct mark 0x00000000 ct mark set numgen random mod 1 map { 0 : 0x80000200 }
+		ct mark 0x80000200 add @est-connlimit-farm01-bck0 { ip saddr ct count over 10  } log prefix "est-connlimit-farm01-bck0 " drop
+	}
+
+	chain nat-farm01 {
+		ip protocol tcp ct mark 0x80000200 dnat to 192.168.101.254:80
+	}
+}

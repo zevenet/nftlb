@@ -1,0 +1,1 @@
+{"farms" : [ { "name" : "farm01", "virtual-addr" : "192.168.101.63", "virtual-ports" : "80", "protocol" : "tcp", "mode" : "snat", "scheduler" : "weight", "state" : "up" } ] }

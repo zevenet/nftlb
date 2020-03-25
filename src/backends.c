@@ -918,14 +918,15 @@ int backend_s_gen_priority(struct farm *f)
 		list_for_each_entry_safe(b, next, &f->backends, list) {
 			if (b->priority == new_prio && b->state != VALUE_STATE_UP)
 				are_down++;
+			if (b->priority > f->priority && b->priority == new_prio && b->state == VALUE_STATE_UP)
+				backend_set_action(b, ACTION_START);
 		}
 		new_prio += are_down;
 	} while (are_down);
 
 	f->priority = new_prio;
 
-	syslog(LOG_DEBUG, "%s():%d: priority is %d",
-		   __FUNCTION__, __LINE__, f->priority);
+	syslog(LOG_DEBUG, "%s():%d: priority is %d", __FUNCTION__, __LINE__, f->priority);
 
 	backend_s_update_counters(f);
 
