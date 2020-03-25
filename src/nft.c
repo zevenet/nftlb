@@ -606,8 +606,7 @@ static void print_log_format(char *buf, int key, int type, struct farm *f, struc
 static int need_filter(struct farm *f)
 {
 	return (!farm_is_ingress_mode(f)) && (f->helper != DEFAULT_HELPER || f->bcks_are_marked || f->mark != DEFAULT_MARK || farm_get_masquerade(f) ||
-			f->reload_action != 0 || f->persistence != DEFAULT_PERSIST ||
-			(f->srcaddr != DEFAULT_SRCADDR && strcmp(f->srcaddr, "") != 0) || f->bcks_have_srcaddr);
+			 f->persistence != DEFAULT_PERSIST || (f->srcaddr != DEFAULT_SRCADDR && strcmp(f->srcaddr, "") != 0) || f->bcks_have_srcaddr);
 }
 
 static int need_forward(struct farm *f)
@@ -1039,8 +1038,8 @@ static void run_farm_rules_gen_vsrv(struct sbuffer *buf, struct farm *f, int typ
 		f->nft_chains |= type;
 	else if (action == ACTION_STOP || action == ACTION_DELETE)
 		f->nft_chains &= ~type;
-	else
-		return;
+
+	return;
 }
 
 static int run_farm_rules_gen_meta_param(struct sbuffer *buf, struct farm *f, int family, int param, int type)
@@ -1572,11 +1571,18 @@ static int run_farm_rules_filter_marks(struct sbuffer *buf, struct farm *f, int 
 static int run_farm_rules_filter(struct sbuffer *buf, struct farm *f, int family, int action)
 {
 	char chain[255] = { 0 };
+	int need = need_filter(f);
 
-	if (!need_filter(f))
+	if (!need && f->reload_action == VALUE_RLD_NONE)
 		return 0;
 
 	get_farm_chain(chain, f, NFTLB_F_CHAIN_PRE_FILTER);
+
+	if (action == ACTION_RELOAD && f->reload_action < VALUE_RLD_NONE && need)
+		action = ACTION_START;
+
+	if (action == ACTION_RELOAD && f->reload_action > VALUE_RLD_NONE && !need)
+		action = ACTION_STOP;
 
 	switch (action) {
 	case ACTION_START:
@@ -2099,13 +2105,13 @@ static int del_farm_rules(struct sbuffer *buf, struct farm *f, int family)
 	char fchain[255] = { 0 };
 	char fservice[255] = { 0 };
 
-	if (need_filter(f)) {
+	if (f->nft_chains & NFTLB_F_CHAIN_PRE_FILTER) {
 		sprintf(fchain, "%s-%s", NFTLB_TYPE_FILTER, f->name);
 		sprintf(fservice, "%s-%s", NFTLB_TYPE_FILTER, print_nft_service(family, f->protocol));
 		run_farm_rules_filter(buf, f, family, ACTION_DELETE);
 	}
 
-	if (need_forward(f))
+	if (f->nft_chains & NFTLB_F_CHAIN_FWD_FILTER)
 		run_farm_rules_forward(buf, f, family, ACTION_DELETE);
 
 	if (farm_is_ingress_mode(f)) {

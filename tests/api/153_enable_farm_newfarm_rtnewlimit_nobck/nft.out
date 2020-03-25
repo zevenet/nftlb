@@ -14,27 +14,10 @@ table ip nftlb {
 
 	map filter-tcp-services {
 		type ipv4_addr . inet_service : verdict
+		elements = { 192.168.105.189 . 80 : goto filter-newfarm }
 	}
 
-	map nat-udp-services {
-		type ipv4_addr . inet_service : verdict
-		elements = { 192.168.105.189 . 53 : goto nat-newfarm6 }
-	}
-
-	map udp-services-back {
-		type ipv4_addr . inet_service : ipv4_addr
-	}
-
-	map udp-services-back-m {
-		type mark : ipv4_addr
-	}
-
-	map filter-udp-services {
-		type ipv4_addr . inet_service : verdict
-		elements = { 192.168.105.189 . 53 : goto filter-newfarm6 }
-	}
-
-	set rst-rtlimit-newfarm6 {
+	set est-connlimit-newfarm {
 		type ipv4_addr
 		size 65535
 		flags dynamic
@@ -43,7 +26,6 @@ table ip nftlb {
 	chain prerouting {
 		type nat hook prerouting priority filter; policy accept;
 		ip daddr . tcp dport vmap @nat-tcp-services
-		ip daddr . udp dport vmap @nat-udp-services
 	}
 
 	chain postrouting {
@@ -51,25 +33,18 @@ table ip nftlb {
 		ct mark 0x80000000/1 masquerade
 		snat to ip daddr . tcp dport map @tcp-services-back
 		snat to ct mark map @tcp-services-back-m
-		snat to ip daddr . udp dport map @udp-services-back
-		snat to ct mark map @udp-services-back-m
 	}
 
 	chain filter {
 		type filter hook prerouting priority mangle; policy accept;
 		meta mark set ct mark
 		ip daddr . tcp dport vmap @filter-tcp-services
-		ip daddr . udp dport vmap @filter-udp-services
+	}
+
+	chain filter-newfarm {
+		ct state new add @est-connlimit-newfarm { ip saddr ct count over 22  } log prefix "est-connlimit-newfarm " drop
 	}
 
 	chain nat-newfarm {
-	}
-
-	chain filter-newfarm6 {
-		tcp flags rst add @rst-rtlimit-newfarm6 { ip saddr limit rate over 22/second } log prefix "rst-rtlimit-newfarm6 " drop
-		ct state new ct mark 0x00000000 ct mark set 0x80000000
-	}
-
-	chain nat-newfarm6 {
 	}
 }

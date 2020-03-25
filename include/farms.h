@@ -87,17 +87,20 @@ enum states {
 #define VALUE_LOG_FORWARD		(1 << 1)
 #define VALUE_LOG_OUTPUT		(1 << 2)
 
-#define VALUE_RLD_NONE					0
-#define VALUE_RLD_NEWRTLIMIT_START		(1 << 0)
-#define VALUE_RLD_NEWRTLIMIT_STOP		(1 << 1)
-#define VALUE_RLD_RSTRTLIMIT_START		(1 << 2)
-#define VALUE_RLD_RSTRTLIMIT_STOP		(1 << 3)
-#define VALUE_RLD_ESTCONNLIMIT_START	(1 << 4)
-#define VALUE_RLD_ESTCONNLIMIT_STOP		(1 << 5)
-#define VALUE_RLD_TCPSTRICT_START		(1 << 6)
-#define VALUE_RLD_TCPSTRICT_STOP		(1 << 7)
-#define VALUE_RLD_QUEUE_START			(1 << 8)
-#define VALUE_RLD_QUEUE_STOP			(1 << 9)
+#define VALUE_RLD_NEWRTLIMIT_START			0
+#define VALUE_RLD_RSTRTLIMIT_START			(1 << 0)
+#define VALUE_RLD_ESTCONNLIMIT_START		(1 << 1)
+#define VALUE_RLD_TCPSTRICT_START			(1 << 2)
+#define VALUE_RLD_QUEUE_START				(1 << 3)
+
+#define VALUE_RLD_NONE						(1 << 4)
+
+#define VALUE_RLD_NEWRTLIMIT_STOP			(1 << 5)
+#define VALUE_RLD_RSTRTLIMIT_STOP			(1 << 6)
+#define VALUE_RLD_ESTCONNLIMIT_STOP			(1 << 7)
+#define VALUE_RLD_TCPSTRICT_STOP			(1 << 8)
+#define VALUE_RLD_QUEUE_STOP				(1 << 9)
+
 
 struct farm {
 	struct list_head	list;
