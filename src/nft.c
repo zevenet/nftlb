@@ -606,7 +606,9 @@ static void print_log_format(char *buf, int key, int type, struct farm *f, struc
 static int need_filter(struct farm *f)
 {
 	return (!farm_is_ingress_mode(f)) && (f->helper != DEFAULT_HELPER || f->bcks_are_marked || f->mark != DEFAULT_MARK || farm_get_masquerade(f) ||
-			 f->persistence != DEFAULT_PERSIST || (f->srcaddr != DEFAULT_SRCADDR && strcmp(f->srcaddr, "") != 0) || f->bcks_have_srcaddr);
+			f->newrtlimit != DEFAULT_NEWRTLIMIT || f->rstrtlimit != DEFAULT_RSTRTLIMIT || f->estconnlimit != DEFAULT_ESTCONNLIMIT ||
+			f->tcpstrict != DEFAULT_TCPSTRICT || f->queue != DEFAULT_QUEUE || f->bcks_have_srcaddr ||
+			f->persistence != DEFAULT_PERSIST || (f->srcaddr != DEFAULT_SRCADDR && strcmp(f->srcaddr, "") != 0));
 }
 
 static int need_forward(struct farm *f)
@@ -1578,10 +1580,10 @@ static int run_farm_rules_filter(struct sbuffer *buf, struct farm *f, int family
 
 	get_farm_chain(chain, f, NFTLB_F_CHAIN_PRE_FILTER);
 
-	if (action == ACTION_RELOAD && f->reload_action < VALUE_RLD_NONE && need)
+	if (action == ACTION_RELOAD && need && (STATEFUL_RLD_START(f->reload_action)))
 		action = ACTION_START;
 
-	if (action == ACTION_RELOAD && f->reload_action > VALUE_RLD_NONE && !need)
+	if (action == ACTION_RELOAD && !need && (STATEFUL_RLD_STOP(f->reload_action)))
 		action = ACTION_STOP;
 
 	switch (action) {
