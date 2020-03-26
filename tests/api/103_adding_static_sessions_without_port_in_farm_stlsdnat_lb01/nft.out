@@ -11,14 +11,14 @@ table netdev nftlb {
 	}
 
 	map persist-lb01 {
-		type ipv4_addr . inet_service : ipv4_addr
+		type ipv4_addr : ipv4_addr
 		size 65535
 		timeout 50s
 	}
 
 	map static-sessions-lb01 {
-		type ipv4_addr . inet_service : ipv4_addr
-		elements = { 192.168.44.8 . 0 : 192.168.0.10 }
+		type ipv4_addr : ipv4_addr
+		elements = { 192.168.44.8 : 192.168.0.10 }
 	}
 
 	chain ingress-lo {
@@ -29,8 +29,8 @@ table netdev nftlb {
 
 	chain lb01 {
 		meta protocol ip update @map-lb01-back { ip saddr : ether saddr }
-		ip daddr set ip saddr . tcp sport map @static-sessions-lb01 ether daddr set ip daddr map { 192.168.0.10 : 02:02:02:02:02:02, 192.168.0.11 : 03:03:03:03:03:03 } fwd to "lo"
-		ip daddr set numgen random mod 10 map { 0-4 : 192.168.0.10, 5-9 : 192.168.0.11 } ether daddr set ip daddr map { 192.168.0.10 : 02:02:02:02:02:02, 192.168.0.11 : 03:03:03:03:03:03 } ether saddr set 01:01:01:01:01:01 update @persist-lb01 { ip saddr . tcp sport : ip daddr } fwd to "lo"
+		ip daddr set ip saddr map @static-sessions-lb01 ether daddr set ip daddr map { 192.168.0.10 : 02:02:02:02:02:02, 192.168.0.11 : 03:03:03:03:03:03 } fwd to "lo"
+		ip daddr set numgen random mod 10 map { 0-4 : 192.168.0.10, 5-9 : 192.168.0.11 } ether daddr set ip daddr map { 192.168.0.10 : 02:02:02:02:02:02, 192.168.0.11 : 03:03:03:03:03:03 } ether saddr set 01:01:01:01:01:01 update @persist-lb01 { ip saddr : ip daddr } fwd to "lo"
 	}
 
 	chain lb01-back {

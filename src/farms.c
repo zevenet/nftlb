@@ -357,8 +357,7 @@ static int farm_set_persistence(struct farm *f, int new_value)
 
 	syslog(LOG_DEBUG, "%s():%d: farm %s old persistence %d new persistence %d", __FUNCTION__, __LINE__, f->name, old_value, new_value);
 
-	if (new_value == VALUE_META_NONE)
-		session_s_delete(f, SESSION_TYPE_STATIC);
+	session_s_delete(f, SESSION_TYPE_STATIC);
 
 	f->persistence = new_value;
 

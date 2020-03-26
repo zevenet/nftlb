@@ -10,7 +10,7 @@
                         "protocol": "tcp",
                         "scheduler": "weight",
                         "sched-param": "none",
-                        "persistence": "srcip srcport ",
+                        "persistence": "srcip ",
                         "persist-ttl": "50",
                         "helper": "none",
                         "log": "none",
@@ -48,20 +48,28 @@
                         ],
                         "sessions": [
                                 {
-                                        "client": "192.168.44.5 . 91",
-                                        "backend": "bck1"
-                                },
-                                {
-                                        "client": "192.168.44.6 . 92",
-                                        "backend": "bck1"
-                                },
-                                {
-                                        "client": "192.168.44.7 . 91",
-                                        "backend": "bck0"
-                                },
-                                {
                                         "client": "192.168.44.8",
                                         "backend": "bck0"
+                                },
+                                {
+                                        "client": "192.168.44.33",
+                                        "backend": "bck0"
+                                },
+                                {
+                                        "client": "192.168.44.34",
+                                        "backend": "bck1"
+                                },
+                                {
+                                        "client": "192.168.44.35",
+                                        "backend": "bck0"
+                                },
+                                {
+                                        "client": "192.168.44.36",
+                                        "backend": "bck1"
+                                },
+                                {
+                                        "client": "192.168.44.37",
+                                        "backend": "bck1"
                                 }
                         ],
                         "policies": []

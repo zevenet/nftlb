@@ -11,7 +11,7 @@
                         "protocol": "tcp",
                         "scheduler": "weight",
                         "sched-param": "none",
-                        "persistence": "srcip srcport ",
+                        "persistence": "srcip ",
                         "persist-ttl": "50",
                         "helper": "none",
                         "log": "none",

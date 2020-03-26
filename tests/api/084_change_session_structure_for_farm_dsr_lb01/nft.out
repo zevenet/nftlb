@@ -6,8 +6,6 @@ table netdev nftlb {
 
 	map static-sessions-lb01 {
 		type ipv4_addr : ether_addr
-		elements = { 192.168.44.5 : 03:03:03:03:03:03, 192.168.44.6 : 03:03:03:03:03:03,
-			     192.168.44.7 : 02:02:02:02:02:02 }
 	}
 
 	map persist-lb01 {

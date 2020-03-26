@@ -45,7 +45,7 @@ struct session * session_lookup_by_key(struct farm *f, int type, int key, const 
 int session_s_set_action(struct farm *f, int action);
 void session_s_print(struct farm *f);
 int session_get_timed(struct farm *f);
-void session_get_client(struct session *s, char **parsed);
+int session_get_client(struct session *s, char **parsed);
 int session_backend_action(struct farm *f, struct backend *b, int action);
 int session_s_delete(struct farm *f, int type);
 int session_set_attribute(struct config_pair *c);

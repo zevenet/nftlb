@@ -47,20 +47,6 @@
                                         "state": "up"
                                 }
                         ],
-                        "sessions": [
-                                {
-                                        "client": "192.168.44.5 . 91",
-                                        "backend": "bck1"
-                                },
-                                {
-                                        "client": "192.168.44.6 . 92",
-                                        "backend": "bck1"
-                                },
-                                {
-                                        "client": "192.168.44.7 . 91",
-                                        "backend": "bck0"
-                                }
-                        ],
                         "policies": []
                 }
         ]

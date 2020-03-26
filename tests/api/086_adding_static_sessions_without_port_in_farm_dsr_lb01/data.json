@@ -1,0 +1,29 @@
+{
+	"farms" : [
+		{
+			"name" : "lb01",
+			"sessions" : [
+				{
+					"client" : "192.168.44.8 . 80",
+					"backend" : "bck0"
+				},
+				{
+					"client" : "192.168.44.9 . 81",
+					"backend" : "bck1"
+				},
+				{
+					"client" : "192.168.44.10 . 82",
+					"backend" : "bck0"
+				},
+				{
+					"client" : "192.168.44.11 . 83",
+					"backend" : "bck1"
+				},
+				{
+					"client" : "192.168.44.12 . 84",
+					"backend" : "bck0"
+				}
+			]
+		}
+	]
+}

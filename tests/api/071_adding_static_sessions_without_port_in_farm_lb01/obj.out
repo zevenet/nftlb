@@ -6,7 +6,7 @@
                         "virtual-addr": "192.168.0.100",
                         "virtual-ports": "80",
                         "source-addr": "",
-                        "mode": "dsr",
+                        "mode": "snat",
                         "protocol": "tcp",
                         "scheduler": "weight",
                         "sched-param": "none",
@@ -31,7 +31,7 @@
                                         "port": "10",
                                         "weight": "5",
                                         "priority": "1",
-                                        "mark": "0x0",
+                                        "mark": "0x1",
                                         "est-connlimit": "0",
                                         "state": "up"
                                 },
@@ -41,27 +41,35 @@
                                         "port": "20",
                                         "weight": "5",
                                         "priority": "1",
-                                        "mark": "0x0",
+                                        "mark": "0x2",
                                         "est-connlimit": "0",
                                         "state": "up"
                                 }
                         ],
                         "sessions": [
                                 {
-                                        "client": "192.168.44.5 . 91",
-                                        "backend": "bck1"
-                                },
-                                {
-                                        "client": "192.168.44.6 . 92",
-                                        "backend": "bck1"
-                                },
-                                {
-                                        "client": "192.168.44.7 . 91",
-                                        "backend": "bck0"
-                                },
-                                {
                                         "client": "192.168.44.8",
                                         "backend": "bck0"
+                                },
+                                {
+                                        "client": "192.168.44.33",
+                                        "backend": "bck0"
+                                },
+                                {
+                                        "client": "192.168.44.34",
+                                        "backend": "bck1"
+                                },
+                                {
+                                        "client": "192.168.44.35",
+                                        "backend": "bck0"
+                                },
+                                {
+                                        "client": "192.168.44.36",
+                                        "backend": "bck1"
+                                },
+                                {
+                                        "client": "192.168.44.37",
+                                        "backend": "bck1"
                                 }
                         ],
                         "policies": []

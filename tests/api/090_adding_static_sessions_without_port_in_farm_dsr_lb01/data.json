@@ -4,7 +4,7 @@
 			"name" : "lb01",
 			"sessions" : [
 				{
-					"client" : "192.168.44.8",
+					"client" : "192.168.44.8 . 80",
 					"backend" : "bck0"
 				}
 			]

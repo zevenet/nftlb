@@ -296,19 +296,11 @@ int session_get_timed(struct farm *f)
 	return 0;
 }
 
-void session_get_client(struct session *s, char **parsed)
+int session_get_client(struct session *s, char **parsed)
 {
-	struct farm *f = s->f;
-	char *c;
-
 	sprintf(*parsed, "%s", s->client);
-	if ((f->persistence & VALUE_META_SRCIP) && (f->persistence & VALUE_META_SRCPORT)) {
-		if (!(c = strstr(*parsed, " . ")))
-			strcat(*parsed, " . 0");
-	} else if (f->persistence & VALUE_META_SRCIP) {
-		for (c = *parsed; (c = strchr(c, ' ')); ++c)
-			*c = '\0';
-	}
+
+	return 1;
 }
 
 int session_backend_action(struct farm *f, struct backend *b, int action)

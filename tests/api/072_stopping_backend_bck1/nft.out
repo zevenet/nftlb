@@ -18,13 +18,13 @@ table ip nftlb {
 	}
 
 	map static-sessions-lb01 {
-		type ipv4_addr . inet_service : mark
-		elements = { 192.168.44.7 . 91 : 0x80000001,
-			     192.168.44.8 . 0 : 0x80000001 }
+		type ipv4_addr : mark
+		elements = { 192.168.44.8 : 0x80000001, 192.168.44.33 : 0x80000001,
+			     192.168.44.35 : 0x80000001 }
 	}
 
 	map persist-lb01 {
-		type ipv4_addr . inet_service : mark
+		type ipv4_addr : mark
 		size 65535
 		timeout 50s
 	}
@@ -48,10 +48,10 @@ table ip nftlb {
 	}
 
 	chain filter-lb01 {
-		ct mark set ip saddr . tcp sport map @static-sessions-lb01 accept
-		ct state new ct mark set ip saddr . tcp sport map @persist-lb01
+		ct mark set ip saddr map @static-sessions-lb01 accept
+		ct state new ct mark set ip saddr map @persist-lb01
 		ct state new ct mark 0x00000000 ct mark set numgen random mod 5 map { 0-4 : 0x80000001 }
-		update @persist-lb01 { ip saddr . tcp sport : ct mark }
+		update @persist-lb01 { ip saddr : ct mark }
 	}
 
 	chain nat-lb01 {
