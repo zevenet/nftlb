@@ -1,0 +1,50 @@
+{
+        "farms": [
+                {
+                        "name": "newfarm",
+                        "family": "ipv4",
+                        "virtual-addr": "10.0.0.241",
+                        "virtual-ports": "8080",
+                        "source-addr": "10.0.0.241",
+                        "mode": "snat",
+                        "protocol": "tcp",
+                        "scheduler": "hash",
+                        "sched-param": "srcip ",
+                        "persistence": "srcip ",
+                        "persist-ttl": "2000",
+                        "helper": "none",
+                        "log": "none",
+                        "mark": "0x0",
+                        "priority": "1",
+                        "state": "up",
+                        "backends": [
+                                {
+                                        "name": "bck0",
+                                        "ip-addr": "192.168.100.254",
+                                        "port": "80",
+                                        "weight": "5",
+                                        "priority": "1",
+                                        "mark": "0x201",
+                                        "est-connlimit": "0",
+                                        "state": "up"
+                                },
+                                {
+                                        "name": "bck1",
+                                        "ip-addr": "192.168.101.254",
+                                        "port": "32",
+                                        "weight": "5",
+                                        "priority": "1",
+                                        "mark": "0x202",
+                                        "est-connlimit": "0",
+                                        "state": "up"
+                                }
+                        ],
+                        "sessions": [
+                                {
+                                        "client": "10.0.0.2",
+                                        "backend": "bck0"
+                                }
+                        ]
+                }
+        ]
+}

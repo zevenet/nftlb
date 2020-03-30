@@ -293,8 +293,6 @@ static int farm_set_state(struct farm *f, int new_value)
 	if (old_value == VALUE_STATE_UP &&
 	    new_value != VALUE_STATE_UP) {
 
-		if (f->persistence != VALUE_META_NONE)
-			session_s_delete(f, SESSION_TYPE_STATIC);
 		farm_set_action(f, ACTION_STOP);
 		farm_manage_eventd();
 	}
