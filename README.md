@@ -1,7 +1,7 @@
 # [nftlb](https://www.zevenet.com/knowledge-base/nftlb)
 **nftlb** stands for **nftables load balancer**, the next generation linux firewall that will replace iptables is adapted to behave as a complete load balancer and traffic distributor.
 
-nftlb is provided with a JSON API, so you can use your preferred health checker to enable/disable backends or virtual services and automate processed with it.
+nftlb is provided with a JSON API, so you can use your preferred health checker to enable/disable backends or virtual services and automate processes with it.
 
 More info: [What is nftlb?](https://www.zevenet.com/knowledge-base/nftlb/what-is-nftlb/)
 
@@ -10,14 +10,15 @@ In this repository is included:
 - **src/**: main source code files
 - **include/**: include files
 - **tests/**: automated testbed suite with example configuration files and the script *exec_tests.sh* to run all of them.
+- **tests/api**: automated testbed suite for API interactionand the script *api_tests.sh* to run all of them.
 
 ## Requirements
-nftlb uses a quite new technology that requires:
+nftlb depends on:
 
-[nf-next](https://git.kernel.org/pub/scm/linux/kernel/git/pablo/nf-next.git/): Latest kernel with the new netfilter developments<br />
-[nftables](http://git.netfilter.org/nftables): Latest nftables developments, and its dependencies (libgmp, [libmnl](http://git.netfilter.org/libmnl) and [libnftnl](http://git.netfilter.org/libnftnl))<br />
-libev: Events library for the web service<br />
-libjansson: JSON parser for the API
+- **linux-kernel**: Kernel version 4.19 or higher with nftables modules enabled (iptables, ebtables, etc not required).
+- **nftables**: nftables package with **libnftables** included and its dependencies (**libgmp**, ***libmnl** and **libnftnl**)<br />
+- **libev**: Events library for the web service<br />
+- **libjansson**: JSON parser for the API
 
 ## Installation
 To build nftlb, just execute:
@@ -30,6 +31,8 @@ Finally, install it:
 ```
 root# make install
 ```
+
+Also, [deb packages](https://repology.org/project/nftlb/versions) are available.
 
 ## Usage
 Check out the command help:
@@ -50,8 +53,7 @@ Here is the list of options:
 **[ -S | --serial ]**: Serialize nft commands.<br />
 
 
-Note 1: In order to use sNAT or dNAT modes, ensure you have activated the ip forwarding option in your system
-Note 2: Before executing nftlb, ensure you have empty nft rules by executing "nft flush ruleset"
+Note: In order to use sNAT or dNAT modes, ensure you have activated the ip forwarding option in your system.
 
 ### JSON configuration file
 The configuration files have the following format:
@@ -138,8 +140,8 @@ Where every backend object has the following attributes:
 Where every session object has the following attributes:
 ```
 {
-	"client" : "<backend>",				*Client with the same format than persistence configuration*
-	"backend": "<ip address>",			*Backend ID to set a stickyness between client and backend*
+	"client" : "<ip address>",			*Client with the same format than persistence configuration*
+	"backend": "<backend id>",			*Backend ID to set a stickyness between client and backend*
 	"expiration": "<time>"				*Dynamic sessions timeout. Static sessions doesn't include this attribute*
 }
 ```
@@ -188,6 +190,19 @@ Get the static and dynamic sessions.
 ```
 curl -H "Key: <MYKEY>" -X GET http://<NFTLB IP>:5555/farms/lb01/sessions
 ```
+
+## How it works
+
+nftlb uses the nftables infrastructure to build virtual services, from user to kernel side. In that regard, the expressions **numgen** (with its **random** and **inc** modes) and **hash** (say **jhash** and **symhash**) allows to distribute traffic among several backends among other properties. More information:
+
+[https://wiki.nftables.org/wiki-nftables/index.php/Load_balancing](https://wiki.nftables.org/wiki-nftables/index.php/Load_balancing)
+[https://www.netfilter.org/projects/nftables/manpage.html](https://www.netfilter.org/projects/nftables/manpage.html)
+
+This software creates the required tables named **nftlb** which are exclusive to the nftlb service and should not be managed manually. Ex: ip nftlb, ip6 nftlb, netdev nftlb...
+
+The integration of nftlb with custom firewall rules are possible creating separated tables and playing with chain priorities. More information:
+
+[https://www.zevenet.com/knowledge-base/nftlb/](https://www.zevenet.com/knowledge-base/nftlb/)
 
 ## Support
 Please refer to the [netfilter users mailing list](http://netfilter.org/mailinglists.html#ml-user)
