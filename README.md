@@ -7,8 +7,8 @@ More info: [What is nftlb?](https://www.zevenet.com/knowledge-base/nftlb/what-is
 
 ## Repository Contents
 In this repository is included:
-- **src/**: main source code files
-- **include/**: include files
+- **src/**: main source code files.
+- **include/**: include files.
 - **tests/**: automated testbed suite with example configuration files and the script *exec_tests.sh* to run all of them.
 - **tests/api**: automated testbed suite for API interactionand the script *api_tests.sh* to run all of them.
 
@@ -16,9 +16,9 @@ In this repository is included:
 nftlb depends on:
 
 - **linux-kernel**: Kernel version 4.19 or higher with nftables modules enabled (iptables, ebtables, etc not required).
-- **nftables**: nftables package with **libnftables** included and its dependencies (**libgmp**, ***libmnl** and **libnftnl**)<br />
-- **libev**: Events library for the web service<br />
-- **libjansson**: JSON parser for the API
+- **nftables**: nftables package with **libnftables** included and its dependencies (**libgmp**, **libmnl** and **libnftnl**).
+- **libev**: Events library for the web service.
+- **libjansson**: JSON parser for the API.
 
 ## Installation
 To build nftlb, just execute:
