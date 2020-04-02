@@ -6,14 +6,14 @@ table netdev nftlb {
 		elements = { 192.168.40.0/24, 192.168.200.100 }
 	}
 
-	map tcp-services-lo {
-		type ipv4_addr . inet_service : verdict
-		elements = { 127.0.0.1 . 80 : goto lb01 }
+	map proto-services-lo {
+		type inet_proto . ipv4_addr . inet_service : verdict
+		elements = { tcp . 127.0.0.1 . 80 : goto lb01 }
 	}
 
 	chain ingress-lo {
 		type filter hook ingress device "lo" priority 100; policy accept;
-		ip daddr . tcp dport vmap @tcp-services-lo
+		ip protocol . ip daddr . th dport vmap @proto-services-lo
 	}
 
 	chain lb01 {
@@ -21,9 +21,9 @@ table netdev nftlb {
 	}
 }
 table ip nftlb {
-	map filter-tcp-services {
-		type ipv4_addr . inet_service : verdict
-		elements = { 127.0.0.1 . 80 : goto filter-lb01 }
+	map filter-proto-services {
+		type inet_proto . ipv4_addr . inet_service : verdict
+		elements = { tcp . 127.0.0.1 . 80 : goto filter-lb01 }
 	}
 
 	set est-connlimit-lb01-bck0 {
@@ -41,7 +41,7 @@ table ip nftlb {
 	chain filter {
 		type filter hook prerouting priority mangle; policy accept;
 		meta mark set ct mark
-		ip daddr . tcp dport vmap @filter-tcp-services
+		ip protocol . ip daddr . th dport vmap @filter-proto-services
 	}
 
 	chain filter-lb01 {
