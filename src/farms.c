@@ -534,6 +534,13 @@ static int farm_set_queue(struct farm *f, int new_value)
 	return PARSER_OK;
 }
 
+int farm_no_port(struct farm *f)
+{
+	if (obj_equ_attribute_string(f->virtports, DEFAULT_VIRTPORTS))
+		return 1;
+	return 0;
+}
+
 int farm_changed(struct config_pair *c)
 {
 	struct farm *f = obj_get_current_farm();

@@ -487,6 +487,13 @@ static int backend_is_usable(struct backend *b)
 			(b->priority <= f->priority);
 }
 
+int backend_no_port(struct backend *b)
+{
+	if (obj_equ_attribute_string(b->port, DEFAULT_PORT))
+		return 1;
+	return 0;
+}
+
 int backend_changed(struct config_pair *c)
 {
 	struct farm *f = obj_get_current_farm();

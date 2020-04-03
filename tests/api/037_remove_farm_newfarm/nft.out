@@ -15,26 +15,9 @@ table ip nftlb {
 		type inet_proto . ipv4_addr . inet_service : verdict
 	}
 
-	map nat-services {
-		type ipv4_addr : verdict
-	}
-
-	map services-back {
-		type ipv4_addr : ipv4_addr
-	}
-
-	map services-back-m {
-		type mark : ipv4_addr
-	}
-
-	map filter-services {
-		type ipv4_addr : verdict
-	}
-
 	chain prerouting {
 		type nat hook prerouting priority filter; policy accept;
 		ip protocol . ip daddr . th dport vmap @nat-proto-services
-		ip daddr vmap @nat-services
 	}
 
 	chain postrouting {
@@ -42,14 +25,11 @@ table ip nftlb {
 		ct mark 0x80000000/1 masquerade
 		snat to ip protocol . ip daddr . th dport map @proto-services-back
 		snat to ct mark map @proto-services-back-m
-		snat to ip daddr map @services-back
-		snat to ct mark map @services-back-m
 	}
 
 	chain filter {
 		type filter hook prerouting priority mangle; policy accept;
 		meta mark set ct mark
 		ip protocol . ip daddr . th dport vmap @filter-proto-services
-		ip daddr vmap @filter-services
 	}
 }

@@ -30,7 +30,7 @@ for DIRTEST in `ls -d */`; do
 	source $TESTCASE
 	INDEX_OUT=`printf %03d $INDEX`
 	#~ echo -n "$INDEX_OUT - $DESC "
-	echo -n "$DIRTEST... "
+	echo -nE "$DIRTEST... "
 	logger NFTLB API TESTING $INDEX_OUT - $DESC
 
 	FEXEC="pre.sh"
@@ -43,7 +43,7 @@ for DIRTEST in `ls -d */`; do
 	fi
 	CURL_OUTPUT="report-${INDEX_OUT}-req.out"
 	rm -f report-*-req.out
-	echo $CURL -H \"Key: $APISRV_KEY\" -X $VERB $CURL_ARGS http://$APISRV_ADDR:$APISRV_PORT/$URI
+#	echo $CURL -H \"Key: $APISRV_KEY\" -X $VERB $CURL_ARGS http://$APISRV_ADDR:$APISRV_PORT/$URI
 	$CURL -H "Key: $APISRV_KEY" -X $VERB $CURL_ARGS http://$APISRV_ADDR:$APISRV_PORT/$URI -o "$CURL_OUTPUT" 2> /dev/null
 
 	# checking curl output
