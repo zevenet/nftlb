@@ -46,7 +46,7 @@ table ip nftlb {
 	}
 
 	chain nat-Ex-SMTP {
-		ip protocol tcp ct mark 0x00000203 dnat to 10.20.10.28:25
+		dnat ip addr . port to ct mark map { 0x00000203 : 10.20.10.28 . 25 }
 	}
 
 	chain forward {

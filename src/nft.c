@@ -1925,16 +1925,43 @@ static int run_farm_rules_ingress_persistence(struct sbuffer *buf, struct farm *
 static int run_farm_rules_gen_nat_per_bck(struct sbuffer *buf, struct farm *f, int family, char *chain)
 {
 	struct backend *b;
+	struct sbuffer bufip;
+	struct sbuffer bufipport;
+	int existip = 0;
+	int existipport = 0;
+
+	create_buf(&bufip);
+	create_buf(&bufipport);
+
+	concat_buf(&bufip, " ; add rule %s %s %s dnat ip addr to ct mark map { ", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain);
+	concat_buf(&bufipport, " ; add rule %s %s %s dnat ip addr . port to ct mark map { ", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain);
 
 	list_for_each_entry(b, &f->backends, list) {
-		if(!backend_is_available(b))
+		if (!backend_is_available(b))
 			continue;
 
-		concat_buf(buf, " ; add rule %s %s %s %s %s %s ct mark 0x%x dnat to %s", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain, print_nft_table_family(family, f->mode), print_nft_family_protocol(family), print_nft_protocol(f->protocol), get_bck_mark(b), b->ipaddr);
-		if (strcmp(b->port, "") != 0)
-			concat_buf(buf, ":%s", b->port);
-		concat_exec_cmd(buf, "");
+		if (backend_no_port(b)) {
+			if (existip)
+				concat_buf(&bufip, ", ");
+			concat_buf(&bufip, "0x%x : %s", get_bck_mark(b), b->ipaddr);
+			existip = 1;
+		} else {
+			if (existipport)
+				concat_buf(&bufipport, ", ");
+			concat_buf(&bufipport, "0x%x : %s . %s", get_bck_mark(b), b->ipaddr, b->port);
+			existipport = 1;
+		}
 	}
+
+	if (existip)
+		concat_exec_cmd(buf, "%s }", get_buf_data(&bufip));
+
+	if (existipport)
+		concat_exec_cmd(buf, "%s }", get_buf_data(&bufipport));
+
+	clean_buf(&bufip);
+	clean_buf(&bufipport);
+
 	return 0;
 }
 
