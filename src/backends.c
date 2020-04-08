@@ -117,6 +117,7 @@ static int backend_delete(struct backend *b)
 		obj_rulerize(OBJ_START);
 	}
 
+	session_backend_action(f, b, ACTION_DELETE);
 	backend_delete_node(b);
 
 	return 0;
@@ -576,6 +577,7 @@ int backend_is_available(struct backend *b)
 int backend_set_action(struct backend *b, int action)
 {
 	int is_actionated = 0;
+	struct farm *f = b->parent;
 
 	syslog(LOG_DEBUG, "%s():%d: bck %s action %d state %d - new action %d",
 	       __FUNCTION__, __LINE__, b->name, b->action, b->state, action);
@@ -591,6 +593,7 @@ int backend_set_action(struct backend *b, int action)
 			b->action = action;
 			is_actionated = 1;
 		}
+		session_backend_action(f, b, ACTION_STOP);
 		backend_set_state(b, VALUE_STATE_OFF);
 
 		return is_actionated;
