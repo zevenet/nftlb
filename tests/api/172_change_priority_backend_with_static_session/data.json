@@ -1,0 +1,12 @@
+{
+        "farms": [
+                {
+                        "name": "newfarm",
+                        "backends": [ {
+				"name": "bck0",
+				"priority": "3"
+			}
+			]
+                }
+        ]
+}
