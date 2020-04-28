@@ -1518,30 +1518,24 @@ static int run_farm_rules_filter_policies(struct sbuffer *buf, struct farm *f, i
 	return 0;
 }
 
-static int run_farm_rules_gen_meter_per_bck(struct sbuffer *buf, struct farm *f, int family, char *chain, int action)
+static int run_farm_rules_gen_limits_per_bck(struct sbuffer *buf, struct farm *f, int family, char *chain, int action)
 {
 	struct backend *b;
-	char meter_str[255] = { 0 };
 	char logprefix_str[255] = { 0 };
 
 	list_for_each_entry(b, &f->backends, list) {
 		if (b->estconnlimit == 0)
 			continue;
 
-		sprintf(meter_str, "%s-%s-%s", CONFIG_KEY_ESTCONNLIMIT, f->name, b->name);
 		print_log_format(logprefix_str, KEY_ESTCONNLIMIT_LOGPREFIX, NFTLB_F_CHAIN_PRE_FILTER, f, b, NULL);
 
-		if (action == ACTION_START || b->action == ACTION_START)
-			run_farm_meter(buf, f, family, meter_str, ACTION_START);
-
 		if ((b->action == ACTION_STOP) || ((action == ACTION_STOP || action == ACTION_DELETE) && backend_is_available(b))) {
-			run_farm_meter(buf, f, family, meter_str, ACTION_STOP);
 			continue;
 		}
 
 		if (backend_is_available(b))
-			concat_exec_cmd(buf, " ; add rule %s %s %s ct mark 0x%x add @%s { ip saddr ct count over %d } log prefix \"%s\" drop",
-							print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain, get_bck_mark(b), meter_str, b->estconnlimit, logprefix_str);
+			concat_exec_cmd(buf, " ; add rule %s %s %s ct mark 0x%x ct count over %d log prefix \"%s\" drop",
+							print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain, get_bck_mark(b), b->estconnlimit, logprefix_str);
 	}
 
 	return 0;
@@ -1560,12 +1554,12 @@ static int run_farm_rules_filter_marks(struct sbuffer *buf, struct farm *f, int 
 			if (run_farm_rules_gen_sched(buf, f, family) == -1)
 				return -1;
 			run_farm_rules_gen_bck_map(buf, f, BCK_MAP_WEIGHT, BCK_MAP_MARK);
-			run_farm_rules_gen_meter_per_bck(buf, f, family, chain, action);
+			run_farm_rules_gen_limits_per_bck(buf, f, family, chain, action);
 		} else if (mark != DEFAULT_MARK) {
 			concat_buf(buf, " ; add rule %s %s %s ct state new ct mark 0x0 ct mark set 0x%x", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain, mark);
 		}
 	} else if (action == ACTION_STOP || action == ACTION_DELETE || (action == ACTION_RELOAD && f->bcks_available == 0)) {
-		run_farm_rules_gen_meter_per_bck(buf, f, family, chain, action);
+		run_farm_rules_gen_limits_per_bck(buf, f, family, chain, action);
 	}
 	concat_exec_cmd(buf, "");
 
