@@ -1373,7 +1373,7 @@ static int run_farm_rules_filter_static_sessions(struct sbuffer *buf, struct far
 			continue;
 		}
 		if (session_get_client(s, &client)) {
-			if ((action == ACTION_START || s->action == ACTION_START) && s->bck && s->bck->mark != DEFAULT_MARK) {
+			if ((action == ACTION_START || s->action == ACTION_START) && s->bck && s->bck->mark != DEFAULT_MARK && backend_is_available(s->bck)) {
 				bckmark = get_bck_mark(s->bck);
 				concat_exec_cmd(buf, " ; add element %s %s %s { %s : 0x%x }", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, map_str, client, bckmark);
 			}
