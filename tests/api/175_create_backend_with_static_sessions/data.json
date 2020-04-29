@@ -1,0 +1,1 @@
+{"farms" : [ { "name" : "newfarm", "persistence": "srcip", "backends" : [ { "name" : "bck0", "ip-addr" : "192.168.101.253", "port" : "80", "mark" : "0x200", "weight" : "5", "priority" : "1", "state" : "up" } ] } ] }
