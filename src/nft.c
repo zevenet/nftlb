@@ -1444,7 +1444,7 @@ static int run_farm_rules_filter_persistence_update(struct sbuffer *buf, struct 
 	if ((action != ACTION_START && action != ACTION_RELOAD) || (!f->bcks_are_marked))
 		return 0;
 
-	concat_buf(buf, " ; add rule %s %s %s update @%s { ", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain, map_str);
+	concat_buf(buf, " ; add rule %s %s %s ct mark != 0x00000000 update @%s { ", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain, map_str);
 	run_farm_rules_gen_meta_param(buf, f, family, f->persistence, NFTLB_MAP_KEY_RULE);
 	concat_exec_cmd(buf, " : ct mark }");
 	return 0;
