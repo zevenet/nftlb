@@ -307,21 +307,20 @@ int session_backend_action(struct farm *f, struct backend *b, int action)
 {
 	struct session *s, *next;
 
-
 	if (f->total_static_sessions != 0) {
 		list_for_each_entry_safe(s, next, &f->static_sessions, list)
-			if (!b ||
-				((f->mode == VALUE_MODE_DNAT || f->mode == VALUE_MODE_SNAT || f->mode == VALUE_MODE_LOCAL) && b->mark == s->bck->mark) ||
-				((f->mode == VALUE_MODE_DSR || f->mode == VALUE_MODE_STLSDNAT) && strcmp(b->ethaddr, s->bck->ethaddr) == 0))
+			if (s->bck &&
+				(((f->mode == VALUE_MODE_DNAT || f->mode == VALUE_MODE_SNAT || f->mode == VALUE_MODE_LOCAL) && b->mark == s->bck->mark) ||
+				((f->mode == VALUE_MODE_DSR || f->mode == VALUE_MODE_STLSDNAT) && strcmp(b->ethaddr, s->bck->ethaddr) == 0)))
 				session_set_action(s, SESSION_TYPE_STATIC, action);
 	}
 
 	session_get_timed(f);
 	if (f->total_timed_sessions != 0) {
 		list_for_each_entry_safe(s, next, &f->timed_sessions, list)
-			if (!b ||
-				((f->mode == VALUE_MODE_DNAT || f->mode == VALUE_MODE_SNAT || f->mode == VALUE_MODE_LOCAL) && b->mark == s->bck->mark) ||
-				((f->mode == VALUE_MODE_DSR || f->mode == VALUE_MODE_STLSDNAT) && strcmp(b->ethaddr, s->bck->ethaddr) == 0))
+			if (s->bck &&
+				(((f->mode == VALUE_MODE_DNAT || f->mode == VALUE_MODE_SNAT || f->mode == VALUE_MODE_LOCAL) && b->mark == s->bck->mark) ||
+				((f->mode == VALUE_MODE_DSR || f->mode == VALUE_MODE_STLSDNAT) && strcmp(b->ethaddr, s->bck->ethaddr) == 0)))
 				session_set_action(s, SESSION_TYPE_TIMED, action);
 	}
 
