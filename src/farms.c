@@ -93,6 +93,7 @@ static struct farm * farm_create(char *name)
 
 	pfarm->total_bcks = 0;
 	pfarm->bcks_available = 0;
+	pfarm->bcks_usable = 0;
 	pfarm->bcks_are_marked = 0;
 	pfarm->bcks_have_port = 0;
 	pfarm->bcks_have_srcaddr = 0;
@@ -450,6 +451,7 @@ static void farm_print(struct farm *f)
 	syslog(LOG_DEBUG,"    *[total_weight] %d", f->total_weight);
 	syslog(LOG_DEBUG,"    *[total_bcks] %d", f->total_bcks);
 	syslog(LOG_DEBUG,"    *[bcks_available] %d", f->bcks_available);
+	syslog(LOG_DEBUG,"    *[bcks_usable] %d", f->bcks_usable);
 	syslog(LOG_DEBUG,"    *[bcks_are_marked] %d", f->bcks_are_marked);
 	syslog(LOG_DEBUG,"    *[bcks_have_port] %d", f->bcks_have_port);
 	syslog(LOG_DEBUG,"    *[bcks_have_srcaddr] %d", f->bcks_have_srcaddr);

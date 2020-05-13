@@ -148,6 +148,7 @@ struct farm {
 	int			total_weight;
 	int			total_bcks;
 	int			bcks_available;
+	int			bcks_usable;
 	int			bcks_are_marked;
 	int			bcks_have_port;
 	int			bcks_have_srcaddr;
