@@ -290,6 +290,7 @@ static void backend_s_update_counters(struct farm *f)
 	syslog(LOG_DEBUG, "%s():%d: farm %s", __FUNCTION__, __LINE__, f->name);
 
 	f->bcks_available = 0;
+	f->bcks_usable = 0;
 	f->total_weight = 0;
 
 	list_for_each_entry_safe(bp, next, &f->backends, list) {
@@ -297,6 +298,8 @@ static void backend_s_update_counters(struct farm *f)
 			f->bcks_available++;
 			f->total_weight += bp->weight;
 		}
+		if (backend_is_usable(bp))
+			f->bcks_usable++;
 	}
 }
 
@@ -477,15 +480,30 @@ static int backend_set_ipaddr(struct backend *b, char *new_value)
 	return 0;
 }
 
-static int backend_is_usable(struct backend *b)
+static int backend_is_in_maintenance(struct backend *b)
+{
+	syslog(LOG_DEBUG, "%s():%d: backend %s state is %s",
+	       __FUNCTION__, __LINE__, b->name, obj_print_state(b->state));
+
+	return (b->state == VALUE_STATE_OFF);
+}
+
+static int backend_is_up(struct backend *b)
+{
+	syslog(LOG_DEBUG, "%s():%d: backend %s state is %s",
+	       __FUNCTION__, __LINE__, b->name, obj_print_state(b->state));
+
+	return (b->state == VALUE_STATE_UP);
+}
+
+int backend_is_usable(struct backend *b)
 {
 	struct farm *f = b->parent;
 
 	syslog(LOG_DEBUG, "%s():%d: backend %s state is %s and priority %d",
 	       __FUNCTION__, __LINE__, b->name, obj_print_state(b->state), b->priority);
 
-	return (b->state == VALUE_STATE_UP) &&
-			(b->priority <= f->priority);
+	return (backend_validate(b) && (backend_is_up(b) || backend_is_in_maintenance(b)) && (b->priority <= f->priority));
 }
 
 int backend_changed(struct config_pair *c)
@@ -567,11 +585,12 @@ int backend_validate(struct backend *b)
 
 int backend_is_available(struct backend *b)
 {
+	struct farm *f = b->parent;
+
 	syslog(LOG_DEBUG, "%s():%d: backend %s state is %s and priority %d",
 	       __FUNCTION__, __LINE__, b->name, obj_print_state(b->state), b->priority);
 
-	return (backend_is_usable(b) &&
-			backend_validate(b));
+	return (backend_validate(b) && backend_is_up(b) && b->priority <= f->priority);
 }
 
 int backend_set_action(struct backend *b, int action)
@@ -594,7 +613,7 @@ int backend_set_action(struct backend *b, int action)
 			is_actionated = 1;
 		}
 		session_backend_action(f, b, ACTION_STOP);
-		backend_set_state(b, VALUE_STATE_OFF);
+		backend_set_state(b, VALUE_STATE_DOWN);
 
 		return is_actionated;
 	}
@@ -636,6 +655,7 @@ int backend_s_delete(struct farm *f)
 
 	f->total_bcks = 0;
 	f->bcks_available = 0;
+	f->bcks_usable = 0;
 	f->total_weight = 0;
 	f->bcks_have_if = 0;
 

@@ -963,7 +963,7 @@ static int run_farm_rules_gen_srv_map(struct sbuffer *buf, struct farm *f, char 
 					concat_exec_cmd(buf, " ; delete element %s %s %s { %s }", nft_family, NFTLB_TABLE_NAME, service, key_str);
 				}
 
-				if(!backend_is_available(b))
+				if(!backend_is_usable(b))
 					continue;
 
 				run_farm_rules_gen_srv_data((char **) &data_str, f, b, chain, data_mode);
@@ -1529,13 +1529,11 @@ static int run_farm_rules_gen_limits_per_bck(struct sbuffer *buf, struct farm *f
 
 		print_log_format(logprefix_str, KEY_ESTCONNLIMIT_LOGPREFIX, NFTLB_F_CHAIN_PRE_FILTER, f, b, NULL);
 
-		if ((b->action == ACTION_STOP) || ((action == ACTION_STOP || action == ACTION_DELETE) && backend_is_available(b))) {
+		if ((b->action == ACTION_STOP && !backend_is_usable(b)) || (action == ACTION_STOP || action == ACTION_DELETE))
 			continue;
-		}
 
-		if (backend_is_available(b))
-			concat_exec_cmd(buf, " ; add rule %s %s %s ct mark 0x%x ct count over %d log prefix \"%s\" drop",
-							print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain, get_bck_mark(b), b->estconnlimit, logprefix_str);
+		concat_exec_cmd(buf, " ; add rule %s %s %s ct mark 0x%x ct count over %d log prefix \"%s\" drop",
+						print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain, get_bck_mark(b), b->estconnlimit, logprefix_str);
 	}
 
 	return 0;
@@ -1558,7 +1556,7 @@ static int run_farm_rules_filter_marks(struct sbuffer *buf, struct farm *f, int 
 		} else if (mark != DEFAULT_MARK) {
 			concat_buf(buf, " ; add rule %s %s %s ct state new ct mark 0x0 ct mark set 0x%x", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain, mark);
 		}
-	} else if (action == ACTION_STOP || action == ACTION_DELETE || (action == ACTION_RELOAD && f->bcks_available == 0)) {
+	} else if (action == ACTION_STOP || action == ACTION_DELETE || (action == ACTION_RELOAD && f->bcks_usable == 0)) {
 		run_farm_rules_gen_limits_per_bck(buf, f, family, chain, action);
 	}
 	concat_exec_cmd(buf, "");
@@ -1781,7 +1779,7 @@ static int run_farm_rules_ingress_static_sessions(struct sbuffer *buf, struct fa
 	if (f->persistence == VALUE_META_NONE)
 		return 0;
 
-	if (f->bcks_available == 0)
+	if (f->bcks_usable == 0)
 		return 0;
 
 	get_farm_chain(chain, f, NFTLB_F_CHAIN_ING_FILTER);
@@ -1880,7 +1878,7 @@ static int run_farm_rules_ingress_timed_sessions(struct sbuffer *buf, struct far
 	if (f->persistence == VALUE_META_NONE)
 		return 0;
 
-	if (f->bcks_available == 0)
+	if (f->bcks_usable == 0)
 		return 0;
 
 	get_farm_chain(chain, f, NFTLB_F_CHAIN_ING_FILTER);
@@ -1949,7 +1947,7 @@ static int run_farm_rules_gen_nat_per_bck(struct sbuffer *buf, struct farm *f, i
 	struct backend *b;
 
 	list_for_each_entry(b, &f->backends, list) {
-		if(!backend_is_available(b))
+		if(!backend_is_usable(b))
 			continue;
 
 		concat_buf(buf, " ; add rule %s %s %s %s %s %s ct mark 0x%x dnat to %s", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain, print_nft_table_family(family, f->mode), print_nft_family_protocol(family), print_nft_protocol(f->protocol), get_bck_mark(b), b->ipaddr);
@@ -1965,7 +1963,7 @@ static int run_farm_rules_gen_nat(struct sbuffer *buf, struct farm *f, int famil
 	char chain[255] = { 0 };
 	char map_str[255] = { 0 };
 
-	if (f->bcks_available == 0)
+	if (f->bcks_usable == 0)
 		return 0;
 
 	get_farm_chain(chain, f, type);
