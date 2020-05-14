@@ -10,7 +10,7 @@ table ip nftlb {
 
 	map proto-services-back-m {
 		type mark : ipv4_addr
-		elements = { 0x00000203 : 10.20.10.50 }
+		elements = { 0x00000200 : 10.20.10.50, 0x00000201 : 10.20.10.50, 0x00000202 : 10.20.10.50, 0x00000203 : 10.20.10.50 }
 	}
 
 	map filter-proto-services {
@@ -42,6 +42,6 @@ table ip nftlb {
 
 	chain nat-Ex-SMTP {
 		log prefix "IN-Ex-SMTP "
-		dnat ip addr . port to ct mark map { 0x00000203 : 10.20.10.28 . 25 }
+		dnat ip addr . port to ct mark map { 0x00000200 : 10.20.10.25 . 25, 0x00000201 : 10.20.10.26 . 25, 0x00000202 : 10.20.10.27 . 25, 0x00000203 : 10.20.10.28 . 25 }
 	}
 }

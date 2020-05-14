@@ -37,6 +37,8 @@ table ip nftlb {
 
 	chain filter-farm01 {
 		ct state new ct mark 0x00000000 ct mark set numgen random mod 1 map { 0 : 0x80000202 }
+		ct mark 0x80000200 ct count over 10  log prefix "est-connlimit-farm01-bck0 " drop
+		ct mark 0x80000201 ct count over 10  log prefix "est-connlimit-farm01-bck1 " drop
 		ct mark 0x80000202 ct count over 10  log prefix "est-connlimit-farm01-bck2 " drop
 	}
 
