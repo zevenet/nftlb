@@ -107,18 +107,33 @@ static int backend_delete_node(struct backend *b)
 	return 0;
 }
 
+static int backend_below_prio(struct backend *b)
+{
+	struct farm *f = b->parent;
+
+	syslog(LOG_DEBUG, "%s():%d: backend %s state is %s and priority %d farm prio %d",
+	       __FUNCTION__, __LINE__, b->name, obj_print_state(b->state), b->priority, f->priority);
+
+	return (b->priority <= f->priority);
+}
+
 static int backend_delete(struct backend *b)
 {
 	struct farm *f = b->parent;
 	backend_set_action(b, ACTION_STOP);
 
-	if (f->priority >= 1 && b->priority <= f->priority) {
-		farm_set_priority(f, f->priority-1);
+	if (backend_below_prio(b)) {
+		backend_s_gen_priority(f);
 		obj_rulerize(OBJ_START);
 	}
 
 	session_backend_action(f, b, ACTION_DELETE);
 	backend_delete_node(b);
+
+	if (backend_s_gen_priority(f)) {
+		farm_set_action(f, ACTION_RELOAD);
+		obj_rulerize(OBJ_START);
+	}
 
 	return 0;
 }
@@ -498,12 +513,10 @@ static int backend_is_up(struct backend *b)
 
 int backend_is_usable(struct backend *b)
 {
-	struct farm *f = b->parent;
-
 	syslog(LOG_DEBUG, "%s():%d: backend %s state is %s and priority %d",
 	       __FUNCTION__, __LINE__, b->name, obj_print_state(b->state), b->priority);
 
-	return (backend_validate(b) && (backend_is_up(b) || backend_is_in_maintenance(b)) && (b->priority <= f->priority));
+	return (backend_validate(b) && (backend_is_up(b) || backend_is_in_maintenance(b)) && backend_below_prio(b));
 }
 
 int backend_changed(struct config_pair *c)
@@ -585,12 +598,10 @@ int backend_validate(struct backend *b)
 
 int backend_is_available(struct backend *b)
 {
-	struct farm *f = b->parent;
-
 	syslog(LOG_DEBUG, "%s():%d: backend %s state is %s and priority %d",
 	       __FUNCTION__, __LINE__, b->name, obj_print_state(b->state), b->priority);
 
-	return (backend_validate(b) && backend_is_up(b) && b->priority <= f->priority);
+	return (backend_validate(b) && backend_is_up(b) && backend_below_prio(b));
 }
 
 int backend_set_action(struct backend *b, int action)
