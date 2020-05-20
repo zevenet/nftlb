@@ -27,6 +27,7 @@
 #include "sessions.h"
 #include "farms.h"
 #include "objects.h"
+#include "tools.h"
 #include "nft.h"
 
 static struct session * session_create(struct farm *f, int type, char *client, char *bck, char *expiration)
@@ -107,14 +108,14 @@ static int nft_parse_sessions(struct farm *f, const char *buf)
 new_session:
 	next = 0;
 	if ((fin_ptr = strstr(ini_ptr, " expires ")) != NULL) {
-		snprintf(element1, fin_ptr - ini_ptr + 1, "%s", ini_ptr);
+		tools_snprintf(element1, fin_ptr - ini_ptr, ini_ptr);
 		fin_ptr += 9;
 		ini_ptr = fin_ptr;
 	} else
 		return 0;
 
 	if ((fin_ptr = strstr(ini_ptr, " : ")) != NULL) {
-		snprintf(element2, fin_ptr - ini_ptr + 1, "%s", ini_ptr);
+		tools_snprintf(element2, fin_ptr - ini_ptr, ini_ptr);
 		fin_ptr += 3;
 		ini_ptr = fin_ptr;
 	} else
@@ -127,7 +128,7 @@ new_session:
 			return 0;
 	}
 
-	snprintf(element3, fin_ptr - ini_ptr + 1, "%s", ini_ptr);
+	tools_snprintf(element3, fin_ptr - ini_ptr, ini_ptr);
 	fin_ptr += 1;
 	ini_ptr = fin_ptr;
 

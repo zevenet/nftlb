@@ -918,8 +918,6 @@ static int add_dump_elements(json_t *jdata, struct policy *p)
 {
 	element_get_list(p);
 	add_dump_list(jdata, CONFIG_KEY_ELEMENTS, LEVEL_ELEMENTS, &p->elements, NULL);
-
-	//~ json_decref(jdata);
 	element_s_delete(p);
 
 	return 0;
