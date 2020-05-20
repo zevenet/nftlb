@@ -27,6 +27,7 @@
 #include "elements.h"
 #include "policies.h"
 #include "objects.h"
+#include "tools.h"
 #include "nft.h"
 
 static struct element * element_create(struct policy *p, char *data, char *time)
@@ -80,9 +81,9 @@ static int nft_parse_elements(struct policy *p, const char *buf)
 {
 	char *ini_ptr = NULL;
 	char *fin_ptr = NULL;
-	char element1[2550] = {0};
-	char element2[2550] = {0};
-	char element3[2550] = {0};
+	char element1[100] = {0};
+	char element2[100] = {0};
+	char element3[100] = {0};
 	int next = 0;
 
 	ini_ptr = strstr(buf, "elements = { ");
@@ -95,7 +96,7 @@ new_element:
 
 	if (p->timeout) {
 		if ((fin_ptr = strstr(ini_ptr, " expires ")) != NULL) {
-			snprintf(element1, fin_ptr - ini_ptr + 1, "%s", ini_ptr);
+			tools_snprintf(element1, fin_ptr - ini_ptr, ini_ptr);
 			fin_ptr += 9;
 			ini_ptr = fin_ptr;
 		} else
@@ -109,7 +110,7 @@ new_element:
 			return 0;
 	}
 
-	snprintf(element3, fin_ptr - ini_ptr + 1, "%s", ini_ptr);
+	tools_snprintf(element3, fin_ptr - ini_ptr, ini_ptr);
 	fin_ptr += 1;
 	ini_ptr = fin_ptr;
 
