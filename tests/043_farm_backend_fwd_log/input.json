@@ -8,7 +8,7 @@
 			"mode" : "snat",
 			"protocol" : "tcp",
 			"scheduler" : "weight",
-			"log" : "input",
+			"log" : "forward",
 			"log-prefix" : "[FNAME,TYPE]",
 			"state" : "up",
 			"backends" : [

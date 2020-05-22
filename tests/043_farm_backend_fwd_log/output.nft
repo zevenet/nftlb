@@ -17,6 +17,11 @@ table ip nftlb {
 		elements = { tcp . 127.0.0.1 . 80 : goto filter-lb01 }
 	}
 
+	map forward-proto-services {
+		type mark : verdict
+		elements = { 0x80000001 : goto forward-lb01, 0x80000002 : goto forward-lb01 }
+	}
+
 	chain prerouting {
 		type nat hook prerouting priority filter; policy accept;
 		ip protocol . ip daddr . th dport vmap @nat-proto-services
@@ -42,7 +47,15 @@ table ip nftlb {
 	}
 
 	chain nat-lb01 {
-		log prefix "[lb01,IN]"
 		dnat to ct mark map { 0x80000001 : 192.168.0.10, 0x80000002 : 192.168.0.11 }
+	}
+
+	chain forward {
+		type filter hook forward priority filter; policy accept;
+		ct mark vmap @forward-proto-services
+	}
+
+	chain forward-lb01 {
+		log prefix "[lb01,FWD]"
 	}
 }
