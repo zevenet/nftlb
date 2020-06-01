@@ -8,7 +8,7 @@
    "mode": "dnat",
    "protocol": "tcp",
    "scheduler": "weight",
-   "state": "down",
+   "state": "up",
    "backends": []
   }
  ]

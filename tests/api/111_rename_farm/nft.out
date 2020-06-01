@@ -1,0 +1,44 @@
+table ip nftlb {
+	map nat-port-services {
+		type inet_proto . inet_service : verdict
+	}
+
+	map port-services-back {
+		type inet_proto . inet_service : ipv4_addr
+	}
+
+	map port-services-back-m {
+		type mark : ipv4_addr
+	}
+
+	map nat-proto-services {
+		type inet_proto . ipv4_addr . inet_service : verdict
+		elements = { tcp . 2.2.2.2 . 6595 : goto nat-lb012 }
+	}
+
+	map proto-services-back {
+		type inet_proto . ipv4_addr . inet_service : ipv4_addr
+	}
+
+	map proto-services-back-m {
+		type mark : ipv4_addr
+	}
+
+	chain prerouting {
+		type nat hook prerouting priority filter; policy accept;
+		ip protocol . th dport vmap @nat-port-services
+		ip protocol . ip daddr . th dport vmap @nat-proto-services
+	}
+
+	chain postrouting {
+		type nat hook postrouting priority srcnat; policy accept;
+		ct mark 0x80000000/1 masquerade
+		snat to ip protocol . th dport map @port-services-back
+		snat to ct mark map @port-services-back-m
+		snat to ip protocol . ip daddr . th dport map @proto-services-back
+		snat to ct mark map @proto-services-back-m
+	}
+
+	chain nat-lb012 {
+	}
+}
