@@ -174,6 +174,7 @@ int farm_set_ifinfo(struct farm *f, int key);
 struct farm * farm_lookup_by_name(const char *name);
 
 int farm_no_port(struct farm *f);
+int farm_no_virtaddr(struct farm *f);
 int farm_changed(struct config_pair *c);
 int farm_pre_actionable(struct config_pair *c);
 int farm_pos_actionable(struct config_pair *c);

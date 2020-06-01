@@ -360,7 +360,6 @@ static int config_value(const char *value)
 		break;
 	case KEY_NAME:
 	case KEY_NEWNAME:
-	case KEY_VIRTADDR:
 	case KEY_IPADDR:
 	case KEY_CLIENT:
 	case KEY_BACKEND:
@@ -374,6 +373,7 @@ static int config_value(const char *value)
 	case KEY_IFACE:
 	case KEY_OFACE:
 	case KEY_ETHADDR:
+	case KEY_VIRTADDR:
 	case KEY_VIRTPORTS:
 	case KEY_SRCADDR:
 	case KEY_PORT:

@@ -160,7 +160,8 @@ static int farm_validate(struct farm *f)
 	syslog(LOG_DEBUG, "%s():%d: validating farm %s",
 	       __FUNCTION__, __LINE__, f->name);
 
-	if (!f->virtaddr || strcmp(f->virtaddr, "") == 0)
+	if (obj_equ_attribute_string(f->virtaddr, DEFAULT_VIRTADDR) &&
+		obj_equ_attribute_string(f->virtports, DEFAULT_VIRTPORTS))
 		return 0;
 
 	if (farm_needs_policies(f) &&
@@ -539,6 +540,13 @@ static int farm_set_queue(struct farm *f, int new_value)
 int farm_no_port(struct farm *f)
 {
 	if (obj_equ_attribute_string(f->virtports, DEFAULT_VIRTPORTS))
+		return 1;
+	return 0;
+}
+
+int farm_no_virtaddr(struct farm *f)
+{
+	if (obj_equ_attribute_string(f->virtaddr, DEFAULT_VIRTADDR))
 		return 1;
 	return 0;
 }
