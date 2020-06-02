@@ -101,6 +101,7 @@ Where every farm object has the following attributes:
 	"tcp-strict": "<on | off>",				*Option to avoid bogus TCP attacks (disabled by default)*
 	"tcp-strict-log-prefix": "<string|KNAME|TYPE|FNAME>",	*Farm TCP strict log prefix (default "KNAME-TYPE-FNAME")*
 	"flow-offload": "<on | off>",				*Option to enable flow offload (disabled by default)*
+	"intra-connect": "<on | off>",				*Option to enable connectivity from the local machine (disabled by default)*
 	"queue": "<number>",				*Number of the queue to send the packets to userspace (disabled by default)*
 	"state": "<up | down | off>",			*Set the status of the virtual service (up by default)*
 	"backends" : [					*List of backends*

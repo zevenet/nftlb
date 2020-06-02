@@ -351,6 +351,7 @@ static int config_value(const char *value)
 		break;
 	case KEY_TCPSTRICT:
 	case KEY_FLOWOFFLOAD:
+	case KEY_INTRACONNECT:
 		c.int_value = config_value_switch(value);
 		ret = PARSER_OK;
 		break;
@@ -502,6 +503,8 @@ static int config_key(const char *key)
 		return KEY_BACKEND;
 	if (strcmp(key, CONFIG_KEY_USED) == 0)
 		return KEY_USED;
+	if (strcmp(key, CONFIG_KEY_INTRACONNECT) == 0)
+		return KEY_INTRACONNECT;
 
 	config_set_output(". Unknown key '%s'", key);
 	syslog(LOG_ERR, "%s():%d: unknown key '%s'", __FUNCTION__, __LINE__, key);
@@ -814,6 +817,9 @@ static struct json_t *add_dump_list(json_t *obj, const char *objname, int object
 
 			if (f->flow_offload)
 				add_dump_obj(item, CONFIG_KEY_FLOWOFFLOAD, obj_print_switch(f->flow_offload));
+
+			if (f->intra_connect)
+				add_dump_obj(item, CONFIG_KEY_INTRACONNECT, obj_print_switch(f->intra_connect));
 
 			add_dump_list(item, CONFIG_KEY_BCKS, LEVEL_BCKS, &f->backends, NULL);
 

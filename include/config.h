@@ -74,6 +74,7 @@
 #define CONFIG_KEY_SESSIONS		"sessions"
 #define CONFIG_KEY_CLIENT		"client"
 #define CONFIG_KEY_BACKEND		"backend"
+#define CONFIG_KEY_INTRACONNECT				"intra-connect"
 
 #define CONFIG_KEY_USED				"used"
 #define CONFIG_KEY_EXPIRATION			"expiration"

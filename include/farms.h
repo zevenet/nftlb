@@ -145,6 +145,7 @@ struct farm {
 	char		*tcpstrict_logprefix;
 	int			queue;
 	int			flow_offload;
+	int			intra_connect;
 	int			total_weight;
 	int			total_bcks;
 	int			bcks_available;
@@ -170,6 +171,7 @@ void farm_s_print(void);
 int farm_is_ingress_mode(struct farm *f);
 int farm_needs_policies(struct farm *f);
 int farm_needs_flowtable(struct farm *f);
+int farm_needs_intraconnect(struct farm *f);
 int farm_set_ifinfo(struct farm *f, int key);
 struct farm * farm_lookup_by_name(const char *name);
 

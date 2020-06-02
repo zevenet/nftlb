@@ -90,6 +90,7 @@ static struct farm * farm_create(char *name)
 	pfarm->tcpstrict_logprefix = DEFAULT_LOGPREFIX;
 	pfarm->queue = DEFAULT_QUEUE;
 	pfarm->flow_offload = DEFAULT_FLOWOFFLOAD;
+	pfarm->intra_connect = DEFAULT_INTRACONNECT;
 
 	pfarm->total_bcks = 0;
 	pfarm->bcks_available = 0;
@@ -229,6 +230,11 @@ static void farm_manage_eventd(void)
 int farm_needs_flowtable(struct farm *f)
 {
 	return f->flow_offload;
+}
+
+int farm_needs_intraconnect(struct farm *f)
+{
+	return f->intra_connect;
 }
 
 static int farm_set_netinfo(struct farm *f)
@@ -448,6 +454,7 @@ static void farm_print(struct farm *f)
 
 	syslog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_QUEUE, f->queue);
 	syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_FLOWOFFLOAD, obj_print_switch(f->flow_offload));
+	syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_INTRACONNECT, obj_print_switch(f->intra_connect));
 
 	syslog(LOG_DEBUG,"    *[total_weight] %d", f->total_weight);
 	syslog(LOG_DEBUG,"    *[total_bcks] %d", f->total_bcks);
@@ -666,6 +673,9 @@ int farm_changed(struct config_pair *c)
 	case KEY_TCPSTRICT_LOGPREFIX:
 		return !obj_equ_attribute_string(f->tcpstrict_logprefix, c->str_value);
 		break;
+	case KEY_INTRACONNECT:
+		return !obj_equ_attribute_int(f->intra_connect, c->int_value);
+		break;
 	default:
 		break;
 	}
@@ -846,6 +856,7 @@ int farm_pre_actionable(struct config_pair *c)
 	case KEY_FLOWOFFLOAD:
 	case KEY_LOG:
 	case KEY_HELPER:
+	case KEY_INTRACONNECT:
 		if (farm_set_action(f, ACTION_STOP))
 			farm_rulerize(f);
 		break;
@@ -881,6 +892,7 @@ int farm_pos_actionable(struct config_pair *c)
 	case KEY_FLOWOFFLOAD:
 	case KEY_LOG:
 	case KEY_HELPER:
+	case KEY_INTRACONNECT:
 		farm_set_action(f, ACTION_START);
 		break;
 	case KEY_STATE:
@@ -1043,6 +1055,10 @@ int farm_set_attribute(struct config_pair *c)
 		break;
 	case KEY_TCPSTRICT_LOGPREFIX:
 		ret = obj_set_attribute_string(c->str_value, &f->tcpstrict_logprefix);
+		break;
+	case KEY_INTRACONNECT:
+		f->intra_connect = c->int_value;
+		ret = PARSER_OK;
 		break;
 	default:
 		return PARSER_STRUCT_FAILED;

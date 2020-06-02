@@ -272,6 +272,8 @@ char * obj_print_key(int key)
 		return CONFIG_KEY_CLIENT;
 	case KEY_BACKEND:
 		return CONFIG_KEY_BACKEND;
+	case KEY_INTRACONNECT:
+		return CONFIG_KEY_INTRACONNECT;
 	default:
 		return NULL;
 	}
