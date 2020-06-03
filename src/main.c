@@ -44,6 +44,7 @@
 #define NFTLB_LOGLEVEL_DEFAULT		LOG_NOTICE
 
 unsigned int serialize = NFTLB_NFT_SERIALIZE;
+int masquerade_mark = NFTLB_MASQUERADE_MARK_DEFAULT;
 
 static void print_usage(const char *prog_name)
 {
@@ -61,6 +62,7 @@ static void print_usage(const char *prog_name)
 		"  [ -H <HOST> | --host <HOST> ]		Set the host for the listening port\n"
 		"  [ -P <PORT> | --port <PORT> ]		Set the port for the listening port\n"
 		"  [ -S | --serial ]			Serialize nft commands\n"
+		"  [ -m | --masquerade-mark ]			Set masquerade mark in hex\n"
 		, prog_name, VERSION, prog_name);
 }
 
@@ -75,6 +77,7 @@ static const struct option options[] = {
 	{ .name = "host",	.has_arg = 1,	.val = 'H' },
 	{ .name = "port",	.has_arg = 1,	.val = 'P' },
 	{ .name = "serial",	.has_arg = 0,	.val = 'S' },
+	{ .name = "masquerade-mark",	.has_arg = 1,	.val = 'm' },
 	{ NULL },
 };
 
@@ -115,7 +118,7 @@ int main(int argc, char *argv[])
 	int		loglevel = NFTLB_LOGLEVEL_DEFAULT;
 	const char	*config = NULL;
 
-	while ((c = getopt_long(argc, argv, "hl:c:k:ed6H:P:S", options, NULL)) != -1) {
+	while ((c = getopt_long(argc, argv, "hl:c:k:ed6H:P:Sm:", options, NULL)) != -1) {
 		switch (c) {
 		case 'h':
 			print_usage(argv[0]);
@@ -147,6 +150,9 @@ int main(int argc, char *argv[])
 			break;
 		case 'S':
 			serialize = 1;
+			break;
+		case 'm':
+			masquerade_mark = (int)strtol(optarg, NULL, 16);
 			break;
 		default:
 			fprintf(stderr, "Unknown option -%c\n", optopt);

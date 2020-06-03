@@ -24,7 +24,7 @@
 
 #include "farms.h"
 
-#define NFTLB_POSTROUTING_MARK		0x80000000
+#define NFTLB_MASQUERADE_MARK_DEFAULT		0x80000000
 
 int get_farm_mark(struct farm *f);
 int get_bck_mark(struct backend *b);

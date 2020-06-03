@@ -264,6 +264,8 @@ static int farm_set_netinfo(struct farm *f)
 	return 0;
 }
 
+extern int masquerade_mark;
+
 static int farm_set_mark(struct farm *f, int new_value)
 {
 	int old_value = f->mark;
@@ -275,8 +277,8 @@ static int farm_set_mark(struct farm *f, int new_value)
 		return 0;
 	}
 
-	if (new_value & NFTLB_POSTROUTING_MARK) {
-		syslog(LOG_ERR, "%s():%d: mark 0x%x for farm %s conflicts with the POSTROUTING mark 0x%x", __FUNCTION__, __LINE__, f->mark, f->name, NFTLB_POSTROUTING_MARK);
+	if (new_value & masquerade_mark) {
+		syslog(LOG_ERR, "%s():%d: mark 0x%x for farm %s conflicts with the POSTROUTING mark 0x%x", __FUNCTION__, __LINE__, f->mark, f->name, masquerade_mark);
 		return 0;
 	}
 

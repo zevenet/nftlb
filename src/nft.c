@@ -138,6 +138,7 @@
 #define NFTLB_CHECK_USABLE			1
 
 extern unsigned int serialize;
+extern int masquerade_mark;
 struct nft_ctx *ctx = NULL;
 
 enum map_modes {
@@ -790,7 +791,7 @@ static int run_base_chain(struct sbuffer *buf, struct farm *f, int type, int fam
 		if (type & NFTLB_F_CHAIN_PRE_FILTER) {
 			concat_exec_cmd(buf, " ; add rule %s %s %s mark set ct mark", chain_family, NFTLB_TABLE_NAME, base_chain);
 		} else if (type & NFTLB_F_CHAIN_POS_SNAT) {
-			concat_exec_cmd(buf, " ; add rule %s %s %s ct mark and 0x%x == 0x%x masquerade", chain_family, NFTLB_TABLE_NAME, base_chain, NFTLB_POSTROUTING_MARK, NFTLB_POSTROUTING_MARK);
+			concat_exec_cmd(buf, " ; add rule %s %s %s ct mark and 0x%x == 0x%x masquerade", chain_family, NFTLB_TABLE_NAME, base_chain, masquerade_mark, masquerade_mark);
 		}
 		*base_rules |= NFTLB_IP_ACTIVE;
 	}
@@ -1001,7 +1002,7 @@ static int run_farm_rules_gen_srv_map(struct sbuffer *buf, struct farm *f, char 
 				get_farm_service(service, f, type, f->family, key_mode);
 
 				bckmark = get_bck_mark(b);
-				if (type == NFTLB_F_CHAIN_POS_SNAT && bckmark & NFTLB_POSTROUTING_MARK)
+				if (type == NFTLB_F_CHAIN_POS_SNAT && bckmark & masquerade_mark)
 					continue;
 
 				if ((key_mode == BCK_MAP_BCK_ID || key_mode == BCK_MAP_BCK_MARK) && bckmark != DEFAULT_MARK) {
@@ -2253,7 +2254,7 @@ int get_farm_mark(struct farm *f)
 	int mark = f->mark;
 
 	if (farm_get_masquerade(f))
-		mark |= NFTLB_POSTROUTING_MARK;
+		mark |= masquerade_mark;
 
 	return mark;
 }
