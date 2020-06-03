@@ -46,11 +46,11 @@ table ip nftlb {
 	}
 
 	chain filter-newfarm {
-		ct state new ct mark 0x00000000 ct mark set numgen inc mod 1 map { 0 : 0x80000201 }
+		ct state new ct mark 0x00000000 ct mark set numgen inc mod 2 map { 0 : 0x80000201, 1 : 0x80000202 }
 	}
 
 	chain nat-newfarm {
-		dnat ip addr . port to ct mark map { 0x80000201 : 192.168.100.254 . 80 }
+		dnat ip addr . port to ct mark map { 0x80000201 : 192.168.100.254 . 80, 0x80000202 : 192.168.101.254 . 32 }
 	}
 
 	chain output-filter {

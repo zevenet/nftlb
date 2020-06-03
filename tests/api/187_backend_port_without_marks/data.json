@@ -1,0 +1,17 @@
+{
+        "farms": [
+                {
+                        "name": "newfarm",
+                        "backends": [
+                                {
+                                        "name": "bck0",
+                                        "mark": ""
+                                },
+                                {
+                                        "name": "bck1",
+                                        "mark": ""
+                                }
+                        ]
+                }
+        ]
+}

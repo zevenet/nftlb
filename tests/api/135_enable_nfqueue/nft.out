@@ -49,6 +49,6 @@ table ip nftlb {
 	}
 
 	chain nat-newfarm {
-		dnat to numgen inc mod 1 map { 0 : 192.168.0.151 }
+		dnat ip addr . port to numgen inc mod 1 map { 0 : 192.168.0.151 . 8080 }
 	}
 }
