@@ -51,6 +51,7 @@ Here is the list of options:
 **[ -H &lt;HOST&gt; | --host &lt;HOST&gt; ]**: Set the host for the web service (all interfaces by default).<br />
 **[ -P &lt;PORT&gt; | --port &lt;PORT&gt; ]**: Set the TCP port for the web service (5555 by default).<br />
 **[ -S | --serial ]**: Serialize nft commands.<br />
+**[ -m &lt;MARK&gt; | --masquerade-mark &lt;MARK&gt; ]**: Set masquerade mark in hex (80000000 by default).<br />
 
 
 Note: In order to use sNAT or dNAT modes, ensure you have activated the ip forwarding option in your system.
