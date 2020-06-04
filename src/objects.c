@@ -28,6 +28,7 @@
 #include "policies.h"
 #include "elements.h"
 #include "sessions.h"
+#include "tools.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -534,14 +535,15 @@ int obj_set_attribute(struct config_pair *c, int actionable)
 
 int obj_set_attribute_string(char *src, char **dst)
 {
-	*dst = (char *)malloc(strlen(src)+1);
+	int size = strlen(src)+1;
+	*dst = (char *)malloc(size);
 
 	if (!*dst) {
 		syslog(LOG_ERR, "Attribute memory allocation error");
 		return -1;
 	}
 
-	sprintf(*dst, "%s", src);
+	tools_snprintf(*dst, size-1, src);
 
 	return 0;
 }

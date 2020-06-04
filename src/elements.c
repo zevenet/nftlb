@@ -57,7 +57,7 @@ static int element_delete_node(struct element *e)
 	list_del(&e->list);
 	if (e->data)
 		free(e->data);
-	if (e->time && strcmp(e->time, "") != 0)
+	if (e->time)
 		free(e->time);
 
 	free(e);
@@ -195,7 +195,7 @@ int element_s_delete(struct policy *p)
 	list_for_each_entry_safe(e, next, &p->elements, list)
 		element_delete(e);
 
-	//~ p->total_elem = 0;
+	p->total_elem = 0;
 
 	return 0;
 }
@@ -210,12 +210,9 @@ int element_set_attribute(struct config_pair *c)
 
 	switch (c->key) {
 	case KEY_DATA:
-		e = element_lookup_by_name(p, c->str_value);
-		if (!e) {
-			e = element_create(p, c->str_value, NULL);
-			if (!e)
-				return -1;
-		}
+		e = element_create(p, c->str_value, NULL);
+		if (!e)
+			return -1;
 		obj_set_current_element(e);
 		break;
 	case KEY_TIME:
