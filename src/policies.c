@@ -187,6 +187,9 @@ int policy_set_action(struct policy *p, int action)
 {
 	syslog(LOG_DEBUG, "%s():%d: policy %s set action %d", __FUNCTION__, __LINE__, p->name, action);
 
+	if (p->action == action)
+		return 0;
+
 	if (action == ACTION_DELETE) {
 		farm_s_lookup_policy_action(p->name, action);
 		policy_delete(p);

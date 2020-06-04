@@ -95,9 +95,9 @@ static int nft_parse_sessions(struct farm *f, const char *buf)
 {
 	char *ini_ptr = NULL;
 	char *fin_ptr = NULL;
-	char element1[2550] = {0};
-	char element2[2550] = {0};
-	char element3[2550] = {0};
+	char element1[100] = {0};
+	char element2[100] = {0};
+	char element3[100] = {0};
 	int next = 0;
 
 	ini_ptr = strstr(buf, "elements = { ");
