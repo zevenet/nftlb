@@ -22,7 +22,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <syslog.h>
 
 #include "elements.h"
 #include "policies.h"
@@ -34,7 +33,7 @@ static struct element * element_create(struct policy *p, char *data, char *time)
 {
 	struct element *e = (struct element *)malloc(sizeof(struct element));
 	if (!e) {
-		syslog(LOG_ERR, "element memory allocation error");
+		tools_printlog(LOG_ERR, "element memory allocation error");
 		return NULL;
 	}
 
@@ -136,11 +135,11 @@ void element_s_print(struct policy *p)
 	struct element *e;
 
 	list_for_each_entry(e, &p->elements, list) {
-		syslog(LOG_DEBUG,"    [element] ");
-		syslog(LOG_DEBUG,"       [data] %s", e->data);
+		tools_printlog(LOG_DEBUG,"    [element] ");
+		tools_printlog(LOG_DEBUG,"       [data] %s", e->data);
 		if (p->timeout && e->time && strcmp(e->time, "") != 0)
-			syslog(LOG_DEBUG,"       [time] %s", e->time);
-		syslog(LOG_DEBUG,"       *[action] %d", e->action);
+			tools_printlog(LOG_DEBUG,"       [time] %s", e->time);
+		tools_printlog(LOG_DEBUG,"       *[action] %d", e->action);
 	}
 }
 
@@ -158,7 +157,7 @@ struct element * element_lookup_by_name(struct policy *p, const char *data)
 
 int element_set_action(struct element *e, int action)
 {
-	syslog(LOG_DEBUG, "%s():%d: element %s action is %d - new action %d", __FUNCTION__, __LINE__, e->data, e->action, action);
+	tools_printlog(LOG_DEBUG, "%s():%d: element %s action is %d - new action %d", __FUNCTION__, __LINE__, e->data, e->action, action);
 
 	if (action == ACTION_DELETE) {
 		element_delete(e);
@@ -236,7 +235,7 @@ int element_pos_actionable(struct config_pair *c)
 	if (!p || !e)
 		return -1;
 
-	syslog(LOG_DEBUG, "%s():%d: pos actionable element %s of policy %s with param %d", __FUNCTION__, __LINE__, e->data, p->name, c->key);
+	tools_printlog(LOG_DEBUG, "%s():%d: pos actionable element %s of policy %s with param %d", __FUNCTION__, __LINE__, e->data, p->name, c->key);
 
 	policy_set_action(p, ACTION_RELOAD);
 
@@ -246,7 +245,7 @@ int element_pos_actionable(struct config_pair *c)
 int element_get_list(struct policy *p)
 {
 	const char *buf;
-	syslog(LOG_DEBUG, "%s():%d: policy %s", __FUNCTION__, __LINE__, p->name);
+	tools_printlog(LOG_DEBUG, "%s():%d: policy %s", __FUNCTION__, __LINE__, p->name);
 
 	nft_get_rules_buffer(&buf, KEY_POLICIES, NULL, p);
 	p->total_elem = 0;

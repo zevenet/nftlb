@@ -68,7 +68,7 @@ enum states {
 	VALUE_STATE_CONFERR,
 };
 
- enum switches {
+enum switches {
 	VALUE_SWITCH_OFF,
 	VALUE_SWITCH_ON,
 };

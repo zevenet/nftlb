@@ -4,8 +4,7 @@ ARG="$1"
 ARG2="$2"
 NFTBIN="nft"
 NFTLBIN="../src/nftlb"
-#NFTLB_SERIAL=" -S"
-NFTLB_SERIAL=""
+NFTLB_ARGS=""
 APISERVER=0
 APISRV_PORT=5555
 APISRV_KEY="hola"
@@ -28,7 +27,7 @@ fi
 echo "" > /var/log/syslog
 
 if [ $APISERVER -eq 1 ]; then
-	$NFTLBIN $NFTLB_SERIAL -d -k "$APISRV_KEY" -l 7 > /dev/null
+	$NFTLBIN $NFTLB_ARGS -d -k "$APISRV_KEY" -l 7 > /dev/null
 fi
 
 echo "-- Executing configuration tests"
@@ -49,7 +48,7 @@ for test in `ls -d ${TESTS}`; do
 		$CURL -H "Expect:" -H "Key: $APISRV_KEY" -X POST http://localhost:$APISRV_PORT/farms -d "@${inputfile}"
 		statusexec=$?
 	else
-		$NFTLBIN $NFTLB_SERIAL -e -l 7 -c ${inputfile}
+		$NFTLBIN $NFTLB_ARGS -e -l 7 -c ${inputfile}
 		statusexec=$?
 	fi
 
@@ -58,7 +57,6 @@ for test in `ls -d ${TESTS}`; do
 		continue;
 	fi
 
-	#~ nftfile=`echo ${file} | awk -F'.' '{ print $1 }'`
 	$NFTBIN list ruleset > ${reportfile}
 
 	if [ ! -f ${outputfile} ]; then

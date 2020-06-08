@@ -19,7 +19,12 @@
  *
  */
 
+#include <stdio.h>
+#include <stdarg.h>
 #include "tools.h"
+
+int log_output;
+int log_level;
 
 void tools_snprintf(char *strdst, int size, char *strsrc)
 {
@@ -28,3 +33,59 @@ void tools_snprintf(char *strdst, int size, char *strsrc)
 	}
 	strdst[size] = '\0';
 }
+
+void tools_log_set_level(int loglevel)
+{
+	log_level = loglevel;
+	setlogmask(LOG_UPTO(loglevel));
+}
+
+void tools_log_set_output(int output)
+{
+	switch (output) {
+	case VALUE_LOG_OUTPUT_STDOUT:
+		log_output = NFTLB_LOG_OUTPUT_STDOUT;
+		break;
+	case VALUE_LOG_OUTPUT_STDERR:
+		log_output = NFTLB_LOG_OUTPUT_STDERR;
+		break;
+	case VALUE_LOG_OUTPUT_SYSOUT:
+		log_output = NFTLB_LOG_OUTPUT_SYSLOG | NFTLB_LOG_OUTPUT_STDOUT;
+		break;
+	case VALUE_LOG_OUTPUT_SYSERR:
+		log_output = NFTLB_LOG_OUTPUT_SYSLOG | NFTLB_LOG_OUTPUT_STDERR;
+		break;
+	case VALUE_LOG_OUTPUT_SYSLOG:
+	default:
+		log_output = NFTLB_LOG_OUTPUT_SYSLOG;
+	}
+	return;
+}
+
+int tools_printlog(int loglevel, char *fmt, ...)
+{
+	va_list args;
+
+	if (log_output & NFTLB_LOG_OUTPUT_STDOUT && loglevel <= log_level) {
+		va_start(args, fmt);
+		vfprintf(stdout, fmt, args);
+		fprintf(stdout, "\n");
+		va_end(args);
+	}
+
+	if (log_output & NFTLB_LOG_OUTPUT_STDERR && loglevel <= log_level) {
+		va_start(args, fmt);
+		vfprintf(stderr, fmt, args);
+		fprintf(stderr, "\n");
+		va_end(args);
+	}
+
+	if (log_output & NFTLB_LOG_OUTPUT_SYSLOG) {
+		va_start(args, fmt);
+		vsyslog(loglevel, fmt, args);
+		va_end(args);
+	}
+
+	return 0;
+}
+

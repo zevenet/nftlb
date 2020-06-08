@@ -22,7 +22,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <syslog.h>
 #include <net/if.h>
 
 #include "farms.h"
@@ -33,6 +32,7 @@
 #include "config.h"
 #include "nft.h"
 #include "network.h"
+#include "tools.h"
 
 
 static struct farm * farm_create(char *name)
@@ -41,7 +41,7 @@ static struct farm * farm_create(char *name)
 
 	struct farm *pfarm = (struct farm *)malloc(sizeof(struct farm));
 	if (!pfarm) {
-		syslog(LOG_ERR, "Farm memory allocation error");
+		tools_printlog(LOG_ERR, "Farm memory allocation error");
 		return NULL;
 	}
 
@@ -116,8 +116,8 @@ static struct farm * farm_create(char *name)
 
 static int farm_delete(struct farm *pfarm)
 {
-	syslog(LOG_DEBUG, "%s():%d: deleting farm %s",
-	       __FUNCTION__, __LINE__, pfarm->name);
+	tools_printlog(LOG_DEBUG, "%s():%d: deleting farm %s",
+				   __FUNCTION__, __LINE__, pfarm->name);
 
 	backend_s_delete(pfarm);
 	farmpolicy_s_delete(pfarm);
@@ -158,8 +158,8 @@ static int farm_delete(struct farm *pfarm)
 
 static int farm_validate(struct farm *f)
 {
-	syslog(LOG_DEBUG, "%s():%d: validating farm %s",
-	       __FUNCTION__, __LINE__, f->name);
+	tools_printlog(LOG_DEBUG, "%s():%d: validating farm %s",
+				   __FUNCTION__, __LINE__, f->name);
 
 	if (obj_equ_attribute_string(f->virtaddr, DEFAULT_VIRTADDR) &&
 		obj_equ_attribute_string(f->virtports, DEFAULT_VIRTPORTS))
@@ -186,8 +186,8 @@ static int farm_validate(struct farm *f)
 
 static int farm_is_available(struct farm *f)
 {
-	syslog(LOG_DEBUG, "%s():%d: farm %s state is %s",
-	       __FUNCTION__, __LINE__, f->name, obj_print_state(f->state));
+	tools_printlog(LOG_DEBUG, "%s():%d: farm %s state is %s",
+				   __FUNCTION__, __LINE__, f->name, obj_print_state(f->state));
 
 	return (f->state == VALUE_STATE_UP) && farm_validate(f);
 }
@@ -199,7 +199,7 @@ static int farm_s_update_dsr_counter(void)
 	int dsrcount = 0;
 	int curcount = obj_get_dsr_counter();
 
-	syslog(LOG_DEBUG, "%s():%d: updating dsr counter", __FUNCTION__, __LINE__);
+	tools_printlog(LOG_DEBUG, "%s():%d: updating dsr counter", __FUNCTION__, __LINE__);
 
 	list_for_each_entry(f, farms, list) {
 		if (farm_is_ingress_mode(f))
@@ -207,7 +207,7 @@ static int farm_s_update_dsr_counter(void)
 	}
 
 	if (dsrcount != curcount)
-		syslog(LOG_DEBUG, "%s():%d: farm dsr counter becomes %d", __FUNCTION__, __LINE__, dsrcount);
+		tools_printlog(LOG_DEBUG, "%s():%d: farm dsr counter becomes %d", __FUNCTION__, __LINE__, dsrcount);
 
 	obj_set_dsr_counter(dsrcount);
 
@@ -239,10 +239,10 @@ int farm_needs_intraconnect(struct farm *f)
 
 static int farm_set_netinfo(struct farm *f)
 {
-	syslog(LOG_DEBUG, "%s():%d: farm %s", __FUNCTION__, __LINE__, f->name);
+	tools_printlog(LOG_DEBUG, "%s():%d: farm %s", __FUNCTION__, __LINE__, f->name);
 
 	if (f->state != VALUE_STATE_UP) {
-		syslog(LOG_INFO, "%s():%d: farm %s doesn't require low level network info", __FUNCTION__, __LINE__, f->name);
+		tools_printlog(LOG_INFO, "%s():%d: farm %s doesn't require low level network info", __FUNCTION__, __LINE__, f->name);
 		return -1;
 	}
 
@@ -270,15 +270,15 @@ static int farm_set_mark(struct farm *f, int new_value)
 {
 	int old_value = f->mark;
 
-	syslog(LOG_DEBUG, "%s():%d: farm %s old mark %d new mark %d", __FUNCTION__, __LINE__, f->name, old_value, new_value);
+	tools_printlog(LOG_DEBUG, "%s():%d: farm %s old mark %d new mark %d", __FUNCTION__, __LINE__, f->name, old_value, new_value);
 
 	if (f->mode != VALUE_MODE_DNAT && f->mode != VALUE_MODE_SNAT) {
-		syslog(LOG_INFO, "%s():%d: mark for farm %s not available for the current mode %d", __FUNCTION__, __LINE__, f->name, f->mode);
+		tools_printlog(LOG_INFO, "%s():%d: mark for farm %s not available for the current mode %d", __FUNCTION__, __LINE__, f->name, f->mode);
 		return 0;
 	}
 
 	if (new_value & masquerade_mark) {
-		syslog(LOG_ERR, "%s():%d: mark 0x%x for farm %s conflicts with the POSTROUTING mark 0x%x", __FUNCTION__, __LINE__, f->mark, f->name, masquerade_mark);
+		tools_printlog(LOG_ERR, "%s():%d: mark 0x%x for farm %s conflicts with the POSTROUTING mark 0x%x", __FUNCTION__, __LINE__, f->mark, f->name, masquerade_mark);
 		return 0;
 	}
 
@@ -291,7 +291,7 @@ static int farm_set_state(struct farm *f, int new_value)
 {
 	int old_value = f->state;
 
-	syslog(LOG_DEBUG, "%s():%d: farm %s old state %d new state %d", __FUNCTION__, __LINE__, f->name, old_value, new_value);
+	tools_printlog(LOG_DEBUG, "%s():%d: farm %s old state %d new state %d", __FUNCTION__, __LINE__, f->name, old_value, new_value);
 
 	if (old_value != VALUE_STATE_UP &&
 	    new_value == VALUE_STATE_UP) {
@@ -316,7 +316,7 @@ static int farm_set_mode(struct farm *f, int new_value)
 {
 	int old_value = f->mode;
 
-	syslog(LOG_DEBUG, "%s():%d: farm %s old mode %d new mode %d", __FUNCTION__, __LINE__, f->name, old_value, new_value);
+	tools_printlog(LOG_DEBUG, "%s():%d: farm %s old mode %d new mode %d", __FUNCTION__, __LINE__, f->name, old_value, new_value);
 
 	if (old_value != new_value) {
 		f->mode = new_value;
@@ -329,7 +329,7 @@ static int farm_set_mode(struct farm *f, int new_value)
 
 static int farm_set_port(struct farm *f, char *new_value)
 {
-	syslog(LOG_DEBUG, "%s():%d: farm %s old port %s new port %s", __FUNCTION__, __LINE__, f->name, f->virtports, new_value);
+	tools_printlog(LOG_DEBUG, "%s():%d: farm %s old port %s new port %s", __FUNCTION__, __LINE__, f->name, f->virtports, new_value);
 
 	if (strcmp(new_value, "0") != 0)
 		obj_set_attribute_string(new_value, &f->virtports);
@@ -344,7 +344,7 @@ static int farm_set_sched(struct farm *f, int new_value)
 {
 	int old_value = f->scheduler;
 
-	syslog(LOG_DEBUG, "%s():%d: farm %s old scheduler %d new scheduler %d", __FUNCTION__, __LINE__, f->name, old_value, new_value);
+	tools_printlog(LOG_DEBUG, "%s():%d: farm %s old scheduler %d new scheduler %d", __FUNCTION__, __LINE__, f->name, old_value, new_value);
 
 	f->scheduler = new_value;
 
@@ -363,7 +363,7 @@ static int farm_set_persistence(struct farm *f, int new_value)
 {
 	int old_value = f->persistence;
 
-	syslog(LOG_DEBUG, "%s():%d: farm %s old persistence %d new persistence %d", __FUNCTION__, __LINE__, f->name, old_value, new_value);
+	tools_printlog(LOG_DEBUG, "%s():%d: farm %s old persistence %d new persistence %d", __FUNCTION__, __LINE__, f->name, old_value, new_value);
 
 	session_s_delete(f, SESSION_TYPE_STATIC);
 
@@ -376,102 +376,102 @@ static void farm_print(struct farm *f)
 {
 	char buf[100] = {};
 
-	syslog(LOG_DEBUG," [farm] ");
-	syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_NAME, f->name);
+	tools_printlog(LOG_DEBUG," [farm] ");
+	tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_NAME, f->name);
 
 	if (f->fqdn)
-		syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_FQDN, f->fqdn);
+		tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_FQDN, f->fqdn);
 
 	if (f->iface)
-		syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_IFACE, f->iface);
+		tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_IFACE, f->iface);
 
 	if (f->iethaddr)
-		syslog(LOG_DEBUG,"    [i-%s] %s", CONFIG_KEY_ETHADDR, f->iethaddr);
+		tools_printlog(LOG_DEBUG,"    [i-%s] %s", CONFIG_KEY_ETHADDR, f->iethaddr);
 
-	syslog(LOG_DEBUG,"    *[ifidx] %d", f->ifidx);
+	tools_printlog(LOG_DEBUG,"    *[ifidx] %d", f->ifidx);
 
 	if (f->oface)
-		syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_OFACE, f->oface);
+		tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_OFACE, f->oface);
 
 	if (f->oethaddr)
-		syslog(LOG_DEBUG,"    [o-%s] %s", CONFIG_KEY_ETHADDR, f->oethaddr);
+		tools_printlog(LOG_DEBUG,"    [o-%s] %s", CONFIG_KEY_ETHADDR, f->oethaddr);
 
-	syslog(LOG_DEBUG,"    *[ofidx] %d", f->ofidx);
+	tools_printlog(LOG_DEBUG,"    *[ofidx] %d", f->ofidx);
 
 	if (f->virtaddr)
-		syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_VIRTADDR, f->virtaddr);
+		tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_VIRTADDR, f->virtaddr);
 
 	if (f->virtports)
-		syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_VIRTPORTS, f->virtports);
+		tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_VIRTPORTS, f->virtports);
 
 	if (f->srcaddr)
-		syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_SRCADDR, f->srcaddr);
+		tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_SRCADDR, f->srcaddr);
 
-	syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_FAMILY, obj_print_family(f->family));
-	syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_MODE, obj_print_mode(f->mode));
+	tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_FAMILY, obj_print_family(f->family));
+	tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_MODE, obj_print_mode(f->mode));
 
 	if (f->mode == VALUE_MODE_STLSDNAT)
-		syslog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_RESPONSETTL, f->responsettl);
+		tools_printlog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_RESPONSETTL, f->responsettl);
 
-	syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_PROTO, obj_print_proto(f->protocol));
-	syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_SCHED, obj_print_sched(f->scheduler));
+	tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_PROTO, obj_print_proto(f->protocol));
+	tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_SCHED, obj_print_sched(f->scheduler));
 
 	obj_print_meta(f->schedparam, (char *)buf);
-	syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_SCHEDPARAM, buf);
+	tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_SCHEDPARAM, buf);
 	buf[0] = '\0';
 
 	obj_print_meta(f->persistence, (char *)buf);
-	syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_PERSIST, buf);
+	tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_PERSIST, buf);
 	buf[0] = '\0';
-	syslog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_PERSISTTM, f->persistttl);
+	tools_printlog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_PERSISTTM, f->persistttl);
 
-	syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_HELPER, obj_print_helper(f->helper));
+	tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_HELPER, obj_print_helper(f->helper));
 
 	obj_print_log(f->log, (char *)buf);
-	syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_LOG, buf);
+	tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_LOG, buf);
 	if (f->logprefix)
-		syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_LOGPREFIX, f->logprefix);
+		tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_LOGPREFIX, f->logprefix);
 
-	syslog(LOG_DEBUG,"    [%s] 0x%x", CONFIG_KEY_MARK, f->mark);
-	syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_STATE, obj_print_state(f->state));
-	syslog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_PRIORITY, f->priority);
+	tools_printlog(LOG_DEBUG,"    [%s] 0x%x", CONFIG_KEY_MARK, f->mark);
+	tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_STATE, obj_print_state(f->state));
+	tools_printlog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_PRIORITY, f->priority);
 
-	syslog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_NEWRTLIMIT, f->newrtlimit);
-	syslog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_NEWRTLIMITBURST, f->newrtlimitbst);
+	tools_printlog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_NEWRTLIMIT, f->newrtlimit);
+	tools_printlog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_NEWRTLIMITBURST, f->newrtlimitbst);
 	if (f->newrtlimit_logprefix)
-		syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_NEWRTLIMIT_LOGPREFIX, f->newrtlimit_logprefix);
+		tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_NEWRTLIMIT_LOGPREFIX, f->newrtlimit_logprefix);
 
-	syslog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_RSTRTLIMIT, f->rstrtlimit);
-	syslog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_RSTRTLIMITBURST, f->rstrtlimitbst);
+	tools_printlog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_RSTRTLIMIT, f->rstrtlimit);
+	tools_printlog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_RSTRTLIMITBURST, f->rstrtlimitbst);
 	if (f->rstrtlimit_logprefix)
-		syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_RSTRTLIMIT_LOGPREFIX, f->rstrtlimit_logprefix);
+		tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_RSTRTLIMIT_LOGPREFIX, f->rstrtlimit_logprefix);
 
-	syslog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_ESTCONNLIMIT, f->estconnlimit);
+	tools_printlog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_ESTCONNLIMIT, f->estconnlimit);
 	if (f->estconnlimit_logprefix)
-		syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_ESTCONNLIMIT_LOGPREFIX, f->estconnlimit_logprefix);
+		tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_ESTCONNLIMIT_LOGPREFIX, f->estconnlimit_logprefix);
 
-	syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_TCPSTRICT, obj_print_switch(f->tcpstrict));
+	tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_TCPSTRICT, obj_print_switch(f->tcpstrict));
 	if (f->tcpstrict_logprefix)
-		syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_TCPSTRICT_LOGPREFIX, f->tcpstrict_logprefix);
+		tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_TCPSTRICT_LOGPREFIX, f->tcpstrict_logprefix);
 
-	syslog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_QUEUE, f->queue);
-	syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_FLOWOFFLOAD, obj_print_switch(f->flow_offload));
-	syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_INTRACONNECT, obj_print_switch(f->intra_connect));
+	tools_printlog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_QUEUE, f->queue);
+	tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_FLOWOFFLOAD, obj_print_switch(f->flow_offload));
+	tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_INTRACONNECT, obj_print_switch(f->intra_connect));
 
-	syslog(LOG_DEBUG,"    *[total_weight] %d", f->total_weight);
-	syslog(LOG_DEBUG,"    *[total_bcks] %d", f->total_bcks);
-	syslog(LOG_DEBUG,"    *[bcks_available] %d", f->bcks_available);
-	syslog(LOG_DEBUG,"    *[bcks_usable] %d", f->bcks_usable);
-	syslog(LOG_DEBUG,"    *[bcks_are_marked] %d", f->bcks_are_marked);
-	syslog(LOG_DEBUG,"    *[bcks_have_port] %d", f->bcks_have_port);
-	syslog(LOG_DEBUG,"    *[bcks_have_srcaddr] %d", f->bcks_have_srcaddr);
-	syslog(LOG_DEBUG,"    *[policies_action] %d", f->policies_action);
-	syslog(LOG_DEBUG,"    *[policies_used] %d", f->policies_used);
-	syslog(LOG_DEBUG,"    *[total_static_sessions] %d", f->total_static_sessions);
-	syslog(LOG_DEBUG,"    *[total_timed_sessions] %d", f->total_timed_sessions);
-	syslog(LOG_DEBUG,"    *[%s] %d", CONFIG_KEY_ACTION, f->action);
-	syslog(LOG_DEBUG,"    *[reload_action] %x", f->reload_action);
-	syslog(LOG_DEBUG,"    *[nft_chains] %x", f->nft_chains);
+	tools_printlog(LOG_DEBUG,"    *[total_weight] %d", f->total_weight);
+	tools_printlog(LOG_DEBUG,"    *[total_bcks] %d", f->total_bcks);
+	tools_printlog(LOG_DEBUG,"    *[bcks_available] %d", f->bcks_available);
+	tools_printlog(LOG_DEBUG,"    *[bcks_usable] %d", f->bcks_usable);
+	tools_printlog(LOG_DEBUG,"    *[bcks_are_marked] %d", f->bcks_are_marked);
+	tools_printlog(LOG_DEBUG,"    *[bcks_have_port] %d", f->bcks_have_port);
+	tools_printlog(LOG_DEBUG,"    *[bcks_have_srcaddr] %d", f->bcks_have_srcaddr);
+	tools_printlog(LOG_DEBUG,"    *[policies_action] %d", f->policies_action);
+	tools_printlog(LOG_DEBUG,"    *[policies_used] %d", f->policies_used);
+	tools_printlog(LOG_DEBUG,"    *[total_static_sessions] %d", f->total_static_sessions);
+	tools_printlog(LOG_DEBUG,"    *[total_timed_sessions] %d", f->total_timed_sessions);
+	tools_printlog(LOG_DEBUG,"    *[%s] %d", CONFIG_KEY_ACTION, f->action);
+	tools_printlog(LOG_DEBUG,"    *[reload_action] %x", f->reload_action);
+	tools_printlog(LOG_DEBUG,"    *[nft_chains] %x", f->nft_chains);
 
 	if (f->total_bcks != 0)
 		backend_s_print(f);
@@ -567,7 +567,7 @@ int farm_changed(struct config_pair *c)
 	if (!f)
 		return -1;
 
-	syslog(LOG_DEBUG, "%s():%d: farm %s with param %d", __FUNCTION__, __LINE__, f->name, c->key);
+	tools_printlog(LOG_DEBUG, "%s():%d: farm %s with param %d", __FUNCTION__, __LINE__, f->name, c->key);
 
 	switch (c->key) {
 	case KEY_NAME:
@@ -689,8 +689,8 @@ int farm_set_priority(struct farm *f, int new_value)
 {
 	int old_value = f->priority;
 
-	syslog(LOG_DEBUG, "%s():%d: current value is %d, but new value will be %d",
-	       __FUNCTION__, __LINE__, old_value, new_value);
+	tools_printlog(LOG_DEBUG, "%s():%d: current value is %d, but new value will be %d",
+				   __FUNCTION__, __LINE__, old_value, new_value);
 
 	if (new_value <= 0)
 		return -1;
@@ -743,12 +743,12 @@ int farm_set_ifinfo(struct farm *f, int key)
 	int if_index;
 	int ret = 0;
 
-	syslog(LOG_DEBUG, "%s():%d: farm %s set interface info for interface key %d", __FUNCTION__, __LINE__, f->name, key);
+	tools_printlog(LOG_DEBUG, "%s():%d: farm %s set interface info for interface key %d", __FUNCTION__, __LINE__, f->name, key);
 
 	if (!(farm_is_ingress_mode(f) ||
 		(farm_needs_policies(f) && key == KEY_IFACE) ||
 		farm_needs_flowtable(f))) {
-		syslog(LOG_DEBUG, "%s():%d: farm %s doesn't require netinfo", __FUNCTION__, __LINE__, f->name);
+		tools_printlog(LOG_DEBUG, "%s():%d: farm %s doesn't require netinfo", __FUNCTION__, __LINE__, f->name);
 		return 0;
 	}
 
@@ -757,7 +757,7 @@ int farm_set_ifinfo(struct farm *f, int key)
 		ret = net_get_local_ifname_per_vip(f->virtaddr, if_str);
 
 		if (ret != 0) {
-			syslog(LOG_ERR, "%s():%d: inbound interface not found with VIP %s by farm %s", __FUNCTION__, __LINE__, f->virtaddr, f->name);
+			tools_printlog(LOG_ERR, "%s():%d: inbound interface not found with VIP %s by farm %s", __FUNCTION__, __LINE__, f->virtaddr, f->name);
 			return -1;
 		}
 
@@ -767,7 +767,7 @@ int farm_set_ifinfo(struct farm *f, int key)
 		if_index = if_nametoindex(f->iface);
 
 		if (if_index == 0) {
-			syslog(LOG_ERR, "%s():%d: index of the inbound interface %s in farm %s not found", __FUNCTION__, __LINE__, f->iface, f->name);
+			tools_printlog(LOG_ERR, "%s():%d: index of the inbound interface %s in farm %s not found", __FUNCTION__, __LINE__, f->iface, f->name);
 			return -1;
 		}
 
@@ -792,7 +792,7 @@ int farm_set_ifinfo(struct farm *f, int key)
 
 	case KEY_OFACE:
 		if (f->oface && strcmp(f->oface, IFACE_LOOPBACK) == 0) {
-			syslog(LOG_DEBUG, "%s():%d: farm %s doesn't require output netinfo, loopback interface", __FUNCTION__, __LINE__, f->name);
+			tools_printlog(LOG_DEBUG, "%s():%d: farm %s doesn't require output netinfo, loopback interface", __FUNCTION__, __LINE__, f->name);
 			f->ofidx = 0;
 			return 0;
 		}
@@ -801,20 +801,20 @@ int farm_set_ifinfo(struct farm *f, int key)
 
 		b = backend_get_first(f);
 		if (!b || b->ipaddr == DEFAULT_IPADDR) {
-			syslog(LOG_DEBUG, "%s():%d: there is no backend yet in the farm %s", __FUNCTION__, __LINE__, f->name);
+			tools_printlog(LOG_DEBUG, "%s():%d: there is no backend yet in the farm %s", __FUNCTION__, __LINE__, f->name);
 			return 0;
 		}
 
 		ret = net_get_local_ifidx_per_remote_host(b->ipaddr, &if_index);
 		if (ret == -1) {
-			syslog(LOG_ERR, "%s():%d: unable to get the outbound interface to %s for the farm %s", __FUNCTION__, __LINE__, b->ipaddr, f->name);
+			tools_printlog(LOG_ERR, "%s():%d: unable to get the outbound interface to %s for the farm %s", __FUNCTION__, __LINE__, b->ipaddr, f->name);
 			return -1;
 		}
 
 		f->ofidx = if_index;
 
 		if (if_indextoname(if_index, if_str) == NULL) {
-			syslog(LOG_ERR, "%s():%d: unable to get the outbound interface name with index %d required by the farm %s", __FUNCTION__, __LINE__, if_index, f->name);
+			tools_printlog(LOG_ERR, "%s():%d: unable to get the outbound interface name with index %d required by the farm %s", __FUNCTION__, __LINE__, if_index, f->name);
 			return -1;
 		}
 
@@ -840,7 +840,7 @@ int farm_pre_actionable(struct config_pair *c)
 	if (!f)
 		return -1;
 
-	syslog(LOG_DEBUG, "%s():%d: pre actionable farm %s with param %d", __FUNCTION__, __LINE__, f->name, c->key);
+	tools_printlog(LOG_DEBUG, "%s():%d: pre actionable farm %s with param %d", __FUNCTION__, __LINE__, f->name, c->key);
 
 	switch (c->key) {
 	case KEY_NAME:
@@ -876,7 +876,7 @@ int farm_pos_actionable(struct config_pair *c)
 	if (!f)
 		return -1;
 
-	syslog(LOG_DEBUG, "%s():%d: pos actionable farm %s with param %d", __FUNCTION__, __LINE__, f->name, c->key);
+	tools_printlog(LOG_DEBUG, "%s():%d: pos actionable farm %s with param %d", __FUNCTION__, __LINE__, f->name, c->key);
 
 	switch (c->key) {
 	case KEY_NAME:
@@ -1071,7 +1071,7 @@ int farm_set_attribute(struct config_pair *c)
 
 int farm_set_action(struct farm *f, int action)
 {
-	syslog(LOG_DEBUG, "%s():%d: farm %s action is %d - new action %d", __FUNCTION__, __LINE__, f->name, f->action, action);
+	tools_printlog(LOG_DEBUG, "%s():%d: farm %s action is %d - new action %d", __FUNCTION__, __LINE__, f->name, f->action, action);
 
 	if (action == ACTION_STOP && f->state != VALUE_STATE_UP)
 		return 0;
@@ -1118,7 +1118,7 @@ int farm_get_masquerade(struct farm *f)
 {
 	int masq = (f->mode == VALUE_MODE_SNAT && (f->srcaddr == DEFAULT_SRCADDR || strcmp(f->srcaddr, "") == 0));
 
-	syslog(LOG_DEBUG, "%s():%d: farm %s masquerade %d", __FUNCTION__, __LINE__, f->name, masq);
+	tools_printlog(LOG_DEBUG, "%s():%d: farm %s masquerade %d", __FUNCTION__, __LINE__, f->name, masq);
 
 	return masq;
 }
@@ -1128,14 +1128,14 @@ void farm_s_set_backend_ether_by_oifidx(int interface_idx, const char * ip_bck, 
 	struct list_head *farms = obj_get_farms();
 	struct farm *f;
 
-	syslog(LOG_DEBUG, "%s():%d: updating farms with backends ip address %s and ether address %s", __FUNCTION__, __LINE__, ip_bck, ether_bck);
+	tools_printlog(LOG_DEBUG, "%s():%d: updating farms with backends ip address %s and ether address %s", __FUNCTION__, __LINE__, ip_bck, ether_bck);
 
 	list_for_each_entry(f, farms, list) {
 
-		syslog(LOG_DEBUG, "%s():%d: farm with oifidx %d found", __FUNCTION__, __LINE__, interface_idx);
+		tools_printlog(LOG_DEBUG, "%s():%d: farm with oifidx %d found", __FUNCTION__, __LINE__, interface_idx);
 
 		if (!farm_validate(f)) {
-			syslog(LOG_INFO, "%s():%d: farm %s doesn't validate", __FUNCTION__, __LINE__, f->name);
+			tools_printlog(LOG_INFO, "%s():%d: farm %s doesn't validate", __FUNCTION__, __LINE__, f->name);
 			farm_set_state(f, VALUE_STATE_CONFERR);
 			continue;
 		}
@@ -1161,13 +1161,13 @@ int farm_s_lookup_policy_action(char *name, int action)
 
 int farm_rulerize(struct farm *f)
 {
-	syslog(LOG_DEBUG, "%s():%d: rulerize farm %s", __FUNCTION__, __LINE__, f->name);
+	tools_printlog(LOG_DEBUG, "%s():%d: rulerize farm %s", __FUNCTION__, __LINE__, f->name);
 
 	farm_print(f);
 
 	if ((f->action == ACTION_START || f->action == ACTION_RELOAD) &&
 		!farm_is_available(f)) {
-		syslog(LOG_INFO, "%s():%d: farm %s won't be rulerized", __FUNCTION__, __LINE__, f->name);
+		tools_printlog(LOG_INFO, "%s():%d: farm %s won't be rulerized", __FUNCTION__, __LINE__, f->name);
 		if (f->state == VALUE_STATE_UP)
 			farm_set_state(f, VALUE_STATE_CONFERR);
 		return 0;
@@ -1183,7 +1183,7 @@ int farm_s_rulerize(void)
 	int ret = 0;
 	int output = 0;
 
-	syslog(LOG_DEBUG, "%s():%d: rulerize everything", __FUNCTION__, __LINE__);
+	tools_printlog(LOG_DEBUG, "%s():%d: rulerize everything", __FUNCTION__, __LINE__);
 
 	list_for_each_entry_safe(f, next, farms, list) {
 		ret = farm_rulerize(f);

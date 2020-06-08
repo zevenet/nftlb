@@ -22,7 +22,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <syslog.h>
 
 #include "sessions.h"
 #include "farms.h"
@@ -35,16 +34,16 @@ static struct session * session_create(struct farm *f, int type, char *client, c
 	struct session *s;
 	struct backend *b;
 
-	syslog(LOG_DEBUG, "%s():%d: farm %s type %d client %s bck %s expiration %s", __FUNCTION__, __LINE__, f->name, type, client, bck, expiration);
+	tools_printlog(LOG_DEBUG, "%s():%d: farm %s type %d client %s bck %s expiration %s", __FUNCTION__, __LINE__, f->name, type, client, bck, expiration);
 
 	if (!client || strcmp(client, "") == 0) {
-		syslog(LOG_ERR, "%s():%d: missing data", __FUNCTION__, __LINE__);
+		tools_printlog(LOG_ERR, "%s():%d: missing data", __FUNCTION__, __LINE__);
 		return NULL;
 	}
 
 	s = (struct session *)malloc(sizeof(struct session));
 	if (!s) {
-		syslog(LOG_ERR, "Session memory allocation error");
+		tools_printlog(LOG_ERR, "Session memory allocation error");
 		return NULL;
 	}
 
@@ -148,7 +147,7 @@ new_session:
 
 static int session_delete_node(struct session *s, int type)
 {
-	syslog(LOG_DEBUG, "%s():%d: client %s", __FUNCTION__, __LINE__, s->client);
+	tools_printlog(LOG_DEBUG, "%s():%d: client %s", __FUNCTION__, __LINE__, s->client);
 
 	list_del(&s->list);
 
@@ -169,7 +168,7 @@ static int session_delete_node(struct session *s, int type)
 
 int session_set_action(struct session *s, int type, int action)
 {
-	syslog(LOG_DEBUG, "%s():%d: session %s action is %d - new action %d", __FUNCTION__, __LINE__, s->client, s->action, action);
+	tools_printlog(LOG_DEBUG, "%s():%d: session %s action is %d - new action %d", __FUNCTION__, __LINE__, s->client, s->action, action);
 
 	if (s->action == action)
 		return 0;
@@ -224,7 +223,7 @@ int session_s_delete(struct farm *f, int type)
 	struct session *s;
 	struct session *next;
 
-	syslog(LOG_DEBUG, "%s():%d: farm %s type %d", __FUNCTION__, __LINE__, f->name, type);
+	tools_printlog(LOG_DEBUG, "%s():%d: farm %s type %d", __FUNCTION__, __LINE__, f->name, type);
 
 	if (type == SESSION_TYPE_TIMED)
 		sessions = &f->timed_sessions;
@@ -257,37 +256,37 @@ void session_s_print(struct farm *f)
 	struct session *s;
 
 	list_for_each_entry(s, &f->static_sessions, list) {
-		syslog(LOG_DEBUG,"    [session] ");
-		syslog(LOG_DEBUG,"       [client] %s", s->client);
+		tools_printlog(LOG_DEBUG,"    [session] ");
+		tools_printlog(LOG_DEBUG,"       [client] %s", s->client);
 
 		if (!s->bck)
-			syslog(LOG_DEBUG,"       [backend] %s", UNDEFINED_VALUE);
+			tools_printlog(LOG_DEBUG,"       [backend] %s", UNDEFINED_VALUE);
 		else
-			syslog(LOG_DEBUG,"       [backend] %s", s->bck->name);
+			tools_printlog(LOG_DEBUG,"       [backend] %s", s->bck->name);
 
-		syslog(LOG_DEBUG,"       *[state] %s", obj_print_state(s->state));
-		syslog(LOG_DEBUG,"       *[action] %d", s->action);
+		tools_printlog(LOG_DEBUG,"       *[state] %s", obj_print_state(s->state));
+		tools_printlog(LOG_DEBUG,"       *[action] %d", s->action);
 	}
 
 	list_for_each_entry(s, &f->timed_sessions, list) {
-		syslog(LOG_DEBUG,"    [session] ");
-		syslog(LOG_DEBUG,"       [client] %s", s->client);
+		tools_printlog(LOG_DEBUG,"    [session] ");
+		tools_printlog(LOG_DEBUG,"       [client] %s", s->client);
 
 		if (!s->bck)
-			syslog(LOG_DEBUG,"       [backend] %s", UNDEFINED_VALUE);
+			tools_printlog(LOG_DEBUG,"       [backend] %s", UNDEFINED_VALUE);
 		else
-			syslog(LOG_DEBUG,"       [backend] %s", s->bck->name);
+			tools_printlog(LOG_DEBUG,"       [backend] %s", s->bck->name);
 
-		syslog(LOG_DEBUG,"       [expiration] %s", s->expiration);
-		syslog(LOG_DEBUG,"       *[state] %s", obj_print_state(s->state));
-		syslog(LOG_DEBUG,"       *[action] %d", s->action);
+		tools_printlog(LOG_DEBUG,"       [expiration] %s", s->expiration);
+		tools_printlog(LOG_DEBUG,"       *[state] %s", obj_print_state(s->state));
+		tools_printlog(LOG_DEBUG,"       *[action] %d", s->action);
 	}
 }
 
 int session_get_timed(struct farm *f)
 {
 	const char *buf;
-	syslog(LOG_DEBUG, "%s():%d: farm %s", __FUNCTION__, __LINE__, f->name);
+	tools_printlog(LOG_DEBUG, "%s():%d: farm %s", __FUNCTION__, __LINE__, f->name);
 
 	nft_get_rules_buffer(&buf, KEY_SESSIONS, f, NULL);
 	f->total_timed_sessions = 0;
@@ -372,7 +371,7 @@ int session_pre_actionable(struct config_pair *c)
 	if (!f || !s)
 		return -1;
 
-	syslog(LOG_DEBUG, "%s():%d: pre actionable session farm %s", __FUNCTION__, __LINE__, f->name);
+	tools_printlog(LOG_DEBUG, "%s():%d: pre actionable session farm %s", __FUNCTION__, __LINE__, f->name);
 
 	switch (c->key) {
 	case KEY_CLIENT:
@@ -398,7 +397,7 @@ int session_pos_actionable(struct config_pair *c)
 	if (!f || !s)
 		return -1;
 
-	syslog(LOG_DEBUG, "%s():%d: pos actionable session %s of farm %s with param %d", __FUNCTION__, __LINE__, s->client, f->name, c->key);
+	tools_printlog(LOG_DEBUG, "%s():%d: pos actionable session %s of farm %s with param %d", __FUNCTION__, __LINE__, s->client, f->name, c->key);
 
 	switch (c->key) {
 	case KEY_CLIENT:

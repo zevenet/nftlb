@@ -22,7 +22,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
-#include <syslog.h>
 #include <time.h>
 #include <ifaddrs.h>
 #include <ev.h>
@@ -39,6 +38,7 @@
 #include "events.h"
 #include "farms.h"
 #include "checksum.h"
+#include "tools.h"
 
 #define ARP_TABLE_RETRY_SLEEP		1000
 #define ICMP_PROTO					1
@@ -128,7 +128,7 @@ static int send_ping(void *data)
 	int *frame_len;
 	uint8_t *frame;
 
-	syslog(LOG_DEBUG, "%s():%d: sending ping", __FUNCTION__, __LINE__);
+	tools_printlog(LOG_DEBUG, "%s():%d: sending ping", __FUNCTION__, __LINE__);
 
 	if (sdata->family == AF_INET6) {
 		frame_len = &frame_len_v6;
@@ -203,19 +203,19 @@ static int send_ping(void *data)
 	}
 
 	if (sock < 0) {
-		syslog(LOG_ERR, "%s():%d: open socket error", __FUNCTION__, __LINE__);
+		tools_printlog(LOG_ERR, "%s():%d: open socket error", __FUNCTION__, __LINE__);
 		ret = -1;
 		goto out;
 	}
 
 	if (sendto(sock, frame, *frame_len, 0, pdevice, sizeof(device)) <= 0) {
-		syslog(LOG_ERR, "%s():%d: sendto error", __FUNCTION__, __LINE__);
+		tools_printlog(LOG_ERR, "%s():%d: sendto error", __FUNCTION__, __LINE__);
 		ret = -1;
 	}
 
 out:
 	if (ret && sock > 0) {
-		syslog(LOG_DEBUG, "%s():%d: cleanup socket", __FUNCTION__, __LINE__);
+		tools_printlog(LOG_DEBUG, "%s():%d: cleanup socket", __FUNCTION__, __LINE__);
 		close(sock);
 	}
 
@@ -227,7 +227,7 @@ static int data_attr_neigh_cb(const struct nlattr *attr, void *data)
 	const struct nlattr **tb = data;
 	int type = mnl_attr_get_type(attr);
 
-	syslog(LOG_DEBUG, "%s():%d: launched cb neighbour", __FUNCTION__, __LINE__);
+	tools_printlog(LOG_DEBUG, "%s():%d: launched cb neighbour", __FUNCTION__, __LINE__);
 
 	if (mnl_attr_type_valid(attr, NDA_MAX) < 0)
 		return MNL_CB_OK;
@@ -236,7 +236,7 @@ static int data_attr_neigh_cb(const struct nlattr *attr, void *data)
 	case NDA_DST:
 	case NDA_LLADDR:
 		if (mnl_attr_validate(attr, MNL_TYPE_BINARY) < 0) {
-			syslog(LOG_ERR, "%s():%d: mnl_attr_validate error", __FUNCTION__, __LINE__);
+			tools_printlog(LOG_ERR, "%s():%d: mnl_attr_validate error", __FUNCTION__, __LINE__);
 			return MNL_CB_ERROR;
 		}
 		break;
@@ -259,7 +259,7 @@ static int data_getdst_neigh_cb(const struct nlmsghdr *nlh, void *data)
 	struct ntl_data *sdata = data;
 	int matches = 0;
 
-	syslog(LOG_DEBUG, "%s():%d: getting ethernet address destination", __FUNCTION__, __LINE__);
+	tools_printlog(LOG_DEBUG, "%s():%d: getting ethernet address destination", __FUNCTION__, __LINE__);
 
 	mnl_attr_parse(nlh, sizeof(*ndm), data_attr_neigh_cb, tb);
 
@@ -281,11 +281,11 @@ static int data_getdst_neigh_cb(const struct nlmsghdr *nlh, void *data)
 			ethaddr = mnl_attr_get_payload(tb[NDA_LLADDR]);
 			memcpy(&sdata->dst_ethaddr, ethaddr, 6);
 
-			syslog(LOG_INFO, "%s():%d: get ether address index=%d family=%d dst=%s eth=%02x:%02x:%02x:%02x:%02x:%02x sts=%d",
-			       __FUNCTION__, __LINE__,
-			       ndm->ndm_ifindex, ndm->ndm_family, out, sdata->dst_ethaddr[0],
-			       sdata->dst_ethaddr[1], sdata->dst_ethaddr[2], sdata->dst_ethaddr[3],
-			       sdata->dst_ethaddr[4], sdata->dst_ethaddr[5], ndm->ndm_state);
+			tools_printlog(LOG_INFO, "%s():%d: get ether address index=%d family=%d dst=%s eth=%02x:%02x:%02x:%02x:%02x:%02x sts=%d",
+						   __FUNCTION__, __LINE__,
+						   ndm->ndm_ifindex, ndm->ndm_family, out, sdata->dst_ethaddr[0],
+						   sdata->dst_ethaddr[1], sdata->dst_ethaddr[2], sdata->dst_ethaddr[3],
+						   sdata->dst_ethaddr[4], sdata->dst_ethaddr[5], ndm->ndm_state);
 		}
 
 		return MNL_CB_STOP;
@@ -299,7 +299,7 @@ static int data_route_attr_cb(const struct nlattr *attr, void *data)
 	const struct nlattr **tb = data;
 	int type = mnl_attr_get_type(attr);
 
-	syslog(LOG_DEBUG, "%s():%d: route netlink attr", __FUNCTION__, __LINE__);
+	tools_printlog(LOG_DEBUG, "%s():%d: route netlink attr", __FUNCTION__, __LINE__);
 
 	if (mnl_attr_type_valid(attr, RTA_MAX) < 0)
 		return MNL_CB_OK;
@@ -314,13 +314,13 @@ static int data_getdst_route_cb(const struct nlmsghdr *nlh, void *data)
 	struct rtmsg *rm = mnl_nlmsg_get_payload(nlh);
 	struct ntl_data *sdata = data;
 
-	syslog(LOG_DEBUG, "%s():%d: getting interface route destination", __FUNCTION__, __LINE__);
+	tools_printlog(LOG_DEBUG, "%s():%d: getting interface route destination", __FUNCTION__, __LINE__);
 
 	mnl_attr_parse(nlh, sizeof(*rm), data_route_attr_cb, tb);
 
 	if (tb[RTA_OIF]) {
 		sdata->oifidx = mnl_attr_get_u32(tb[RTA_OIF]);
-		syslog(LOG_INFO, "%s():%d: get routing interface to destination is %u", __FUNCTION__, __LINE__, sdata->oifidx);
+		tools_printlog(LOG_INFO, "%s():%d: get routing interface to destination is %u", __FUNCTION__, __LINE__, sdata->oifidx);
 		return MNL_CB_STOP;
 	}
 
@@ -331,22 +331,22 @@ static int ntl_request(struct ntl_request *ntl)
 {
 	int ret, out = 0;
 
-	syslog(LOG_DEBUG, "%s():%d: launch netlink request", __FUNCTION__, __LINE__);
+	tools_printlog(LOG_DEBUG, "%s():%d: launch netlink request", __FUNCTION__, __LINE__);
 
 	ntl->nl = mnl_socket_open(NETLINK_ROUTE);
 	if (ntl->nl == NULL) {
-		syslog(LOG_ERR, "%s():%d: mnl_socket_open error", __FUNCTION__, __LINE__);
+		tools_printlog(LOG_ERR, "%s():%d: mnl_socket_open error", __FUNCTION__, __LINE__);
 		return -1;
 	}
 
 	if (mnl_socket_bind(ntl->nl, 0, MNL_SOCKET_AUTOPID) < 0) {
-		syslog(LOG_ERR, "%s():%d: mnl_socket_bind error", __FUNCTION__, __LINE__);
+		tools_printlog(LOG_ERR, "%s():%d: mnl_socket_bind error", __FUNCTION__, __LINE__);
 		return -1;
 	}
 	ntl->portid = mnl_socket_get_portid(ntl->nl);
 
 	if (mnl_socket_sendto(ntl->nl, ntl->nlh, ntl->nlh->nlmsg_len) < 0) {
-		syslog(LOG_ERR, "%s():%d: mnl_socket_sendto error", __FUNCTION__, __LINE__);
+		tools_printlog(LOG_ERR, "%s():%d: mnl_socket_sendto error", __FUNCTION__, __LINE__);
 		return -1;
 	}
 
@@ -364,7 +364,7 @@ static int ntl_request(struct ntl_request *ntl)
 	}
 
 	if (ret == -1) {
-		syslog(LOG_ERR, "%s():%d: mnl_socket_recvfrom error", __FUNCTION__, __LINE__);
+		tools_printlog(LOG_ERR, "%s():%d: mnl_socket_recvfrom error", __FUNCTION__, __LINE__);
 		ret = -1;
 	}
 
@@ -380,7 +380,7 @@ int net_get_neigh_ether(unsigned char **dst_ethaddr, unsigned char *src_ethaddr,
 	struct ntl_data *data;
 	int ret = 0;
 
-	syslog(LOG_DEBUG, "%s():%d: source mac address %s source ip address %s destination ip address %s iface %d", __FUNCTION__, __LINE__, src_ethaddr, src_ipaddr, dst_ipaddr, outdev);
+	tools_printlog(LOG_DEBUG, "%s():%d: source mac address %s source ip address %s destination ip address %s iface %d", __FUNCTION__, __LINE__, src_ethaddr, src_ipaddr, dst_ipaddr, outdev);
 
 	ntl.buf = (char *) malloc(MNL_SOCKET_BUFFER_SIZE);
 
@@ -393,13 +393,13 @@ int net_get_neigh_ether(unsigned char **dst_ethaddr, unsigned char *src_ethaddr,
 	ntl.rt->rtgen_family = AF_INET | AF_INET6;
 	ntl.cb = data_getdst_neigh_cb;
 
-	syslog(LOG_DEBUG, "%s():%d: source ether is %02x:%02x:%02x:%02x:%02x:%02x",
-	       __FUNCTION__, __LINE__, src_ethaddr[0], src_ethaddr[1], src_ethaddr[2],
-	       src_ethaddr[3], src_ethaddr[4], src_ethaddr[5]);
+	tools_printlog(LOG_DEBUG, "%s():%d: source ether is %02x:%02x:%02x:%02x:%02x:%02x",
+				   __FUNCTION__, __LINE__, src_ethaddr[0], src_ethaddr[1], src_ethaddr[2],
+				   src_ethaddr[3], src_ethaddr[4], src_ethaddr[5]);
 
 	data = (struct ntl_data *)calloc(1, sizeof(struct ntl_data));
 	if (!data) {
-		syslog(LOG_ERR, "%s():%d: memory allocation error", __FUNCTION__, __LINE__);
+		tools_printlog(LOG_ERR, "%s():%d: memory allocation error", __FUNCTION__, __LINE__);
 		return -1;
 	}
 
@@ -407,7 +407,7 @@ int net_get_neigh_ether(unsigned char **dst_ethaddr, unsigned char *src_ethaddr,
 
 	data->dst_ipaddr = (struct in6_addr *)calloc(1, sizeof(struct in6_addr));
 	if (!data->dst_ipaddr){
-		syslog(LOG_ERR, "%s():%d: memory allocation error", __FUNCTION__, __LINE__);
+		tools_printlog(LOG_ERR, "%s():%d: memory allocation error", __FUNCTION__, __LINE__);
 		return -1;
 	}
 
@@ -417,7 +417,7 @@ int net_get_neigh_ether(unsigned char **dst_ethaddr, unsigned char *src_ethaddr,
 		data->family = AF_INET;
 
 	if (inet_pton(data->family, dst_ipaddr, data->dst_ipaddr) <= 0) {
-		syslog(LOG_ERR, "%s():%d: network translation error for %s", __FUNCTION__, __LINE__, dst_ipaddr);
+		tools_printlog(LOG_ERR, "%s():%d: network translation error for %s", __FUNCTION__, __LINE__, dst_ipaddr);
 		return -1;
 	}
 
@@ -427,16 +427,16 @@ int net_get_neigh_ether(unsigned char **dst_ethaddr, unsigned char *src_ethaddr,
 
 	if (ret != 0) {
 		ret = -1;
-		syslog(LOG_DEBUG, "%s():%d: not found, send ping to %s", __FUNCTION__, __LINE__, dst_ipaddr);
+		tools_printlog(LOG_DEBUG, "%s():%d: not found, send ping to %s", __FUNCTION__, __LINE__, dst_ipaddr);
 
 		data->src_ipaddr = (struct in6_addr *)calloc(1, sizeof(struct in6_addr));
 		if (!data->src_ipaddr){
-			syslog(LOG_ERR, "%s():%d: memory allocation error", __FUNCTION__, __LINE__);
+			tools_printlog(LOG_ERR, "%s():%d: memory allocation error", __FUNCTION__, __LINE__);
 			return ret;
 		}
 
 		if (inet_pton(data->family, src_ipaddr, data->src_ipaddr) <= 0) {
-			syslog(LOG_ERR, "%s():%d: network translation error for %s", __FUNCTION__, __LINE__, src_ipaddr);
+			tools_printlog(LOG_ERR, "%s():%d: network translation error for %s", __FUNCTION__, __LINE__, src_ipaddr);
 			return ret;
 		}
 
@@ -461,7 +461,7 @@ int net_get_local_ifidx_per_remote_host(char *dst_ipaddr, int *outdev)
 	int ipv = net_get_addr_family(dst_ipaddr);
 	int ret = 0;
 
-	syslog(LOG_DEBUG, "%s():%d: dst ip address is %s", __FUNCTION__, __LINE__, dst_ipaddr);
+	tools_printlog(LOG_DEBUG, "%s():%d: dst ip address is %s", __FUNCTION__, __LINE__, dst_ipaddr);
 
 	ntl.buf = (char *) malloc(MNL_SOCKET_BUFFER_SIZE);
 
@@ -483,13 +483,13 @@ int net_get_local_ifidx_per_remote_host(char *dst_ipaddr, int *outdev)
 
 	data = (struct ntl_data *)calloc(1, sizeof(struct ntl_data));
 	if (!data) {
-		syslog(LOG_ERR, "%s():%d: memory allocation error", __FUNCTION__, __LINE__);
+		tools_printlog(LOG_ERR, "%s():%d: memory allocation error", __FUNCTION__, __LINE__);
 		return -1;
 	}
 
 	data->dst_ipaddr = (struct in6_addr *)calloc(1, sizeof(struct in6_addr));
 	if (!data->dst_ipaddr){
-		syslog(LOG_ERR, "%s():%d: memory allocation error", __FUNCTION__, __LINE__);
+		tools_printlog(LOG_ERR, "%s():%d: memory allocation error", __FUNCTION__, __LINE__);
 		return -1;
 	}
 
@@ -498,7 +498,7 @@ int net_get_local_ifidx_per_remote_host(char *dst_ipaddr, int *outdev)
 	data->family = ipv;
 
 	if (!inet_pton(ipv, dst_ipaddr, &(addr.sin6_addr.s6_addr))) {
-		syslog(LOG_ERR, "%s():%d: network translation error for %s", __FUNCTION__, __LINE__, dst_ipaddr);
+		tools_printlog(LOG_ERR, "%s():%d: network translation error for %s", __FUNCTION__, __LINE__, dst_ipaddr);
 		return -1;
 	}
 
@@ -507,11 +507,11 @@ int net_get_local_ifidx_per_remote_host(char *dst_ipaddr, int *outdev)
 	ret = ntl_request(&ntl);
 
 	if (ret != 0) {
-		syslog(LOG_ERR, "%s():%d: not found route to %s", __FUNCTION__, __LINE__, dst_ipaddr);
+		tools_printlog(LOG_ERR, "%s():%d: not found route to %s", __FUNCTION__, __LINE__, dst_ipaddr);
 		return -1;
 	}
 
-	syslog(LOG_DEBUG, "%s():%d: found route to %s via %d", __FUNCTION__, __LINE__, dst_ipaddr, data->oifidx);
+	tools_printlog(LOG_DEBUG, "%s():%d: found route to %s via %d", __FUNCTION__, __LINE__, dst_ipaddr, data->oifidx);
 
 	*outdev = data->oifidx;
 
@@ -528,19 +528,19 @@ int net_get_local_ifinfo(unsigned char **ether, const char *indev)
 	struct ifreq ifr;
 	int sd;
 
-	syslog(LOG_DEBUG, "%s():%d: netlink get local interface info for %s", __FUNCTION__, __LINE__, indev);
+	tools_printlog(LOG_DEBUG, "%s():%d: netlink get local interface info for %s", __FUNCTION__, __LINE__, indev);
 
 	sd = socket(AF_PACKET, SOCK_RAW, IPPROTO_RAW);
 
 	if (sd <= 0) {
-		syslog(LOG_ERR, "%s():%d: open socket error", __FUNCTION__, __LINE__);
+		tools_printlog(LOG_ERR, "%s():%d: open socket error", __FUNCTION__, __LINE__);
 		goto out;
 	}
 
 	strcpy(ifr.ifr_name, indev);
 
 	if (ioctl(sd, SIOCGIFHWADDR, &ifr) == -1) {
-		syslog(LOG_ERR, "%s():%d: ioctl SIOCGIFHWADDR error", __FUNCTION__, __LINE__);
+		tools_printlog(LOG_ERR, "%s():%d: ioctl SIOCGIFHWADDR error", __FUNCTION__, __LINE__);
 		goto out;
 	}
 
@@ -563,17 +563,17 @@ int net_get_local_ifname_per_vip(char *strvip, char *outdev)
 	struct sockaddr_in6 *ipaddr6;
 	struct ifaddrs *ifaddrs, *ifaddr;
 
-	syslog(LOG_DEBUG, "%s():%d: netlink get local interface name for %s", __FUNCTION__, __LINE__, strvip);
+	tools_printlog(LOG_DEBUG, "%s():%d: netlink get local interface name for %s", __FUNCTION__, __LINE__, strvip);
 
 	if (!strvip || strcmp(strvip, "") == 0) {
-		syslog(LOG_ERR, "%s():%d: vip is not set yet", __FUNCTION__, __LINE__);
+		tools_printlog(LOG_ERR, "%s():%d: vip is not set yet", __FUNCTION__, __LINE__);
 		return -1;
 	}
 
 	ipv = net_get_addr_family(strvip);
 
 	if (getifaddrs(&ifaddrs) == -1) {
-		syslog(LOG_ERR, "%s():%d: cannot get interfaces list", __FUNCTION__, __LINE__);
+		tools_printlog(LOG_ERR, "%s():%d: cannot get interfaces list", __FUNCTION__, __LINE__);
 		return -1;
 	}
 
@@ -606,7 +606,7 @@ int net_get_local_ifname_per_vip(char *strvip, char *outdev)
 
 	freeifaddrs(ifaddrs);
 
-	syslog(LOG_DEBUG, "%s():%d: netlink get local interface name is %s", __FUNCTION__, __LINE__, outdev);
+	tools_printlog(LOG_DEBUG, "%s():%d: netlink get local interface name is %s", __FUNCTION__, __LINE__, outdev);
 
 	return !found;
 }
@@ -621,7 +621,7 @@ static int data_getev_cb(const struct nlmsghdr *nlh, void *data)
 	unsigned char dst_ethaddr[ETH_HW_ADDR_LEN];
 	char streth[ETH_HW_STR_LEN] = {};
 
-	syslog(LOG_DEBUG, "%s():%d: netlink read new info", __FUNCTION__, __LINE__);
+	tools_printlog(LOG_DEBUG, "%s():%d: netlink read new info", __FUNCTION__, __LINE__);
 
 	if (nlh->nlmsg_type != RTM_NEWNEIGH)
 		return MNL_CB_STOP;
@@ -643,9 +643,9 @@ static int data_getev_cb(const struct nlmsghdr *nlh, void *data)
 		if ((ndm->ndm_state & NUD_REACHABLE) || (ndm->ndm_state & NUD_PERMANENT) || (ndm->ndm_state & NUD_STALE))
 			farm_s_set_backend_ether_by_oifidx(ndm->ndm_ifindex, str_ipaddr, streth);
 
-		syslog(LOG_DEBUG, "%s():%d: [NEW NEIGH] family=%u ifindex=%u state=%u dstaddr=%s macaddr=%s",
-		       __FUNCTION__, __LINE__, ndm->ndm_family, ndm->ndm_ifindex, ndm->ndm_state, str_ipaddr,
-		       streth);
+		tools_printlog(LOG_DEBUG, "%s():%d: [NEW NEIGH] family=%u ifindex=%u state=%u dstaddr=%s macaddr=%s",
+					   __FUNCTION__, __LINE__, ndm->ndm_family, ndm->ndm_ifindex, ndm->ndm_state, str_ipaddr,
+					   streth);
 	}
 
 	return MNL_CB_STOP;
@@ -656,7 +656,7 @@ static void ntlk_cb(struct ev_loop *loop, struct ev_io *watcher, int revents)
 	char buf[MNL_SOCKET_BUFFER_SIZE];
 	int ret, out;
 
-	syslog(LOG_DEBUG, "%s():%d: netlink callback executed", __FUNCTION__, __LINE__);
+	tools_printlog(LOG_DEBUG, "%s():%d: netlink callback executed", __FUNCTION__, __LINE__);
 
 	ret = mnl_socket_recvfrom(nl, buf, sizeof(buf));
 	while (ret > 0) {
@@ -671,7 +671,7 @@ static void ntlk_cb(struct ev_loop *loop, struct ev_io *watcher, int revents)
 	}
 
 	if (ret == -1) {
-		syslog(LOG_ERR, "%s():%d: netlink error", __FUNCTION__, __LINE__);
+		tools_printlog(LOG_ERR, "%s():%d: netlink error", __FUNCTION__, __LINE__);
 		ret = -1;
 	}
 }
@@ -682,7 +682,7 @@ int net_eventd_init(void)
 	int sock;
 	struct ev_loop *st_ev_loop = get_loop();
 
-	syslog(LOG_DEBUG, "%s():%d: net eventd launched", __FUNCTION__, __LINE__);
+	tools_printlog(LOG_DEBUG, "%s():%d: net eventd launched", __FUNCTION__, __LINE__);
 
 	io_handle.io = events_create_ntlnk();
 
@@ -696,14 +696,14 @@ int net_eventd_init(void)
 
 	nl = mnl_socket_open(NETLINK_ROUTE);
 	if (nl == NULL) {
-		syslog(LOG_ERR, "%s():%d: mnl_socket_open error", __FUNCTION__, __LINE__);
+		tools_printlog(LOG_ERR, "%s():%d: mnl_socket_open error", __FUNCTION__, __LINE__);
 		return -1;
 	}
 
 	sock = mnl_socket_get_fd(nl);
 
 	if (mnl_socket_bind(nl, RTM_GETNEIGH, MNL_SOCKET_AUTOPID) < 0) {
-		syslog(LOG_ERR, "%s():%d: mnl_socket_bind error", __FUNCTION__, __LINE__);
+		tools_printlog(LOG_ERR, "%s():%d: mnl_socket_bind error", __FUNCTION__, __LINE__);
 		return -1;
 	}
 
@@ -719,7 +719,7 @@ int net_eventd_stop(void)
 {
 	struct ev_loop *st_ev_loop = get_loop();
 
-	syslog(LOG_DEBUG, "%s():%d: net eventd stopped", __FUNCTION__, __LINE__);
+	tools_printlog(LOG_DEBUG, "%s():%d: net eventd stopped", __FUNCTION__, __LINE__);
 
 	ev_io_stop(st_ev_loop, io_handle.io);
 	mnl_socket_close(nl);
@@ -734,7 +734,7 @@ int net_eventd_stop(void)
 
 int net_get_event_enabled(void)
 {
-	syslog(LOG_DEBUG, "%s():%d: net eventd is %d", __FUNCTION__, __LINE__, net_event_enabled);
+	tools_printlog(LOG_DEBUG, "%s():%d: net eventd is %d", __FUNCTION__, __LINE__, net_event_enabled);
 	return net_event_enabled;
 }
 

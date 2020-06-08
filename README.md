@@ -43,6 +43,7 @@ Here is the list of options:
 
 **[ -h | --help ]**: Show the command help.<br />
 **[ -l &lt;LEVEL&gt; | --log &lt;LEVEL&gt; ]**: The logs will be shown in the syslog file and with this option you can change the loglevel from 0 to 7 (5 by default).<br />
+**[ -L &lt;OUTPUT&gt; | --log-output &lt;OUTPUT&gt; ]**: Set the daemon logs output (0: syslog - default, 1: stdout, 2: stderr, 3: syslog+stdout, 4: syslog+stderr).<br />
 **[ -c &lt;FILE&gt; | --config &lt;FILE&gt; ]**: Initial configuration file, this argument is optional.<br />
 **[ -k &lt;KEY&gt; | --key &lt;KEY&gt; ]**: The authentication key for the web service can be set by command line, or automatically generated. If it's automatically generated, it'll be shown by command line.<br />
 **[ -e | --exit ]**: This option executes the configuration file into nftables rules and then exit, so the web server won't be available.<br />

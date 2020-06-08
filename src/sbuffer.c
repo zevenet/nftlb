@@ -22,9 +22,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <syslog.h>
 
 #include "sbuffer.h"
+#include "tools.h"
 
 int get_buf_size(struct sbuffer *buf)
 {
@@ -108,7 +108,7 @@ int concat_buf_va(struct sbuffer *buf, int len, char *fmt, va_list args)
 		times = ((buf->next + len - buf->size) / EXTRA_SIZE) + 1;
 
 	if (resize_buf(buf, times)) {
-		syslog(LOG_ERR, "Error resizing the buffer %d times from a size of %d!", times, buf->size);
+		tools_printlog(LOG_ERR, "Error resizing the buffer %d times from a size of %d!", times, buf->size);
 		return 1;
 	}
 

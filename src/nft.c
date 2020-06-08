@@ -30,10 +30,10 @@
 #include "config.h"
 #include "list.h"
 #include "sbuffer.h"
+#include "tools.h"
 
 #include <stdlib.h>
 #include <nftables/libnftables.h>
-#include <syslog.h>
 #include <string.h>
 #include <stdarg.h>
 
@@ -247,13 +247,13 @@ static struct if_base_rule * add_ndv_base(struct if_base_rule_list *ndv_if_rules
 	struct if_base_rule *ifentry;
 
 	if (ndv_if_rules->n_interfaces == NFTLB_MAX_IFACES) {
-		syslog(LOG_ERR, "%s():%d: maximum number of interfaces reached", __FUNCTION__, __LINE__);
+		tools_printlog(LOG_ERR, "%s():%d: maximum number of interfaces reached", __FUNCTION__, __LINE__);
 		return NULL;
 	}
 
 	ifentry = (struct if_base_rule *)malloc(sizeof(struct if_base_rule));
 	if (!ifentry) {
-		syslog(LOG_ERR, "%s():%d: unable to allocate interface struct for %s", __FUNCTION__, __LINE__, ifname);
+		tools_printlog(LOG_ERR, "%s():%d: unable to allocate interface struct for %s", __FUNCTION__, __LINE__, ifname);
 		return NULL;
 	}
 
@@ -262,7 +262,7 @@ static struct if_base_rule * add_ndv_base(struct if_base_rule_list *ndv_if_rules
 
 	ifentry->ifname = (char *)malloc(strlen(ifname));
 	if (!ifentry->ifname) {
-		syslog(LOG_ERR, "%s():%d: unable to allocate interface name for %s", __FUNCTION__, __LINE__, ifname);
+		tools_printlog(LOG_ERR, "%s():%d: unable to allocate interface name for %s", __FUNCTION__, __LINE__, ifname);
 		return NULL;
 	}
 
@@ -280,7 +280,7 @@ static int exec_cmd_open(char *cmd, const char **out, int error_output)
 	if (strlen(cmd) == 0 || strcmp(cmd, "") == 0)
 		return 0;
 
-	syslog(LOG_NOTICE, "nft command exec : %s", cmd);
+	tools_printlog(LOG_NOTICE, "nft command exec : %s", cmd);
 
 	ctx = nft_ctx_new(0);
 	nft_ctx_buffer_error(ctx);
@@ -291,7 +291,7 @@ static int exec_cmd_open(char *cmd, const char **out, int error_output)
 	error = nft_run_cmd_from_buffer(ctx, cmd);
 
 	if (error && error_output)
-		syslog(LOG_ERR, "nft command error : %s", nft_ctx_get_error_buffer(ctx));
+		tools_printlog(LOG_ERR, "nft command error : %s", nft_ctx_get_error_buffer(ctx));
 
 	if (out != NULL)
 		*out = nft_ctx_get_output_buffer(ctx);
@@ -924,7 +924,7 @@ static int run_farm_rules_gen_srv_map(struct sbuffer *buf, struct farm *f, char 
 
 	data_str = calloc(1, 255);
 	if (!data_str) {
-		syslog(LOG_ERR, "%s():%d: memory allocation error", __FUNCTION__, __LINE__);
+		tools_printlog(LOG_ERR, "%s():%d: memory allocation error", __FUNCTION__, __LINE__);
 		return -1;
 	}
 
@@ -1426,7 +1426,7 @@ static int run_farm_rules_filter_static_sessions(struct sbuffer *buf, struct far
 	list_for_each_entry(s, &f->static_sessions, list) {
 		client = (char *) malloc(255);
 		if (!client) {
-			syslog(LOG_ERR, "%s():%d: unable to allocate parsed client %s for farm %s", __FUNCTION__, __LINE__, s->client, f->name);
+			tools_printlog(LOG_ERR, "%s():%d: unable to allocate parsed client %s for farm %s", __FUNCTION__, __LINE__, s->client, f->name);
 			continue;
 		}
 		if (session_get_client(s, &client)) {
@@ -1467,7 +1467,7 @@ static int run_farm_rules_filter_persistence(struct sbuffer *buf, struct farm *f
 	list_for_each_entry(s, &f->timed_sessions, list) {
 		client = (char *) malloc(255);
 		if (!client) {
-			syslog(LOG_ERR, "%s():%d: unable to allocate parsed client %s for farm %s", __FUNCTION__, __LINE__, s->client, f->name);
+			tools_printlog(LOG_ERR, "%s():%d: unable to allocate parsed client %s for farm %s", __FUNCTION__, __LINE__, s->client, f->name);
 			continue;
 		}
 		if (session_get_client(s, &client)) {
@@ -1881,7 +1881,7 @@ static int run_farm_rules_ingress_static_sessions(struct sbuffer *buf, struct fa
 	list_for_each_entry(s, &f->static_sessions, list) {
 		client = (char *) malloc(255);
 		if (!client) {
-			syslog(LOG_ERR, "%s():%d: unable to allocate parsed client %s for farm %s", __FUNCTION__, __LINE__, s->client, f->name);
+			tools_printlog(LOG_ERR, "%s():%d: unable to allocate parsed client %s for farm %s", __FUNCTION__, __LINE__, s->client, f->name);
 			continue;
 		}
 
@@ -1975,7 +1975,7 @@ static int run_farm_rules_ingress_timed_sessions(struct sbuffer *buf, struct far
 	list_for_each_entry(s, &f->timed_sessions, list) {
 		client = (char *) malloc(255);
 		if (!client) {
-			syslog(LOG_ERR, "%s():%d: unable to allocate parsed client %s for farm %s", __FUNCTION__, __LINE__, s->client, f->name);
+			tools_printlog(LOG_ERR, "%s():%d: unable to allocate parsed client %s for farm %s", __FUNCTION__, __LINE__, s->client, f->name);
 			continue;
 		}
 

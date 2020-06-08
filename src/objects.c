@@ -33,7 +33,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <syslog.h>
 
 struct obj_config	current_obj;
 
@@ -83,13 +82,13 @@ void obj_set_total_policies(int new_value)
 
 int obj_get_dsr_counter(void)
 {
-	syslog(LOG_DEBUG, "%s():%d: current dsr counter is %d", __FUNCTION__, __LINE__, dsr_counter);
+	tools_printlog(LOG_DEBUG, "%s():%d: current dsr counter is %d", __FUNCTION__, __LINE__, dsr_counter);
 	return dsr_counter;
 }
 
 void obj_set_dsr_counter(int new_value)
 {
-	syslog(LOG_DEBUG, "%s():%d: new dsr counter is %d", __FUNCTION__, __LINE__, new_value);
+	tools_printlog(LOG_DEBUG, "%s():%d: new dsr counter is %d", __FUNCTION__, __LINE__, new_value);
 
 	if (new_value >= 0)
 		dsr_counter = new_value;
@@ -467,7 +466,7 @@ int obj_set_attribute(struct config_pair *c, int actionable)
 {
 	int ret = 0;
 	int action = ACTION_NONE;
-	syslog(LOG_DEBUG, "%s():%d: actionable is %d", __FUNCTION__, __LINE__, actionable);
+	tools_printlog(LOG_DEBUG, "%s():%d: actionable is %d", __FUNCTION__, __LINE__, actionable);
 
 	switch (c->level) {
 	case LEVEL_FARMS:
@@ -528,7 +527,7 @@ int obj_set_attribute(struct config_pair *c, int actionable)
 			element_pos_actionable(c);
 		break;
 	default:
-		syslog(LOG_ERR, "%s():%d: unknown level %d", __FUNCTION__, __LINE__, c->level);
+		tools_printlog(LOG_ERR, "%s():%d: unknown level %d", __FUNCTION__, __LINE__, c->level);
 		return PARSER_FAILED;
 	}
 
@@ -541,7 +540,7 @@ int obj_set_attribute_string(char *src, char **dst)
 	*dst = (char *)malloc(size);
 
 	if (!*dst) {
-		syslog(LOG_ERR, "Attribute memory allocation error");
+		tools_printlog(LOG_ERR, "Attribute memory allocation error");
 		return -1;
 	}
 

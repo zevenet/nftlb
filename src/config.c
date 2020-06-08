@@ -25,7 +25,6 @@
 #include <unistd.h>
 #include <string.h>
 #include <jansson.h>
-#include <syslog.h>
 
 #include "config.h"
 #include "farms.h"
@@ -34,6 +33,7 @@
 #include "policies.h"
 #include "elements.h"
 #include "sessions.h"
+#include "tools.h"
 
 #define CONFIG_MAXBUF			4096
 #define CONFIG_OUTBUF_SIZE		255
@@ -72,7 +72,7 @@ static int config_value_family(const char *value)
 		return VALUE_FAMILY_INET;
 
 	config_set_output(". Parsing unknown value '%s' in '%s', using default '%s'", value, CONFIG_KEY_FAMILY, CONFIG_VALUE_FAMILY_IPV4);
-	syslog(LOG_ERR, "%s():%d: parsing unknown value '%s' in '%s', using default '%s'", __FUNCTION__, __LINE__, value, CONFIG_KEY_FAMILY, CONFIG_VALUE_FAMILY_IPV4);
+	tools_printlog(LOG_ERR, "%s():%d: parsing unknown value '%s' in '%s', using default '%s'", __FUNCTION__, __LINE__, value, CONFIG_KEY_FAMILY, CONFIG_VALUE_FAMILY_IPV4);
 	return VALUE_FAMILY_IPV4;
 }
 
@@ -90,7 +90,7 @@ static int config_value_mode(const char *value)
 		return VALUE_MODE_LOCAL;
 
 	config_set_output(". Parsing unknown value '%s' in '%s', using default '%s'", value, CONFIG_KEY_MODE, CONFIG_VALUE_MODE_SNAT);
-	syslog(LOG_ERR, "%s():%d: parsing unknown value '%s' in '%s', using default '%s'", __FUNCTION__, __LINE__, value, CONFIG_KEY_MODE, CONFIG_VALUE_MODE_SNAT);
+	tools_printlog(LOG_ERR, "%s():%d: parsing unknown value '%s' in '%s', using default '%s'", __FUNCTION__, __LINE__, value, CONFIG_KEY_MODE, CONFIG_VALUE_MODE_SNAT);
 	return VALUE_MODE_SNAT;
 }
 
@@ -106,7 +106,7 @@ static int config_value_proto(const char *value)
 		return VALUE_PROTO_ALL;
 
 	config_set_output(". Parsing unknown value '%s' in '%s', using default '%s'", value, CONFIG_KEY_PROTO, CONFIG_VALUE_PROTO_TCP);
-	syslog(LOG_ERR, "%s():%d: parsing unknown value '%s' in '%s', using default '%s'", __FUNCTION__, __LINE__, value, CONFIG_KEY_PROTO, CONFIG_VALUE_PROTO_TCP);
+	tools_printlog(LOG_ERR, "%s():%d: parsing unknown value '%s' in '%s', using default '%s'", __FUNCTION__, __LINE__, value, CONFIG_KEY_PROTO, CONFIG_VALUE_PROTO_TCP);
 	return VALUE_PROTO_TCP;
 }
 
@@ -122,7 +122,7 @@ static int config_value_sched(const char *value)
 		return VALUE_SCHED_SYMHASH;
 
 	config_set_output(". Parsing unknown value '%s' in '%s', using default '%s'", value, CONFIG_KEY_SCHED, CONFIG_VALUE_SCHED_RR);
-	syslog(LOG_ERR, "%s():%d: parsing unknown value '%s' in '%s', using default '%s'", __FUNCTION__, __LINE__, value, CONFIG_KEY_SCHED, CONFIG_VALUE_SCHED_RR);
+	tools_printlog(LOG_ERR, "%s():%d: parsing unknown value '%s' in '%s', using default '%s'", __FUNCTION__, __LINE__, value, CONFIG_KEY_SCHED, CONFIG_VALUE_SCHED_RR);
 	return VALUE_SCHED_RR;
 }
 
@@ -150,7 +150,7 @@ static int config_value_meta(const char *value)
 
 	if (mask == 0) {
 		config_set_output(". Parsing unknown value '%s', using default '%s'", value, CONFIG_VALUE_META_NONE);
-		syslog(LOG_ERR, "%s():%d: parsing unknown value '%s', using default '%s'", __FUNCTION__, __LINE__, value, CONFIG_VALUE_META_NONE);
+		tools_printlog(LOG_ERR, "%s():%d: parsing unknown value '%s', using default '%s'", __FUNCTION__, __LINE__, value, CONFIG_VALUE_META_NONE);
 	}
 
 	return mask;
@@ -182,7 +182,7 @@ static int config_value_helper(const char *value)
 		return VALUE_HELPER_TFTP;
 
 	config_set_output(". Parsing unknown value '%s' in '%s', using default '%s'", value, CONFIG_KEY_HELPER, CONFIG_VALUE_HELPER_NONE);
-	syslog(LOG_ERR, "%s():%d: parsing unknown value '%s' in '%s', using default '%s'", __FUNCTION__, __LINE__, value, CONFIG_KEY_HELPER, CONFIG_VALUE_HELPER_NONE);
+	tools_printlog(LOG_ERR, "%s():%d: parsing unknown value '%s' in '%s', using default '%s'", __FUNCTION__, __LINE__, value, CONFIG_KEY_HELPER, CONFIG_VALUE_HELPER_NONE);
 	return VALUE_HELPER_NONE;
 }
 
@@ -204,7 +204,7 @@ static int config_value_log(const char *value)
 
 	if (logmask == 0) {
 		config_set_output(". Parsing unknown value '%s' in '%s', using default '%s'", value, CONFIG_KEY_LOG, CONFIG_VALUE_LOG_NONE);
-		syslog(LOG_ERR, "%s():%d: parsing unknown value '%s' in '%s', using default '%s'", __FUNCTION__, __LINE__, value, CONFIG_KEY_LOG, CONFIG_VALUE_LOG_NONE);
+		tools_printlog(LOG_ERR, "%s():%d: parsing unknown value '%s' in '%s', using default '%s'", __FUNCTION__, __LINE__, value, CONFIG_KEY_LOG, CONFIG_VALUE_LOG_NONE);
 	}
 
 	return logmask;
@@ -218,7 +218,7 @@ static int config_value_switch(const char *value)
 		return VALUE_SWITCH_OFF;
 
 	config_set_output(". Parsing unknown value '%s', using default '%s'", value, CONFIG_VALUE_SWITCH_OFF);
-	syslog(LOG_ERR, "%s():%d: parsing unknown value '%s', using default '%s'", __FUNCTION__, __LINE__, value, CONFIG_VALUE_SWITCH_OFF);
+	tools_printlog(LOG_ERR, "%s():%d: parsing unknown value '%s', using default '%s'", __FUNCTION__, __LINE__, value, CONFIG_VALUE_SWITCH_OFF);
 	return VALUE_SWITCH_OFF;
 }
 
@@ -234,7 +234,7 @@ static int config_value_state(const char *value)
 		return VALUE_STATE_CONFERR;
 
 	config_set_output(". Parsing unknown value '%s' in '%s', using default '%s'", value, CONFIG_KEY_STATE, CONFIG_VALUE_STATE_UP);
-	syslog(LOG_ERR, "%s():%d: parsing unknown value '%s' in '%s', using default '%s'", __FUNCTION__, __LINE__, value, CONFIG_KEY_STATE, CONFIG_VALUE_STATE_UP);
+	tools_printlog(LOG_ERR, "%s():%d: parsing unknown value '%s' in '%s', using default '%s'", __FUNCTION__, __LINE__, value, CONFIG_KEY_STATE, CONFIG_VALUE_STATE_UP);
 	return VALUE_STATE_UP;
 }
 
@@ -260,7 +260,7 @@ static int config_value_type(const char *value)
 		return VALUE_TYPE_WHITE;
 
 	config_set_output(". Parsing unknown value '%s' in '%s', using default '%s'", value, CONFIG_KEY_TYPE, CONFIG_VALUE_POLICIES_TYPE_BL);
-	syslog(LOG_ERR, "%s():%d: parsing unknown value '%s' in '%s', using default '%s'", __FUNCTION__, __LINE__, value, CONFIG_KEY_TYPE, CONFIG_VALUE_POLICIES_TYPE_BL);
+	tools_printlog(LOG_ERR, "%s():%d: parsing unknown value '%s' in '%s', using default '%s'", __FUNCTION__, __LINE__, value, CONFIG_KEY_TYPE, CONFIG_VALUE_POLICIES_TYPE_BL);
 	return VALUE_TYPE_BLACK;
 }
 
@@ -316,7 +316,7 @@ static int config_value(const char *value)
 			break;
 		}
 		config_set_output(". Invalid value of key '%s' must be >=1", obj_print_key(c.key));
-		syslog(LOG_ERR, "%s():%d: invalid value of key '%s' must be >=1", __FUNCTION__, __LINE__, obj_print_key(c.key));
+		tools_printlog(LOG_ERR, "%s():%d: invalid value of key '%s' must be >=1", __FUNCTION__, __LINE__, obj_print_key(c.key));
 		break;
 	case KEY_RESPONSETTL:
 	case KEY_PERSISTTM:
@@ -333,7 +333,7 @@ static int config_value(const char *value)
 			break;
 		}
 		config_set_output(". Invalid value of key '%s' must be >=0", obj_print_key(c.key));
-		syslog(LOG_ERR, "%s():%d: invalid value of key '%s' must be >=0", __FUNCTION__, __LINE__, obj_print_key(c.key));
+		tools_printlog(LOG_ERR, "%s():%d: invalid value of key '%s' must be >=0", __FUNCTION__, __LINE__, obj_print_key(c.key));
 		break;
 	case KEY_QUEUE:
 		new_int_value = atoi(value);
@@ -343,7 +343,7 @@ static int config_value(const char *value)
 			break;
 		}
 		config_set_output(". Invalid value of key '%s' must be >=-1", obj_print_key(c.key));
-		syslog(LOG_ERR, "%s():%d: invalid value of key '%s' must be >=-1", __FUNCTION__, __LINE__, obj_print_key(c.key));
+		tools_printlog(LOG_ERR, "%s():%d: invalid value of key '%s' must be >=-1", __FUNCTION__, __LINE__, obj_print_key(c.key));
 		break;
 	case KEY_ACTION:
 		c.int_value = config_value_action(value);
@@ -367,7 +367,7 @@ static int config_value(const char *value)
 	case KEY_DATA:
 		if (strcmp(value, "") == 0) {
 			config_set_output(". Key '%s' cannot be empty", obj_print_key(c.key));
-			syslog(LOG_ERR, "%s():%d: key '%s' cannot be empty", __FUNCTION__, __LINE__, obj_print_key(c.key));
+			tools_printlog(LOG_ERR, "%s():%d: key '%s' cannot be empty", __FUNCTION__, __LINE__, obj_print_key(c.key));
 			break;
 		}
 		/* fallthrough */
@@ -391,7 +391,7 @@ static int config_value(const char *value)
 		break;
 	default:
 		config_set_output(". Unknown parsed key with index '%d'", c.key);
-		syslog(LOG_ERR, "%s():%d: unknown parsed key with index '%d'", __FUNCTION__, __LINE__, c.key);
+		tools_printlog(LOG_ERR, "%s():%d: unknown parsed key with index '%d'", __FUNCTION__, __LINE__, c.key);
 		ret = PARSER_OBJ_UNKNOWN;
 		break;
 	}
@@ -507,7 +507,7 @@ static int config_key(const char *key)
 		return KEY_INTRACONNECT;
 
 	config_set_output(". Unknown key '%s'", key);
-	syslog(LOG_ERR, "%s():%d: unknown key '%s'", __FUNCTION__, __LINE__, key);
+	tools_printlog(LOG_ERR, "%s():%d: unknown key '%s'", __FUNCTION__, __LINE__, key);
 	return -1;
 }
 
@@ -540,7 +540,7 @@ static int config_json_object(json_t *element, int level, int source)
 		if (jump_config_value(level, c.key) == 0) {
 			ret = config_json(value, level, source, c.key);
 			if (ret) {
-				syslog(LOG_ERR, "%s():%d: error parsing object in level %d", __FUNCTION__, __LINE__, c.level);
+				tools_printlog(LOG_ERR, "%s():%d: error parsing object in level %d", __FUNCTION__, __LINE__, c.level);
 				return ret;
 			}
 		}
@@ -571,7 +571,7 @@ static int config_json_string(json_t *element, int level, int source)
 	if (ret != PARSER_OK)
 		return ret;
 
-	syslog(LOG_DEBUG, "%s():%d: %d(level) %d(key) %s(value) %d(value)", __FUNCTION__, __LINE__, c.level, c.key, c.str_value, c.int_value);
+	tools_printlog(LOG_DEBUG, "%s():%d: %d(level) %d(key) %s(value) %d(value)", __FUNCTION__, __LINE__, c.level, c.key, c.str_value, c.int_value);
 
 	ret = obj_set_attribute(&c, source);
 	init_pair(&c);
@@ -583,7 +583,7 @@ static int config_json(json_t *element, int level, int source, int key)
 {
 	int ret = PARSER_OK;
 
-	syslog(LOG_DEBUG, "%s():%d: %d(level) %d(source)", __FUNCTION__, __LINE__, level, source);
+	tools_printlog(LOG_DEBUG, "%s():%d: %d(level) %d(source)", __FUNCTION__, __LINE__, level, source);
 
 	switch (json_typeof(element)) {
 	case JSON_OBJECT:
@@ -619,8 +619,7 @@ static int config_json(json_t *element, int level, int source, int key)
 
 		break;
 	default:
-		fprintf(stderr, "Configuration file unknown element type %d\n", json_typeof(element));
-		syslog(LOG_ERR, "Configuration file unknown element type %d", json_typeof(element));
+		tools_printlog(LOG_ERR, "Configuration file unknown element type %d", json_typeof(element));
 	}
 
 	return ret;
@@ -646,8 +645,7 @@ int config_file(const char *file)
 
 	fd = fopen(file, "r");
 	if (fd == NULL) {
-		fprintf(stderr, "Error open configuration file %s\n", file);
-		syslog(LOG_ERR, "Error open configuration file %s", file);
+		tools_printlog(LOG_ERR, "Error open configuration file %s", file);
 		return PARSER_FAILED;
 	}
 
@@ -657,8 +655,7 @@ int config_file(const char *file)
 		ret = config_json(root, LEVEL_INIT, CONFIG_SRC_FILE, -1);
 		json_decref(root);
 	} else {
-		fprintf(stderr, "Configuration file error '%s' on line %d: %s", file, error.line, error.text);
-		syslog(LOG_ERR, "Configuration file error '%s' on line %d: %s", file, error.line, error.text);
+		tools_printlog(LOG_ERR, "Configuration file error '%s' on line %d: %s", file, error.line, error.text);
 		ret = PARSER_FAILED;
 	}
 
@@ -694,7 +691,7 @@ int config_buffer(const char *buf)
 	json_t		*root;
 	int		ret = PARSER_OK;
 
-	syslog(LOG_NOTICE, "%s():%d: payload %d : %s", __FUNCTION__, __LINE__, (int)strlen(buf), buf);
+	tools_printlog(LOG_NOTICE, "%s():%d: payload %d : %s", __FUNCTION__, __LINE__, (int)strlen(buf), buf);
 
 	root = json_loadb(buf, strlen(buf), JSON_ALLOW_NUL, &error);
 
@@ -702,7 +699,7 @@ int config_buffer(const char *buf)
 		ret = config_json(root, LEVEL_INIT, CONFIG_SRC_BUFFER, -1);
 		json_decref(root);
 	} else {
-		syslog(LOG_ERR, "Configuration error on line %d: %s", error.line, error.text);
+		tools_printlog(LOG_ERR, "Configuration error on line %d: %s", error.line, error.text);
 		ret = PARSER_FAILED;
 	}
 

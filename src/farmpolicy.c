@@ -22,19 +22,19 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <syslog.h>
 
 #include "farmpolicy.h"
 #include "farms.h"
 #include "objects.h"
 #include "network.h"
+#include "tools.h"
 
 
 static struct farmpolicy * farmpolicy_create(struct farm *f, struct policy *p)
 {
 	struct farmpolicy *fp = (struct farmpolicy *)malloc(sizeof(struct farmpolicy));
 	if (!fp) {
-		syslog(LOG_ERR, "Farm Policy memory allocation error");
+		tools_printlog(LOG_ERR, "Farm Policy memory allocation error");
 		return NULL;
 	}
 
@@ -79,9 +79,9 @@ void farmpolicy_s_print(struct farm *f)
 	struct farmpolicy *fp;
 
 	list_for_each_entry(fp, &f->policies, list) {
-		syslog(LOG_DEBUG,"    [policy] ");
-		syslog(LOG_DEBUG,"       [%s] %s", CONFIG_KEY_NAME, fp->policy->name);
-		syslog(LOG_DEBUG,"       *[%s] %d", CONFIG_KEY_ACTION, fp->action);
+		tools_printlog(LOG_DEBUG,"    [policy] ");
+		tools_printlog(LOG_DEBUG,"       [%s] %s", CONFIG_KEY_NAME, fp->policy->name);
+		tools_printlog(LOG_DEBUG,"       *[%s] %d", CONFIG_KEY_ACTION, fp->action);
 	}
 }
 
@@ -186,7 +186,7 @@ int farmpolicy_pre_actionable(struct config_pair *c)
 	if (!f)
 		return -1;
 
-	syslog(LOG_DEBUG, "%s():%d: pre actionable farm policy for farm %s", __FUNCTION__, __LINE__, f->name);
+	tools_printlog(LOG_DEBUG, "%s():%d: pre actionable farm policy for farm %s", __FUNCTION__, __LINE__, f->name);
 
 	farm_set_action(f, ACTION_RELOAD);
 
@@ -201,7 +201,7 @@ int farmpolicy_pos_actionable(struct config_pair *c)
 	if (!fp || !f)
 		return -1;
 
-	syslog(LOG_DEBUG, "%s():%d: pos actionable farm policy %s for farm %s with param %d", __FUNCTION__, __LINE__, fp->policy->name, f->name, c->key);
+	tools_printlog(LOG_DEBUG, "%s():%d: pos actionable farm policy %s for farm %s with param %d", __FUNCTION__, __LINE__, fp->policy->name, f->name, c->key);
 
 	farm_set_action(f, ACTION_RELOAD);
 

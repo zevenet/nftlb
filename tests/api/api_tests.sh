@@ -5,8 +5,7 @@ ARG2="$2"
 NFTBIN="nft"
 NFTLBIN="../../src/nftlb"
 DEBUG="7"
-#NFTLB_SERIAL=" -S"
-NFTLB_SERIAL=""
+NFTLB_ARGS=""
 APISRV_ADDR=localhost
 APISRV_PORT=5555
 APISRV_KEY="hola"
@@ -20,7 +19,7 @@ echo "" > /var/log/syslog
 
 kill `pidof nftlb` 2> /dev/null
 $NFTBIN flush ruleset
-$NFTLBIN $NFTLB_SERIAL -d -k "$APISRV_KEY" -H $APISRV_ADDR -P $APISRV_PORT -l $DEBUG > /dev/null
+$NFTLBIN $NFTLB_ARGS -d -k "$APISRV_KEY" -H $APISRV_ADDR -P $APISRV_PORT -l $DEBUG > /dev/null
 sleep 1s
 
 for DIRTEST in `ls -d */`; do
@@ -29,7 +28,6 @@ for DIRTEST in `ls -d */`; do
 	TESTCASE=`ls *.api`
 	source $TESTCASE
 	INDEX_OUT=`printf %03d $INDEX`
-	#~ echo -n "$INDEX_OUT - $DESC "
 	echo -nE "$DIRTEST... "
 	logger NFTLB API TESTING $INDEX_OUT - $DESC
 
@@ -43,7 +41,6 @@ for DIRTEST in `ls -d */`; do
 	fi
 	CURL_OUTPUT="report-${INDEX_OUT}-req.out"
 	rm -f report-*-req.out
-#	echo $CURL -H \"Key: $APISRV_KEY\" -X $VERB $CURL_ARGS http://$APISRV_ADDR:$APISRV_PORT/$URI
 	$CURL -H "Key: $APISRV_KEY" -X $VERB $CURL_ARGS http://$APISRV_ADDR:$APISRV_PORT/$URI -o "$CURL_OUTPUT" 2> /dev/null
 
 	# checking curl output

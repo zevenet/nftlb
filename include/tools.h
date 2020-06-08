@@ -22,6 +22,26 @@
 #ifndef _TOOLS_H_
 #define _TOOLS_H_
 
+#include <syslog.h>
+
+#define NFTLB_LOG_LEVEL_DEFAULT			LOG_NOTICE
+#define NFTLB_LOG_OUTPUT_DEFAULT		VALUE_LOG_OUTPUT_SYSLOG
+
+#define NFTLB_LOG_OUTPUT_SYSLOG			(1 << 0)
+#define NFTLB_LOG_OUTPUT_STDOUT			(1 << 1)
+#define NFTLB_LOG_OUTPUT_STDERR			(1 << 2)
+
+enum log_output {
+	VALUE_LOG_OUTPUT_SYSLOG,
+	VALUE_LOG_OUTPUT_STDOUT,
+	VALUE_LOG_OUTPUT_STDERR,
+	VALUE_LOG_OUTPUT_SYSOUT,
+	VALUE_LOG_OUTPUT_SYSERR,
+};
+
 void tools_snprintf(char *strdst, int size, char *strsrc);
+void tools_log_set_level(int loglevel);
+void tools_log_set_output(int output);
+int tools_printlog(int loglevel, char *fmt, ...);
 
 #endif /* _TOOLS_H_ */

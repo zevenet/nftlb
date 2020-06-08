@@ -22,7 +22,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <syslog.h>
 #include <net/if.h>
 
 #include "backends.h"
@@ -31,12 +30,13 @@
 #include "network.h"
 #include "sessions.h"
 #include "nft.h"
+#include "tools.h"
 
 static int backend_s_set_marked(struct farm *f)
 {
 	struct backend *b;
 
-	syslog(LOG_DEBUG, "%s():%d: finding marked backends for %s", __FUNCTION__, __LINE__, f->name);
+	tools_printlog(LOG_DEBUG, "%s():%d: finding marked backends for %s", __FUNCTION__, __LINE__, f->name);
 
 	list_for_each_entry(b, &f->backends, list) {
 		if (b->mark != DEFAULT_MARK) {
@@ -53,7 +53,7 @@ static struct backend * backend_create(struct farm *f, char *name)
 {
 	struct backend *b = (struct backend *)malloc(sizeof(struct backend));
 	if (!b) {
-		syslog(LOG_ERR, "Backend memory allocation error");
+		tools_printlog(LOG_ERR, "Backend memory allocation error");
 		return NULL;
 	}
 
@@ -111,8 +111,8 @@ static int backend_below_prio(struct backend *b)
 {
 	struct farm *f = b->parent;
 
-	syslog(LOG_DEBUG, "%s():%d: backend %s state is %s and priority %d farm prio %d",
-	       __FUNCTION__, __LINE__, b->name, obj_print_state(b->state), b->priority, f->priority);
+	tools_printlog(LOG_DEBUG, "%s():%d: backend %s state is %s and priority %d farm prio %d",
+				   __FUNCTION__, __LINE__, b->name, obj_print_state(b->state), b->priority, f->priority);
 
 	return (b->priority <= f->priority);
 }
@@ -143,38 +143,38 @@ void backend_s_print(struct farm *f)
 	struct backend *b;
 
 	list_for_each_entry(b, &f->backends, list) {
-		syslog(LOG_DEBUG,"    [backend] ");
-		syslog(LOG_DEBUG,"       [%s] %s", CONFIG_KEY_NAME, b->name);
+		tools_printlog(LOG_DEBUG,"    [backend] ");
+		tools_printlog(LOG_DEBUG,"       [%s] %s", CONFIG_KEY_NAME, b->name);
 
 		if (b->fqdn)
-			syslog(LOG_DEBUG,"       [%s] %s", CONFIG_KEY_FQDN, b->fqdn);
+			tools_printlog(LOG_DEBUG,"       [%s] %s", CONFIG_KEY_FQDN, b->fqdn);
 
 		if (b->oface)
-			syslog(LOG_DEBUG,"       [%s] %s", CONFIG_KEY_OFACE, b->oface);
+			tools_printlog(LOG_DEBUG,"       [%s] %s", CONFIG_KEY_OFACE, b->oface);
 
-		syslog(LOG_DEBUG,"      *[ofidx] %d", b->ofidx);
+		tools_printlog(LOG_DEBUG,"      *[ofidx] %d", b->ofidx);
 
 		if (b->ipaddr)
-			syslog(LOG_DEBUG,"       [%s] %s", CONFIG_KEY_IPADDR, b->ipaddr);
+			tools_printlog(LOG_DEBUG,"       [%s] %s", CONFIG_KEY_IPADDR, b->ipaddr);
 
 		if (b->ethaddr)
-			syslog(LOG_DEBUG,"       [%s] %s", CONFIG_KEY_ETHADDR, b->ethaddr);
+			tools_printlog(LOG_DEBUG,"       [%s] %s", CONFIG_KEY_ETHADDR, b->ethaddr);
 
 		if (b->port)
-			syslog(LOG_DEBUG,"       [%s] %s", CONFIG_KEY_PORT, b->port);
+			tools_printlog(LOG_DEBUG,"       [%s] %s", CONFIG_KEY_PORT, b->port);
 
 		if (b->srcaddr)
-			syslog(LOG_DEBUG,"       [%s] %s", CONFIG_KEY_SRCADDR, b->srcaddr);
+			tools_printlog(LOG_DEBUG,"       [%s] %s", CONFIG_KEY_SRCADDR, b->srcaddr);
 
-		syslog(LOG_DEBUG,"       [%s] 0x%x", CONFIG_KEY_MARK, b->mark);
-		syslog(LOG_DEBUG,"       [%s] %d", CONFIG_KEY_ESTCONNLIMIT, b->estconnlimit);
+		tools_printlog(LOG_DEBUG,"       [%s] 0x%x", CONFIG_KEY_MARK, b->mark);
+		tools_printlog(LOG_DEBUG,"       [%s] %d", CONFIG_KEY_ESTCONNLIMIT, b->estconnlimit);
 		if (b->estconnlimit_logprefix && strcmp(b->estconnlimit_logprefix, DEFAULT_B_ESTCONNLIMIT_LOGPREFIX) != 0)
-			syslog(LOG_DEBUG,"       [%s] %s", CONFIG_KEY_ESTCONNLIMIT_LOGPREFIX, b->estconnlimit_logprefix);
+			tools_printlog(LOG_DEBUG,"       [%s] %s", CONFIG_KEY_ESTCONNLIMIT_LOGPREFIX, b->estconnlimit_logprefix);
 
-		syslog(LOG_DEBUG,"       [%s] %d", CONFIG_KEY_WEIGHT, b->weight);
-		syslog(LOG_DEBUG,"       [%s] %d", CONFIG_KEY_PRIORITY, b->priority);
-		syslog(LOG_DEBUG,"       [%s] %s", CONFIG_KEY_STATE, obj_print_state(b->state));
-		syslog(LOG_DEBUG,"      *[%s] %d", CONFIG_KEY_ACTION, b->action);
+		tools_printlog(LOG_DEBUG,"       [%s] %d", CONFIG_KEY_WEIGHT, b->weight);
+		tools_printlog(LOG_DEBUG,"       [%s] %d", CONFIG_KEY_PRIORITY, b->priority);
+		tools_printlog(LOG_DEBUG,"       [%s] %s", CONFIG_KEY_STATE, obj_print_state(b->state));
+		tools_printlog(LOG_DEBUG,"      *[%s] %d", CONFIG_KEY_ACTION, b->action);
 	}
 }
 
@@ -183,7 +183,7 @@ struct backend * backend_lookup_by_key(struct farm *f, int key, const char *name
 	struct backend *b;
 	int bckmark;
 
-	syslog(LOG_DEBUG, "%s():%d: farm %s key %d name %s value %d", __FUNCTION__, __LINE__, f->name, key, name, value);
+	tools_printlog(LOG_DEBUG, "%s():%d: farm %s key %d name %s value %d", __FUNCTION__, __LINE__, f->name, key, name, value);
 
 	list_for_each_entry(b, &f->backends, list) {
 		switch (key) {
@@ -259,7 +259,7 @@ static int backend_set_ipaddr_from_ether(struct backend *b)
 		sprintf(streth, "%02x:%02x:%02x:%02x:%02x:%02x", dst_ethaddr[0],
 			dst_ethaddr[1], dst_ethaddr[2], dst_ethaddr[3], dst_ethaddr[4], dst_ethaddr[5]);
 
-		syslog(LOG_DEBUG, "%s():%d: discovered ether address for %s is %s", __FUNCTION__, __LINE__, b->name, streth);
+		tools_printlog(LOG_DEBUG, "%s():%d: discovered ether address for %s is %s", __FUNCTION__, __LINE__, b->name, streth);
 
 		obj_set_attribute_string(streth, &b->ethaddr);
 	}
@@ -272,8 +272,8 @@ static int backend_set_weight(struct backend *b, int new_value)
 	struct farm *f = b->parent;
 	int old_value = b->weight;
 
-	syslog(LOG_DEBUG, "%s():%d: current value is %d, but new value will be %d",
-	       __FUNCTION__, __LINE__, old_value, new_value);
+	tools_printlog(LOG_DEBUG, "%s():%d: current value is %d, but new value will be %d",
+				   __FUNCTION__, __LINE__, old_value, new_value);
 
 	b->weight = new_value;
 
@@ -287,8 +287,8 @@ static int backend_set_estconnlimit(struct backend *b, int new_value)
 {
 	int old_value = b->estconnlimit;
 
-	syslog(LOG_DEBUG, "%s():%d: current value is %d, but new value will be %d",
-	       __FUNCTION__, __LINE__, old_value, new_value);
+	tools_printlog(LOG_DEBUG, "%s():%d: current value is %d, but new value will be %d",
+				   __FUNCTION__, __LINE__, old_value, new_value);
 
 	if (new_value == old_value)
 		return 0;
@@ -302,7 +302,7 @@ static void backend_s_update_counters(struct farm *f)
 {
 	struct backend *bp, *next;
 
-	syslog(LOG_DEBUG, "%s():%d: farm %s", __FUNCTION__, __LINE__, f->name);
+	tools_printlog(LOG_DEBUG, "%s():%d: farm %s", __FUNCTION__, __LINE__, f->name);
 
 	f->bcks_available = 0;
 	f->bcks_usable = 0;
@@ -322,8 +322,8 @@ static int backend_set_priority(struct backend *b, int new_value)
 {
 	int old_value = b->priority;
 
-	syslog(LOG_DEBUG, "%s():%d: current value is %d, but new value will be %d",
-	       __FUNCTION__, __LINE__, old_value, new_value);
+	tools_printlog(LOG_DEBUG, "%s():%d: current value is %d, but new value will be %d",
+				   __FUNCTION__, __LINE__, old_value, new_value);
 
 	if (new_value <= 0)
 		return -1;
@@ -337,7 +337,7 @@ static int backend_s_set_ports(struct farm *f)
 {
 	struct backend *b;
 
-	syslog(LOG_DEBUG, "%s():%d: finding backends with port for %s", __FUNCTION__, __LINE__, f->name);
+	tools_printlog(LOG_DEBUG, "%s():%d: finding backends with port for %s", __FUNCTION__, __LINE__, f->name);
 
 	list_for_each_entry(b, &f->backends, list) {
 		if (strcmp(b->port, DEFAULT_PORT) != 0) {
@@ -354,7 +354,7 @@ static int backend_s_set_srcaddr(struct farm *f)
 {
 	struct backend *b;
 
-	syslog(LOG_DEBUG, "%s():%d: finding backends with srouce address for %s", __FUNCTION__, __LINE__, f->name);
+	tools_printlog(LOG_DEBUG, "%s():%d: finding backends with srouce address for %s", __FUNCTION__, __LINE__, f->name);
 
 	list_for_each_entry(b, &f->backends, list) {
 		if (b->srcaddr && strcmp(b->srcaddr, "") != 0) {
@@ -371,8 +371,8 @@ static int backend_set_mark(struct backend *b, int new_value)
 {
 	int old_value = b->mark;
 
-	syslog(LOG_DEBUG, "%s():%d: current value is %d, but new value will be %d",
-	       __FUNCTION__, __LINE__, old_value, new_value);
+	tools_printlog(LOG_DEBUG, "%s():%d: current value is %d, but new value will be %d",
+				   __FUNCTION__, __LINE__, old_value, new_value);
 
 	b->mark = new_value;
 
@@ -388,8 +388,8 @@ static int backend_set_port(struct backend *b, char *new_value)
 {
 	char *old_value = b->port;
 
-	syslog(LOG_DEBUG, "%s():%d: current value is %s, but new value will be %s",
-	       __FUNCTION__, __LINE__, old_value, new_value);
+	tools_printlog(LOG_DEBUG, "%s():%d: current value is %s, but new value will be %s",
+				   __FUNCTION__, __LINE__, old_value, new_value);
 
 	obj_set_attribute_string(new_value, &b->port);
 
@@ -405,8 +405,8 @@ static int backend_set_srcaddr(struct backend *b, char *new_value)
 {
 	char *old_value = b->srcaddr;
 
-	syslog(LOG_DEBUG, "%s():%d: current value is %s, but new value will be %s",
-	       __FUNCTION__, __LINE__, old_value, new_value);
+	tools_printlog(LOG_DEBUG, "%s():%d: current value is %s, but new value will be %s",
+				   __FUNCTION__, __LINE__, old_value, new_value);
 
 	obj_set_attribute_string(new_value, &b->srcaddr);
 
@@ -425,15 +425,15 @@ static int backend_set_ifinfo(struct backend *b, int key)
 	int if_index;
 	int ret = 0;
 
-	syslog(LOG_DEBUG, "%s():%d: backend %s set interface info for interface key %d", __FUNCTION__, __LINE__, b->name, key);
+	tools_printlog(LOG_DEBUG, "%s():%d: backend %s set interface info for interface key %d", __FUNCTION__, __LINE__, b->name, key);
 
 	if (!farm_is_ingress_mode(f)) {
-		syslog(LOG_DEBUG, "%s():%d: farm %s is not in ingress mode", __FUNCTION__, __LINE__, f->name);
+		tools_printlog(LOG_DEBUG, "%s():%d: farm %s is not in ingress mode", __FUNCTION__, __LINE__, f->name);
 		return 0;
 	}
 
 	if (f->oface && strcmp(f->oface, IFACE_LOOPBACK) == 0) {
-		syslog(LOG_DEBUG, "%s():%d: backend %s in farm %s doesn't require output netinfo, loopback interface", __FUNCTION__, __LINE__, b->name, f->name);
+		tools_printlog(LOG_DEBUG, "%s():%d: backend %s in farm %s doesn't require output netinfo, loopback interface", __FUNCTION__, __LINE__, b->name, f->name);
 		f->ifidx = 0;
 		return 0;
 	}
@@ -441,13 +441,13 @@ static int backend_set_ifinfo(struct backend *b, int key)
 	switch (key) {
 	case KEY_OFACE:
 		if (!b || b->ipaddr == DEFAULT_IPADDR) {
-			syslog(LOG_ERR, "%s():%d: there is no backend yet in the farm %s", __FUNCTION__, __LINE__, f->name);
+			tools_printlog(LOG_ERR, "%s():%d: there is no backend yet in the farm %s", __FUNCTION__, __LINE__, f->name);
 			return 0;
 		}
 
 		ret = net_get_local_ifidx_per_remote_host(b->ipaddr, &if_index);
 		if (ret == -1) {
-			syslog(LOG_ERR, "%s():%d: unable to get the outbound interface to %s for the backend %s in farm %s", __FUNCTION__, __LINE__, b->ipaddr, b->name, f->name);
+			tools_printlog(LOG_ERR, "%s():%d: unable to get the outbound interface to %s for the backend %s in farm %s", __FUNCTION__, __LINE__, b->ipaddr, b->name, f->name);
 			return -1;
 		}
 
@@ -457,7 +457,7 @@ static int backend_set_ifinfo(struct backend *b, int key)
 		}
 
 		if (if_indextoname(if_index, if_str) == NULL) {
-			syslog(LOG_ERR, "%s():%d: unable to get the outbound interface name with index %d required by the backend %s in farm %s", __FUNCTION__, __LINE__, if_index, b->name, f->name);
+			tools_printlog(LOG_ERR, "%s():%d: unable to get the outbound interface name with index %d required by the backend %s in farm %s", __FUNCTION__, __LINE__, if_index, b->name, f->name);
 			return -1;
 		}
 
@@ -475,8 +475,8 @@ static int backend_set_ipaddr(struct backend *b, char *new_value)
 {
 	char *old_value = b->ipaddr;
 
-	syslog(LOG_DEBUG, "%s():%d: current value is %s, but new value will be %s",
-	       __FUNCTION__, __LINE__, old_value, new_value);
+	tools_printlog(LOG_DEBUG, "%s():%d: current value is %s, but new value will be %s",
+				   __FUNCTION__, __LINE__, old_value, new_value);
 
 	obj_set_attribute_string(new_value, &b->ipaddr);
 	obj_set_attribute_string("", &b->ethaddr);
@@ -487,7 +487,7 @@ static int backend_set_ipaddr(struct backend *b, char *new_value)
 		if (old_value != DEFAULT_IPADDR && b->state == VALUE_STATE_CONFERR)
 			backend_set_state(b, VALUE_STATE_UP);
 	} else {
-		syslog(LOG_DEBUG, "%s():%d: backend %s comes to OFF", __FUNCTION__, __LINE__, b->name);
+		tools_printlog(LOG_DEBUG, "%s():%d: backend %s comes to OFF", __FUNCTION__, __LINE__, b->name);
 		if (old_value != DEFAULT_IPADDR)
 			backend_set_state(b, VALUE_STATE_CONFERR);
 	}
@@ -497,24 +497,24 @@ static int backend_set_ipaddr(struct backend *b, char *new_value)
 
 static int backend_is_in_maintenance(struct backend *b)
 {
-	syslog(LOG_DEBUG, "%s():%d: backend %s state is %s",
-	       __FUNCTION__, __LINE__, b->name, obj_print_state(b->state));
+	tools_printlog(LOG_DEBUG, "%s():%d: backend %s state is %s",
+				   __FUNCTION__, __LINE__, b->name, obj_print_state(b->state));
 
 	return (b->state == VALUE_STATE_OFF);
 }
 
 static int backend_is_up(struct backend *b)
 {
-	syslog(LOG_DEBUG, "%s():%d: backend %s state is %s",
-	       __FUNCTION__, __LINE__, b->name, obj_print_state(b->state));
+	tools_printlog(LOG_DEBUG, "%s():%d: backend %s state is %s",
+				   __FUNCTION__, __LINE__, b->name, obj_print_state(b->state));
 
 	return (b->state == VALUE_STATE_UP);
 }
 
 int backend_is_usable(struct backend *b)
 {
-	syslog(LOG_DEBUG, "%s():%d: backend %s state is %s and priority %d",
-	       __FUNCTION__, __LINE__, b->name, obj_print_state(b->state), b->priority);
+	tools_printlog(LOG_DEBUG, "%s():%d: backend %s state is %s and priority %d",
+				   __FUNCTION__, __LINE__, b->name, obj_print_state(b->state), b->priority);
 
 	return (backend_validate(b) && (backend_is_up(b) || backend_is_in_maintenance(b)) && backend_below_prio(b));
 }
@@ -534,7 +534,7 @@ int backend_changed(struct config_pair *c)
 	if (!f || !b)
 		return -1;
 
-	syslog(LOG_DEBUG, "%s():%d: farm %s backend %s with param %d", __FUNCTION__, __LINE__, f->name, b->name, c->key);
+	tools_printlog(LOG_DEBUG, "%s():%d: farm %s backend %s with param %d", __FUNCTION__, __LINE__, f->name, b->name, c->key);
 
 	switch (c->key) {
 	case KEY_NAME:
@@ -590,8 +590,8 @@ int backend_validate(struct backend *b)
 {
 	struct farm *f = b->parent;
 
-	syslog(LOG_DEBUG, "%s():%d: validating backend %s of farm %s",
-	       __FUNCTION__, __LINE__, b->name, f->name);
+	tools_printlog(LOG_DEBUG, "%s():%d: validating backend %s of farm %s",
+				   __FUNCTION__, __LINE__, b->name, f->name);
 
 	if (farm_is_ingress_mode(f) &&
 		(!b->ethaddr || strcmp(b->ethaddr, "") == 0))
@@ -605,8 +605,8 @@ int backend_validate(struct backend *b)
 
 int backend_is_available(struct backend *b)
 {
-	syslog(LOG_DEBUG, "%s():%d: backend %s state is %s and priority %d",
-	       __FUNCTION__, __LINE__, b->name, obj_print_state(b->state), b->priority);
+	tools_printlog(LOG_DEBUG, "%s():%d: backend %s state is %s and priority %d",
+				   __FUNCTION__, __LINE__, b->name, obj_print_state(b->state), b->priority);
 
 	return (backend_validate(b) && backend_is_up(b) && backend_below_prio(b));
 }
@@ -616,8 +616,8 @@ int backend_set_action(struct backend *b, int action)
 	int is_actionated = 0;
 	struct farm *f = b->parent;
 
-	syslog(LOG_DEBUG, "%s():%d: bck %s action %d state %d - new action %d",
-	       __FUNCTION__, __LINE__, b->name, b->action, b->state, action);
+	tools_printlog(LOG_DEBUG, "%s():%d: bck %s action %d state %d - new action %d",
+				   __FUNCTION__, __LINE__, b->name, b->action, b->state, action);
 
 	if (action == ACTION_DELETE) {
 		backend_delete(b);
@@ -765,8 +765,8 @@ static int backend_switch(struct backend *b)
 {
 	struct farm *f = b->parent;
 
-	syslog(LOG_DEBUG, "%s():%d: backend %s with state %s switched",
-	       __FUNCTION__, __LINE__, b->name, obj_print_state(b->state));
+	tools_printlog(LOG_DEBUG, "%s():%d: backend %s with state %s switched",
+				   __FUNCTION__, __LINE__, b->name, obj_print_state(b->state));
 
 	if (f->persistence != VALUE_META_NONE)
 		session_backend_action(f, b, b->state);
@@ -786,8 +786,8 @@ int backend_set_state(struct backend *b, int new_value)
 {
 	int old_value = b->state;
 
-	syslog(LOG_DEBUG, "%s():%d: backend %s current value is %s, but new value will be %s",
-	       __FUNCTION__, __LINE__, b->name, obj_print_state(old_value), obj_print_state(new_value));
+	tools_printlog(LOG_DEBUG, "%s():%d: backend %s current value is %s, but new value will be %s",
+				   __FUNCTION__, __LINE__, b->name, obj_print_state(old_value), obj_print_state(new_value));
 
 	if (old_value == new_value)
 		return 0;
@@ -824,13 +824,13 @@ int backend_s_set_ether_by_ipaddr(struct farm *f, const char *ip_bck, char *ethe
 		if (strcmp(b->ipaddr, ip_bck) != 0)
 			continue;
 
-		syslog(LOG_DEBUG, "%s():%d: backend with ip address %s found", __FUNCTION__, __LINE__, ip_bck);
+		tools_printlog(LOG_DEBUG, "%s():%d: backend with ip address %s found", __FUNCTION__, __LINE__, ip_bck);
 
 		if (!b->ethaddr || (b->ethaddr && strcmp(b->ethaddr, ether_bck) != 0)) {
 			obj_set_attribute_string(ether_bck, &b->ethaddr);
 			backend_set_state(b, VALUE_STATE_UP);
 			changed = 1;
-			syslog(LOG_INFO, "%s():%d: ether address changed for backend %s with %s", __FUNCTION__, __LINE__, b->name, ether_bck);
+			tools_printlog(LOG_INFO, "%s():%d: ether address changed for backend %s with %s", __FUNCTION__, __LINE__, b->name, ether_bck);
 		}
 	}
 
@@ -842,7 +842,7 @@ int backend_s_find_ethers(struct farm *f)
 	struct backend *b;
 	int changed = 0;
 
-	syslog(LOG_DEBUG, "%s():%d: finding backends for %s", __FUNCTION__, __LINE__, f->name);
+	tools_printlog(LOG_DEBUG, "%s():%d: finding backends for %s", __FUNCTION__, __LINE__, f->name);
 
 	list_for_each_entry(b, &f->backends, list) {
 		if (!backend_is_usable(b) || backend_validate(b))
@@ -873,7 +873,7 @@ int bck_pre_actionable(struct config_pair *c)
 	if (!f || !b)
 		return -1;
 
-	syslog(LOG_DEBUG, "%s():%d: pre actionable backend %s of farm %s with param %d", __FUNCTION__, __LINE__, b->name, f->name, c->key);
+	tools_printlog(LOG_DEBUG, "%s():%d: pre actionable backend %s of farm %s with param %d", __FUNCTION__, __LINE__, b->name, f->name, c->key);
 
 	// changing priority of a down backend could affect others, force a farm restart
 	if (b->state != VALUE_STATE_UP && b->state != VALUE_STATE_CONFERR && c->key == KEY_PRIORITY) {
@@ -924,7 +924,7 @@ int bck_pos_actionable(struct config_pair *c, int action)
 	if (!f || !b)
 		return -1;
 
-	syslog(LOG_DEBUG, "%s():%d: pos actionable backend %s of farm %s with param %d action %d", __FUNCTION__, __LINE__, b->name, f->name, c->key, action);
+	tools_printlog(LOG_DEBUG, "%s():%d: pos actionable backend %s of farm %s with param %d action %d", __FUNCTION__, __LINE__, b->name, f->name, c->key, action);
 
 	switch (action) {
 	case ACTION_START:
@@ -952,7 +952,7 @@ int backend_s_gen_priority(struct farm *f)
 	int old_prio = f->priority;
 	int new_prio = DEFAULT_PRIORITY;
 
-	syslog(LOG_DEBUG, "%s():%d: farm %s", __FUNCTION__, __LINE__, f->name);
+	tools_printlog(LOG_DEBUG, "%s():%d: farm %s", __FUNCTION__, __LINE__, f->name);
 
 	do {
 		are_down = 0;
@@ -967,7 +967,7 @@ int backend_s_gen_priority(struct farm *f)
 
 	f->priority = new_prio;
 
-	syslog(LOG_DEBUG, "%s():%d: priority is %d", __FUNCTION__, __LINE__, f->priority);
+	tools_printlog(LOG_DEBUG, "%s():%d: priority is %d", __FUNCTION__, __LINE__, f->priority);
 
 	backend_s_update_counters(f);
 
