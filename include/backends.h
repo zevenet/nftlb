@@ -68,5 +68,6 @@ int bck_pre_actionable(struct config_pair *c);
 int bck_pos_actionable(struct config_pair *c, int action);
 
 int backend_s_gen_priority(struct farm *f);
+int backend_get_mark(struct backend *b);
 
 #endif /* _BACKENDS_H_ */

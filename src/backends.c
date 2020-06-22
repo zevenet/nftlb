@@ -30,7 +30,6 @@
 #include "objects.h"
 #include "network.h"
 #include "sessions.h"
-#include "nft.h"
 
 static int backend_s_set_marked(struct farm *f)
 {
@@ -181,7 +180,6 @@ void backend_s_print(struct farm *f)
 struct backend * backend_lookup_by_key(struct farm *f, int key, const char *name, int value)
 {
 	struct backend *b;
-	int bckmark;
 
 	syslog(LOG_DEBUG, "%s():%d: farm %s key %d name %s value %d", __FUNCTION__, __LINE__, f->name, key, name, value);
 
@@ -192,8 +190,7 @@ struct backend * backend_lookup_by_key(struct farm *f, int key, const char *name
 				return b;
 			break;
 		case KEY_MARK:
-			bckmark = get_bck_mark(b);
-			if (bckmark == value)
+			if (value == backend_get_mark(b))
 				return b;
 			break;
 		case KEY_ETHADDR:
@@ -965,4 +962,16 @@ int backend_s_gen_priority(struct farm *f)
 	backend_s_update_counters(f);
 
 	return f->priority != old_prio;
+}
+
+int backend_get_mark(struct backend *b)
+{
+	int mark = b->mark;
+
+	if (b->srcaddr && strcmp(b->srcaddr, "") != 0)
+		mark |= b->parent->mark;
+	else
+		mark |= farm_get_mark(b->parent);
+
+	return mark;
 }

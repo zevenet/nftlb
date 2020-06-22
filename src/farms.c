@@ -1159,3 +1159,13 @@ int farm_s_rulerize(void)
 
 	return output;
 }
+
+int farm_get_mark(struct farm *f)
+{
+	int mark = f->mark;
+
+	if (farm_get_masquerade(f))
+		mark |= NFTLB_POSTROUTING_MARK;
+
+	return mark;
+}

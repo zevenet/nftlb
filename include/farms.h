@@ -186,5 +186,6 @@ int farm_s_lookup_policy_action(char *name, int action);
 
 int farm_rulerize(struct farm *f);
 int farm_s_rulerize(void);
+int farm_get_mark(struct farm *f);
 
 #endif /* _FARMS_H_ */

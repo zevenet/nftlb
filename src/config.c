@@ -1012,6 +1012,7 @@ int config_set_backend_action(const char *fname, const char *bname, const char *
 {
 	struct farm *f;
 	struct backend *b;
+	int ret = 0;
 
 	if (!fname || strcmp(fname, "") == 0)
 		return -1;
@@ -1022,16 +1023,25 @@ int config_set_backend_action(const char *fname, const char *bname, const char *
 		return -1;
 	}
 
-	if (!bname || strcmp(bname, "") == 0)
-		return backend_s_set_action(f, config_value_action(value));
+	session_get_timed(f);
+
+	if (!bname || strcmp(bname, "") == 0) {
+		ret = backend_s_set_action(f, config_value_action(value));
+		goto out;
+	}
 
 	b = backend_lookup_by_key(f, KEY_NAME, bname, 0);
 	if (!b) {
 		config_set_output(". Unknown backend '%s' in farm '%s'", bname, fname);
-		return -1;
+		ret = -1;
+		goto out;
 	}
 
-	return backend_set_action(b, config_value_action(value));
+	ret = backend_set_action(b, config_value_action(value));
+
+out:
+	session_s_delete(f, SESSION_TYPE_TIMED);
+	return ret;
 }
 
 int config_set_session_action(const char *fname, const char *sname, const char *value)

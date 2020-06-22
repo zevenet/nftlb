@@ -307,25 +307,34 @@ int session_get_client(struct session *s, char **parsed)
 int session_backend_action(struct farm *f, struct backend *b, int action)
 {
 	struct session *s, *next;
+	int hastimed = f->total_timed_sessions;
+
+	syslog(LOG_DEBUG, "%s():%d: farm %s backend %s action %d", __FUNCTION__, __LINE__, f->name, b->name, action);
 
 	if (f->total_static_sessions != 0) {
-		list_for_each_entry_safe(s, next, &f->static_sessions, list)
+		list_for_each_entry_safe(s, next, &f->static_sessions, list) {
 			if (s->bck &&
-				(((f->mode == VALUE_MODE_DNAT || f->mode == VALUE_MODE_SNAT || f->mode == VALUE_MODE_LOCAL) && b->mark == s->bck->mark) ||
+				(((f->mode == VALUE_MODE_DNAT || f->mode == VALUE_MODE_SNAT || f->mode == VALUE_MODE_LOCAL) && backend_get_mark(b) == backend_get_mark(s->bck)) ||
 				((f->mode == VALUE_MODE_DSR || f->mode == VALUE_MODE_STLSDNAT) && strcmp(b->ethaddr, s->bck->ethaddr) == 0)))
 				session_set_action(s, SESSION_TYPE_STATIC, action);
+		}
 	}
 
-	session_get_timed(f);
+	if (!hastimed)
+		session_get_timed(f);
+
 	if (f->total_timed_sessions != 0) {
-		list_for_each_entry_safe(s, next, &f->timed_sessions, list)
+		list_for_each_entry_safe(s, next, &f->timed_sessions, list) {
 			if (s->bck &&
-				(((f->mode == VALUE_MODE_DNAT || f->mode == VALUE_MODE_SNAT || f->mode == VALUE_MODE_LOCAL) && b->mark == s->bck->mark) ||
-				((f->mode == VALUE_MODE_DSR || f->mode == VALUE_MODE_STLSDNAT) && strcmp(b->ethaddr, s->bck->ethaddr) == 0)))
+				((farm_is_ingress_mode(f) && strcmp(b->ethaddr, s->bck->ethaddr) == 0) ||
+				 obj_equ_attribute_int(backend_get_mark(b), backend_get_mark(s->bck)))) {
 				session_set_action(s, SESSION_TYPE_TIMED, action);
+			}
+		}
 	}
 
-	session_s_delete(f, SESSION_TYPE_TIMED);
+	if (!hastimed)
+		session_s_delete(f, SESSION_TYPE_TIMED);
 
 	return 0;
 }
