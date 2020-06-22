@@ -1,0 +1,58 @@
+table ip nftlb {
+	map nat-port-services {
+		type inet_proto . inet_service : verdict
+		elements = { tcp . 8080 : goto nat-newfarm }
+	}
+
+	map port-services-back {
+		type inet_proto . inet_service : ipv4_addr
+	}
+
+	map port-services-back-m {
+		type mark : ipv4_addr
+	}
+
+	map filter-port-services {
+		type inet_proto . inet_service : verdict
+		elements = { tcp . 8080 : goto filter-newfarm }
+	}
+
+	map static-sessions-newfarm {
+		type ipv4_addr : mark
+	}
+
+	map persist-newfarm {
+		type ipv4_addr : mark
+		size 65535
+		timeout 1m
+	}
+
+	chain prerouting {
+		type nat hook prerouting priority filter; policy accept;
+		ip protocol . th dport vmap @nat-port-services
+	}
+
+	chain postrouting {
+		type nat hook postrouting priority srcnat; policy accept;
+		ct mark 0x80000000/1 masquerade
+		snat to ip protocol . th dport map @port-services-back
+		snat to ct mark map @port-services-back-m
+	}
+
+	chain filter {
+		type filter hook prerouting priority mangle; policy accept;
+		meta mark set ct mark
+		ip protocol . th dport vmap @filter-port-services
+	}
+
+	chain filter-newfarm {
+		ct mark set ip saddr map @static-sessions-newfarm accept
+		ct state new ct mark set ip saddr map @persist-newfarm
+		ct state new ct mark 0x00000000 ct mark set numgen inc mod 1 map { 0 : 0x80000201 }
+		ct mark != 0x00000000 update @persist-newfarm { ip saddr : ct mark }
+	}
+
+	chain nat-newfarm {
+		dnat ip addr . port to ct mark map { 0x80000201 : 192.168.100.254 . 80 }
+	}
+}

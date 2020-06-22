@@ -43,6 +43,11 @@ for DIRTEST in `ls -d */`; do
 	rm -f report-*-req.out
 	$CURL -H "Key: $APISRV_KEY" -X $VERB $CURL_ARGS http://$APISRV_ADDR:$APISRV_PORT/$URI -o "$CURL_OUTPUT" 2> /dev/null
 
+	FEXEC="pos.sh"
+	if [ -x $FEXEC ]; then
+		./$FEXEC
+	fi
+
 	# checking curl output
 	CHECK_OUTPUT="req.out"
 	echo -n "(request:"
@@ -91,11 +96,6 @@ for DIRTEST in `ls -d */`; do
 		fi
 	else
 		echo -en "\e[33mUNKNOWN\e[0m) "
-	fi
-
-	FEXEC="pos.sh"
-	if [ -x $FEXEC ]; then
-		./$FEXEC
 	fi
 
 	echo ""
