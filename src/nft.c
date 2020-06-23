@@ -160,6 +160,7 @@ enum map_modes {
 	BCK_MAP_BCK_PROTO_IPADDR_F_PORT,
 	BCK_MAP_PROTO_IPADDR,
 	BCK_MAP_PROTO_PORT,
+	BCK_MAP_PORT,
 };
 
 struct if_base_rule {
@@ -1274,6 +1275,8 @@ static int run_farm_rules_gen_bck_map(struct sbuffer *buf, struct farm *f, enum 
 			continue;
 		if (usable == NFTLB_CHECK_AVAIL && !backend_is_available(b))
 			continue;
+		if (data_mode == BCK_MAP_PORT && backend_no_port(b))
+			continue;
 
 		if (i != 0)
 			concat_buf(buf, ",");
@@ -1313,6 +1316,9 @@ static int run_farm_rules_gen_bck_map(struct sbuffer *buf, struct farm *f, enum 
 				concat_buf(buf, " %s . 0", b->ipaddr);
 			else
 				concat_buf(buf, " %s . %s", b->ipaddr, b->port);
+			break;
+		case BCK_MAP_PORT:
+			concat_buf(buf, " %s", b->port);
 			break;
 		case BCK_MAP_IPADDR:
 			concat_buf(buf, " %s", b->ipaddr);
@@ -2047,6 +2053,12 @@ static int run_farm_rules_gen_nat(struct sbuffer *buf, struct farm *f, int famil
 		concat_buf(buf, " ether saddr set %s ether daddr set", f->oethaddr);
 		run_farm_rules_gen_sched(buf, f, family);
 		run_farm_rules_gen_bck_map(buf, f, BCK_MAP_WEIGHT, BCK_MAP_ETHADDR, NFTLB_CHECK_AVAIL);
+
+		if (f->bcks_have_port) {
+			concat_buf(buf, " th dport set ether daddr");
+			run_farm_rules_gen_bck_map(buf, f, BCK_MAP_ETHADDR, BCK_MAP_PORT, NFTLB_CHECK_AVAIL);
+		}
+
 		run_farm_rules_ingress_persistence(buf, f, family, action);
 		run_farm_log_prefix(buf, f, VALUE_LOG_OUTPUT, NFTLB_F_CHAIN_EGR_DNAT, ACTION_START);
 		concat_buf(buf, " fwd to");
@@ -2068,6 +2080,12 @@ static int run_farm_rules_gen_nat(struct sbuffer *buf, struct farm *f, int famil
 		run_farm_rules_gen_bck_map(buf, f, BCK_MAP_WEIGHT, BCK_MAP_IPADDR, NFTLB_CHECK_AVAIL);
 		concat_buf(buf, " ether daddr set ip daddr");
 		run_farm_rules_gen_bck_map(buf, f, BCK_MAP_IPADDR, BCK_MAP_ETHADDR, NFTLB_CHECK_AVAIL);
+
+		if (f->bcks_have_port) {
+			concat_buf(buf, " th dport set ether daddr");
+			run_farm_rules_gen_bck_map(buf, f, BCK_MAP_ETHADDR, BCK_MAP_PORT, NFTLB_CHECK_AVAIL);
+		}
+
 		// TODO: support of different output interfaces per backend during saddr
 		concat_buf(buf, " ether saddr set %s", f->oethaddr);
 		run_farm_rules_ingress_persistence(buf, f, family, action);
