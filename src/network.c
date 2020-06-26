@@ -48,6 +48,7 @@
 #define ETH_ADDR_LEN				14
 #define GET_INET_LEN(family)		((family == AF_INET6) ? IP6_ADDR_LEN : IP_ADDR_LEN)
 #define GET_INET_STRLEN(family)		((family == AF_INET6) ? INET6_ADDRSTRLEN : INET_ADDRSTRLEN)
+#define GET_AF_INET(family)			((family == VALUE_FAMILY_IPV6) ? AF_INET6 : AF_INET)
 
 static int net_event_enabled;
 
@@ -94,10 +95,10 @@ struct ntl_request {
 	void *data;
 };
 
-static int net_cmp_ipv6(struct in6_addr *ip1, struct in6_addr *ip2)
+static int net_cmp_ip(struct in6_addr *ip1, struct in6_addr *ip2, int size)
 {
 	int i = 0;
-	for(i = 0; i < 16; ++i) {
+	for(i = 0; i < size; ++i) {
 		if (ip1->s6_addr[i] != ip2->s6_addr[i])
 			return -1;
 	}
@@ -269,10 +270,7 @@ static int data_getdst_neigh_cb(const struct nlmsghdr *nlh, void *data)
 	ipaddr = mnl_attr_get_payload(tb[NDA_DST]);
 	inet_ntop(sdata->family, ipaddr, out, GET_INET_LEN(sdata->family));
 
-	if (sdata->family == AF_INET6)
-		matches = (net_cmp_ipv6(ipaddr, sdata->dst_ipaddr) == 0);
-	else
-		matches = (memcmp(ipaddr, sdata->dst_ipaddr, GET_INET_LEN(sdata->family)) == 0);
+	matches = (net_cmp_ip(ipaddr, sdata->dst_ipaddr, GET_INET_LEN(sdata->family)) == 0);
 
 	if (matches &&
 	    ((ndm->ndm_state & NUD_REACHABLE) || (ndm->ndm_state & NUD_PERMANENT) || (ndm->ndm_state & NUD_STALE))) {
@@ -390,7 +388,7 @@ int net_get_neigh_ether(unsigned char **dst_ethaddr, unsigned char *src_ethaddr,
 	ntl.nlh->nlmsg_seq = time(NULL);
 
 	ntl.rt = mnl_nlmsg_put_extra_header(ntl.nlh, sizeof(struct rtgenmsg));
-	ntl.rt->rtgen_family = AF_INET | AF_INET6;
+	ntl.rt->rtgen_family = GET_AF_INET(family);
 	ntl.cb = data_getdst_neigh_cb;
 
 	syslog(LOG_DEBUG, "%s():%d: source ether is %02x:%02x:%02x:%02x:%02x:%02x",
@@ -411,10 +409,7 @@ int net_get_neigh_ether(unsigned char **dst_ethaddr, unsigned char *src_ethaddr,
 		return -1;
 	}
 
-	if (family == VALUE_FAMILY_IPV6)
-		data->family = AF_INET6;
-	else
-		data->family = AF_INET;
+	data->family = GET_AF_INET(family);
 
 	if (inet_pton(data->family, dst_ipaddr, data->dst_ipaddr) <= 0) {
 		syslog(LOG_ERR, "%s():%d: network translation error for %s", __FUNCTION__, __LINE__, dst_ipaddr);
@@ -586,7 +581,7 @@ int net_get_local_ifname_per_vip(char *strvip, char *outdev)
 				continue;
 			ipaddr6 = (struct sockaddr_in6 *)ifaddr->ifa_addr;
 			inet_pton(AF_INET6, strvip, &((struct sockaddr_in6 *) &addr)->sin6_addr);
-			if (net_cmp_ipv6(&((struct sockaddr_in6 *) &addr)->sin6_addr, &(ipaddr6->sin6_addr)) == 0) {
+			if (net_cmp_ip(&((struct sockaddr_in6 *) &addr)->sin6_addr, &(ipaddr6->sin6_addr), IP6_ADDR_LEN) == 0) {
 				found = 1;
 				strcpy(outdev, ifaddr->ifa_name);
 			}

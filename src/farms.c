@@ -288,7 +288,9 @@ static int farm_set_state(struct farm *f, int new_value)
 	    new_value == VALUE_STATE_UP) {
 
 		farm_set_action(f, ACTION_START);
+		f->state = new_value;
 		farm_set_netinfo(f);
+		return 0;
 	}
 
 	if (old_value == VALUE_STATE_UP &&

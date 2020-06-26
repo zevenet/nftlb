@@ -835,7 +835,7 @@ int backend_s_find_ethers(struct farm *f)
 	syslog(LOG_DEBUG, "%s():%d: finding backends for %s", __FUNCTION__, __LINE__, f->name);
 
 	list_for_each_entry(b, &f->backends, list) {
-		if (!backend_is_usable(b) || backend_validate(b))
+		if (backend_validate(b))
 			continue;
 
 		if (backend_set_ipaddr_from_ether(b) == -1)
