@@ -2094,10 +2094,6 @@ static int run_farm_rules_gen_nat(struct sbuffer *buf, struct farm *f, int famil
 		break;
 	default:
 		run_farm_gen_log_rules(buf, f, family, chain, VALUE_LOG_INPUT, NFTLB_F_CHAIN_PRE_DNAT, ACTION_START);
-
-		if (f->bcks_usable == 0)
-			return 0;
-
 		concat_buf(buf, " ; add rule %s %s %s dnat", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain);
 
 		if (f->bcks_have_port)
