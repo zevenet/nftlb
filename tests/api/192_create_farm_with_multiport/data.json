@@ -1,0 +1,30 @@
+{
+        "farms": [
+                {
+                        "name": "newfarm",
+                        "family": "ipv4",
+                        "virtual-addr": "192.168.56.101",
+                        "virtual-ports": "8080,8081",
+                        "source-addr": "",
+                        "mode": "snat",
+                        "protocol": "tcp",
+                        "scheduler": "rr",
+                        "helper": "none",
+                        "log": "none",
+                        "mark": "0x0",
+                        "priority": "1",
+                        "state": "up",
+                        "backends": [
+                                {
+                                        "name": "bck0",
+                                        "ip-addr": "192.168.100.254",
+                                        "weight": "1",
+                                        "priority": "1",
+                                        "mark": "0x201",
+                                        "est-connlimit": "0",
+                                        "state": "up"
+                                }
+                        ]
+                }
+        ]
+}
