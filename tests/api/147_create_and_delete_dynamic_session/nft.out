@@ -46,14 +46,15 @@ table netdev nftlb {
 		timeout 1m
 	}
 
+	map static-sessions-newfarm {
+		type ipv4_addr : ipv4_addr
+	}
+
 	map persist-newfarm {
 		type ipv4_addr : ipv4_addr
 		size 65535
 		timeout 1m
-	}
-
-	map static-sessions-newfarm {
-		type ipv4_addr : ipv4_addr
+		elements = { 222.222.222.222 expires 59s944ms : 127.0.0.2 }
 	}
 
 	chain ingress-lo {

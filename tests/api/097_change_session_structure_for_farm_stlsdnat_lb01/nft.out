@@ -10,14 +10,14 @@ table netdev nftlb {
 		timeout 50s
 	}
 
+	map static-sessions-lb01 {
+		type ipv4_addr : ipv4_addr
+	}
+
 	map persist-lb01 {
 		type ipv4_addr : ipv4_addr
 		size 65535
 		timeout 50s
-	}
-
-	map static-sessions-lb01 {
-		type ipv4_addr : ipv4_addr
 	}
 
 	chain ingress-lo {
