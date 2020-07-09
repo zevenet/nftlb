@@ -1770,6 +1770,23 @@ static int run_farm_ingress_policies(struct sbuffer *buf, struct farm *f, int fa
 	return 0;
 }
 
+static int run_farm_ingress_static_sessions_map(struct sbuffer *buf, struct farm *f, int family, int action)
+{
+	char map_str[255] = { 0 };
+
+	if (f->persistence == VALUE_META_NONE)
+		return 0;
+
+	sprintf(map_str, "static-sessions-%s", f->name);
+
+	if (f->mode == VALUE_MODE_DSR)
+		run_farm_map(buf, f, family, map_str, f->persistence, VALUE_META_DSTMAC, 0, action);
+	else if (f->mode == VALUE_MODE_STLSDNAT)
+		run_farm_map(buf, f, family, map_str, f->persistence, VALUE_META_DSTIP, 0, action);
+
+	return 0;
+}
+
 static int run_farm_rules_ingress_static_sessions(struct sbuffer *buf, struct farm *f, int family, int action)
 {
 	char chain[255] = { 0 };
@@ -1783,17 +1800,12 @@ static int run_farm_rules_ingress_static_sessions(struct sbuffer *buf, struct fa
 	if (f->bcks_usable == 0)
 		return 0;
 
+	if ((action != ACTION_START && action != ACTION_RELOAD))
+		return 0;
+
 	get_farm_chain(chain, f, NFTLB_F_CHAIN_ING_FILTER);
 
 	sprintf(map_str, "static-sessions-%s", f->name);
-
-	if (f->mode == VALUE_MODE_DSR)
-		run_farm_map(buf, f, family, map_str, f->persistence, VALUE_META_DSTMAC, 0, action);
-	else if (f->mode == VALUE_MODE_STLSDNAT)
-		run_farm_map(buf, f, family, map_str, f->persistence, VALUE_META_DSTIP, 0, action);
-
-	if ((action != ACTION_START && action != ACTION_RELOAD))
-		return 0;
 
 	list_for_each_entry(s, &f->static_sessions, list) {
 		client = (char *) malloc(255);
@@ -1865,53 +1877,6 @@ static int run_farm_ingress_persistence_map(struct sbuffer *buf, struct farm *f,
 		run_farm_map(buf, f, family, map_str, f->persistence, VALUE_META_DSTMAC, f->persistttl, action);
 	else if (f->mode == VALUE_MODE_STLSDNAT)
 		run_farm_map(buf, f, family, map_str, f->persistence, VALUE_META_DSTIP, f->persistttl, action);
-
-	return 0;
-}
-
-static int run_farm_rules_ingress_timed_sessions(struct sbuffer *buf, struct farm *f, int family, int action)
-{
-	char chain[255] = { 0 };
-	char map_str[255] = { 0 };
-	char *client;
-	struct session *s;
-
-	if (f->persistence == VALUE_META_NONE)
-		return 0;
-
-	if (f->bcks_usable == 0)
-		return 0;
-
-	get_farm_chain(chain, f, NFTLB_F_CHAIN_ING_FILTER);
-
-	sprintf(map_str, "persist-%s", f->name);
-
-	if ((action != ACTION_START && action != ACTION_RELOAD))
-		return 0;
-
-	list_for_each_entry(s, &f->timed_sessions, list) {
-		client = (char *) malloc(255);
-		if (!client) {
-			syslog(LOG_ERR, "%s():%d: unable to allocate parsed client %s for farm %s", __FUNCTION__, __LINE__, s->client, f->name);
-			continue;
-		}
-
-		if (session_get_client(s, &client)) {
-			if (f->mode == VALUE_MODE_DSR) {
-				if ((action == ACTION_START || s->action == ACTION_START) && s->bck && s->bck->ethaddr != DEFAULT_ETHADDR)
-					concat_exec_cmd(buf, " ; add element %s %s %s { %s : %s }", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, map_str, client, s->bck->ethaddr);
-			} else if(f->mode == VALUE_MODE_STLSDNAT) {
-				if ((action == ACTION_START || s->action == ACTION_START) && s->bck && s->bck->ipaddr != DEFAULT_IPADDR)
-					concat_exec_cmd(buf, " ; add element %s %s %s { %s : %s }", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, map_str, client, s->bck->ipaddr);
-			}
-			if (action == ACTION_RELOAD && (s->action == ACTION_STOP || s->action == ACTION_DELETE))
-				concat_exec_cmd(buf, " ; delete element %s %s %s { %s }", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, map_str, client);
-			free(client);
-		}
-		s->action = ACTION_NONE;
-	}
-
-	concat_exec_cmd(buf, "");
 
 	return 0;
 }
@@ -2047,19 +2012,19 @@ static int run_farm_rules(struct sbuffer *buf, struct farm *f, int family, int a
 		run_farm_rules_gen_vsrv(buf, f, NFTLB_F_CHAIN_ING_FILTER, family, action);
 		run_farm_ingress_policies(buf, f, family, action);
 		run_farm_stlsnat(buf, f, family, action);
+		run_farm_ingress_static_sessions_map(buf, f, family, action);
 		run_farm_ingress_persistence_map(buf, f, family, action);
 		run_farm_rules_gen_nat(buf, f, family, NFTLB_F_CHAIN_ING_FILTER, action);
-		run_farm_rules_ingress_timed_sessions(buf, f, family, action);
 		break;
 	case VALUE_MODE_DSR:
 		run_base_table(buf, NFTLB_NETDEV_FAMILY);
 		run_base_chain(buf, f, NFTLB_F_CHAIN_ING_FILTER, family);
 		run_farm_rules_gen_vsrv(buf, f, NFTLB_F_CHAIN_ING_FILTER, family, action);
 		run_farm_ingress_policies(buf, f, family, action);
-		run_farm_rules_ingress_static_sessions(buf, f, family, action);
+		run_farm_ingress_static_sessions_map(buf, f, family, action);
 		run_farm_ingress_persistence_map(buf, f, family, action);
+		run_farm_rules_ingress_static_sessions(buf, f, family, action);
 		run_farm_rules_gen_nat(buf, f, family, NFTLB_F_CHAIN_ING_FILTER, action);
-		run_farm_rules_ingress_timed_sessions(buf, f, family, action);
 		break;
 	case VALUE_MODE_LOCAL:
 		run_farm_rules_filter(buf, f, family, action);
@@ -2115,6 +2080,7 @@ static int del_farm_rules(struct sbuffer *buf, struct farm *f, int family)
 		run_farm_rules_gen_vsrv(buf, f, NFTLB_F_CHAIN_ING_FILTER, family, ACTION_DELETE);
 		run_farm_rules_ingress_static_sessions(buf, f, family, ACTION_DELETE);
 		run_farm_ingress_persistence_map(buf, f, family, ACTION_DELETE);
+		run_farm_ingress_static_sessions_map(buf, f, family, ACTION_DELETE);
 	} else {
 		run_farm_rules_gen_vsrv(buf, f, NFTLB_F_CHAIN_PRE_DNAT, family, ACTION_DELETE);
 	}
