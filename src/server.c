@@ -267,10 +267,11 @@ static int send_delete_response(struct nftlb_http_state *state)
 	char secondlevel[SRV_MAX_IDENT] = {0};
 	char thirdlevel[SRV_MAX_IDENT] = {0};
 	char fourthlevel[SRV_MAX_IDENT] = {0};
+	char fifthlevel[SRV_MAX_IDENT] = {0};
 	int ret;
 
-	sscanf(state->uri, "/%199[^/]/%199[^/]/%199[^/]/%199[^\n]",
-	       firstlevel, secondlevel, thirdlevel, fourthlevel);
+	sscanf(state->uri, "/%199[^/]/%199[^/]/%199[^/]/%199[^/]/%199[^\n]",
+	       firstlevel, secondlevel, thirdlevel, fourthlevel, fifthlevel);
 
 	if (init_http_state(state))
 		return -1;
@@ -285,6 +286,18 @@ static int send_delete_response(struct nftlb_http_state *state)
 	}
 
 	if (strcmp(firstlevel, CONFIG_KEY_FARMS) == 0 &&
+		strcmp(thirdlevel, CONFIG_KEY_BCKS) == 0 &&
+		strcmp(fifthlevel, CONFIG_KEY_SESSIONS) == 0) {
+		ret = config_set_session_backend_action(secondlevel, fourthlevel, CONFIG_VALUE_ACTION_DELETE);
+		if (ret < 0) {
+			config_print_response(&state->body_response, "%s%s", "error deleting sessions from backend",
+									config_get_output());
+			config_delete_output();
+			state->status_code = WS_HTTP_500;
+			goto delete_end;
+		}
+
+	} else if (strcmp(firstlevel, CONFIG_KEY_FARMS) == 0 &&
 		strcmp(thirdlevel, CONFIG_KEY_BCKS) == 0) {
 		ret = config_set_backend_action(secondlevel, fourthlevel, CONFIG_VALUE_ACTION_DELETE);
 		if (ret < 0) {
@@ -336,6 +349,14 @@ static int send_delete_response(struct nftlb_http_state *state)
 			state->status_code = WS_HTTP_500;
 			goto delete_end;
 		}
+
+		// subnet support
+		if (strcmp(fifthlevel,"") != 0 &&
+			(strlen(fourthlevel) + strlen(fifthlevel) + 1 < SRV_MAX_IDENT)) {
+			strcat(fourthlevel, "/");
+			strcat(fourthlevel, fifthlevel);
+		}
+
 		ret = config_set_element_action(secondlevel, fourthlevel, CONFIG_VALUE_ACTION_STOP);
 		if (ret < 0) {
 			config_print_response(&state->body_response, "%s%s", "error deleting policy element",

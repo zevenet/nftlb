@@ -162,6 +162,7 @@ int config_print_farms(char **buf, char *name);
 int config_print_farm_sessions(char **buf, char *name);
 int config_print_policies(char **buf, char *name);
 int config_set_farm_action(const char *name, const char *value);
+int config_set_session_backend_action(const char *fname, const char *bname, const char *value);
 int config_set_backend_action(const char *fname, const char *bname, const char *value);
 int config_set_session_action(const char *fname, const char *sname, const char *value);
 int config_set_fpolicy_action(const char *fname, const char *fpname, const char *value);

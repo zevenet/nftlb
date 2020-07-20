@@ -1,0 +1,3 @@
+FILE="data.json"
+VERB="DELETE"
+URI="farms/lb01/backends/b1-64588d8b49-6r67p/sessions"

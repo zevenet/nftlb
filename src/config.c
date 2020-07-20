@@ -1011,6 +1011,48 @@ int config_set_farm_action(const char *name, const char *value)
 	return farm_set_action(f, config_value_action(value));
 }
 
+int config_set_session_backend_action(const char *fname, const char *bname, const char *value)
+{
+	struct farm *f;
+	struct backend *b;
+	int ret = 0;
+
+	if (!fname || strcmp(fname, "") == 0)
+		return -1;
+
+	if (!bname || strcmp(bname, "") == 0)
+		return -1;
+
+	f = farm_lookup_by_name(fname);
+	if (!f) {
+		config_set_output(". Unknown farm '%s'", fname);
+		return -1;
+	}
+
+	if (f->persistence == VALUE_META_NONE) {
+		config_set_output(". Farm '%s' without session persistence", fname);
+		return -1;
+	}
+
+	b = backend_lookup_by_key(f, KEY_NAME, bname, 0);
+	if (!b) {
+		config_set_output(". Unknown backend '%s' in farm '%s'", bname, fname);
+		return -1;
+	}
+
+	session_get_timed(f);
+
+	if (config_value_action(value) == ACTION_DELETE) {
+		ret = session_backend_action(f, b, ACTION_STOP);
+		farm_set_action(f, ACTION_RELOAD);
+		obj_rulerize(OBJ_START);
+	}
+	ret = session_backend_action(f, b, config_value_action(value));
+
+	session_s_delete(f, SESSION_TYPE_TIMED);
+	return ret;
+}
+
 int config_set_backend_action(const char *fname, const char *bname, const char *value)
 {
 	struct farm *f;
