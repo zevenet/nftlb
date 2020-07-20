@@ -611,7 +611,6 @@ int backend_is_available(struct backend *b)
 int backend_set_action(struct backend *b, int action)
 {
 	int is_actionated = 0;
-	struct farm *f = b->parent;
 
 	tools_printlog(LOG_DEBUG, "%s():%d: bck %s action %d state %d - new action %d",
 				   __FUNCTION__, __LINE__, b->name, b->action, b->state, action);
@@ -627,7 +626,6 @@ int backend_set_action(struct backend *b, int action)
 			b->action = action;
 			is_actionated = 1;
 		}
-		session_backend_action(f, b, ACTION_STOP);
 		backend_set_state(b, VALUE_STATE_DOWN);
 
 		return is_actionated;
@@ -765,12 +763,11 @@ static int backend_switch(struct backend *b)
 	tools_printlog(LOG_DEBUG, "%s():%d: backend %s with state %s switched",
 				   __FUNCTION__, __LINE__, b->name, obj_print_state(b->state));
 
-	if (f->persistence != VALUE_META_NONE)
-		session_backend_action(f, b, b->state);
-
-	if (b->state == VALUE_STATE_UP)
+	if (b->state == VALUE_STATE_UP) {
+		if (f->persistence != VALUE_META_NONE)
+			session_backend_action(f, b, ACTION_START);
 		b->action = ACTION_START;
-	else
+	} else
 		b->action = ACTION_STOP;
 
 	farm_set_action(f, ACTION_RELOAD);
