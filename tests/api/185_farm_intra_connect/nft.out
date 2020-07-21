@@ -54,7 +54,7 @@ table ip nftlb {
 	}
 
 	chain output-filter {
-		type filter hook output priority filter; policy accept;
+		type filter hook output priority mangle; policy accept;
 		ip protocol . th dport vmap @output-filter-port-services
 	}
 

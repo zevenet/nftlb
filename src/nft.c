@@ -769,7 +769,7 @@ static int run_base_chain(struct sbuffer *buf, struct farm *f, int type, int fam
 	} else if (type & NFTLB_F_CHAIN_OUT_FILTER) {
 		base_rules = get_rules_applied(type, family, "");
 		chain_family = print_nft_family(family);
-		chain_prio = NFTLB_PREROUTING_PRIO;
+		chain_prio = NFTLB_FILTER_PRIO;
 		sprintf(base_chain, "%s", NFTLB_TABLE_OUT_FILTER);
 		chain_type = NFTLB_TYPE_FILTER;
 		chain_hook = NFTLB_HOOK_OUTPUT;
