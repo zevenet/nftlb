@@ -4,13 +4,13 @@ table ip nftlb {
 		elements = { tcp . 10.0.0.241 . 8080 : goto nat-newfarm }
 	}
 
-	map proto-services-back {
-		type inet_proto . ipv4_addr . inet_service : ipv4_addr
-	}
-
 	map proto-services-back-m {
 		type mark : ipv4_addr
 		elements = { 0x00000200 : 10.0.0.241, 0x00000202 : 10.0.0.241 }
+	}
+
+	map proto-services-back {
+		type inet_proto . ipv4_addr . inet_service : ipv4_addr
 	}
 
 	map filter-proto-services {
@@ -38,8 +38,8 @@ table ip nftlb {
 	chain postrouting {
 		type nat hook postrouting priority srcnat; policy accept;
 		ct mark 0x80000000/1 masquerade
-		snat to ip protocol . ip daddr . th dport map @proto-services-back
 		snat to ct mark map @proto-services-back-m
+		snat to ip protocol . ip daddr . th dport map @proto-services-back
 	}
 
 	chain filter {

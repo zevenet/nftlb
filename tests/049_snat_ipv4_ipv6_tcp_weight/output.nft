@@ -4,10 +4,6 @@ table ip nftlb {
 		elements = { tcp . 129.187.204.211 . 80 : goto nat-lb01v4 }
 	}
 
-	map proto-services-back {
-		type inet_proto . ipv4_addr . inet_service : ipv4_addr
-	}
-
 	map proto-services-back-m {
 		type mark : ipv4_addr
 	}
@@ -25,7 +21,6 @@ table ip nftlb {
 	chain postrouting {
 		type nat hook postrouting priority srcnat; policy accept;
 		ct mark 0x80000000/1 masquerade
-		snat to ip protocol . ip daddr . th dport map @proto-services-back
 		snat to ct mark map @proto-services-back-m
 	}
 
@@ -49,10 +44,6 @@ table ip6 nftlb {
 		elements = { tcp . 2001:4ca0:4101:0:81:bb:cc:d3 . 80 : goto nat-lb01v6 }
 	}
 
-	map proto-services6-back {
-		type inet_proto . ipv6_addr . inet_service : ipv6_addr
-	}
-
 	map proto-services6-back-m {
 		type mark : ipv6_addr
 	}
@@ -70,7 +61,6 @@ table ip6 nftlb {
 	chain postrouting {
 		type nat hook postrouting priority srcnat; policy accept;
 		ct mark 0x80000000/1 masquerade
-		snat to ip6 nexthdr . ip6 daddr . th dport map @proto-services6-back
 		snat to ct mark map @proto-services6-back-m
 	}
 

@@ -12,29 +12,11 @@ table netdev nftlb {
 	}
 
 	chain ingress-lo {
-		type filter hook ingress device "lo" priority 100; policy accept;
+		type filter hook ingress device "lo" priority 101; policy accept;
 		ip protocol . ip daddr . th dport vmap @proto-services-lo
 	}
 
 	chain lb01 {
 		ip saddr @black001 log prefix "[BL,lb01,black001]" drop
-	}
-}
-table ip nftlb {
-	map filter-proto-services {
-		type inet_proto . ipv4_addr . inet_service : verdict
-		elements = { tcp . 127.0.0.1 . 80 : goto filter-lb01 }
-	}
-
-	chain filter {
-		type filter hook prerouting priority mangle; policy accept;
-		meta mark set ct mark
-		ip protocol . ip daddr . th dport vmap @filter-proto-services
-	}
-
-	chain filter-lb01 {
-		ct state new ct mark 0x00000000 ct mark set numgen random mod 10 map { 0-4 : 0x00000001, 5-9 : 0x00000002 }
-		ct mark 0x00000001 ct count over 20  log prefix "[est-connlimit,bck,lb01,bck0]" drop
-		ct mark 0x00000002 ct count over 20  log prefix "[est-connlimit,bck,lb01,bck1]" drop
 	}
 }

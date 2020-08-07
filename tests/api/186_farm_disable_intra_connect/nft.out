@@ -4,10 +4,6 @@ table ip nftlb {
 		elements = { tcp . 8080 : goto nat-newfarm }
 	}
 
-	map port-services-back {
-		type inet_proto . inet_service : ipv4_addr
-	}
-
 	map port-services-back-m {
 		type mark : ipv4_addr
 	}
@@ -15,14 +11,6 @@ table ip nftlb {
 	map filter-port-services {
 		type inet_proto . inet_service : verdict
 		elements = { tcp . 8080 : goto filter-newfarm }
-	}
-
-	map output-filter-port-services {
-		type inet_proto . inet_service : verdict
-	}
-
-	map output-nat-port-services {
-		type inet_proto . inet_service : verdict
 	}
 
 	chain prerouting {
@@ -33,7 +21,6 @@ table ip nftlb {
 	chain postrouting {
 		type nat hook postrouting priority srcnat; policy accept;
 		ct mark 0x80000000/1 masquerade
-		snat to ip protocol . th dport map @port-services-back
 		snat to ct mark map @port-services-back-m
 	}
 
@@ -41,16 +28,6 @@ table ip nftlb {
 		type filter hook prerouting priority mangle; policy accept;
 		meta mark set ct mark
 		ip protocol . th dport vmap @filter-port-services
-	}
-
-	chain output-filter {
-		type filter hook output priority mangle; policy accept;
-		ip protocol . th dport vmap @output-filter-port-services
-	}
-
-	chain output-nat {
-		type nat hook output priority filter; policy accept;
-		ip protocol . th dport vmap @output-nat-port-services
 	}
 
 	chain filter-newfarm {

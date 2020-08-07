@@ -1,6 +1,26 @@
 table netdev nftlb {
 	map proto-services-lo {
 		type inet_proto . ipv4_addr . inet_service : verdict
+		elements = { tcp . 192.168.0.154 . 80 : goto lb01,
+			     tcp . 192.168.0.154 . 81 : goto lb01,
+			     tcp . 192.168.0.154 . 82 : goto lb01,
+			     tcp . 192.168.0.154 . 83 : goto lb01,
+			     tcp . 192.168.0.154 . 84 : goto lb01,
+			     tcp . 192.168.0.154 . 85 : goto lb01,
+			     tcp . 192.168.0.154 . 86 : goto lb01,
+			     tcp . 192.168.0.154 . 87 : goto lb01,
+			     tcp . 192.168.0.154 . 88 : goto lb01,
+			     tcp . 192.168.0.154 . 90 : goto lb01,
+			     tcp . 192.168.0.154 . 91 : goto lb01,
+			     tcp . 192.168.0.154 . 92 : goto lb01,
+			     tcp . 192.168.0.154 . 93 : goto lb01,
+			     tcp . 192.168.0.154 . 94 : goto lb01,
+			     tcp . 192.168.0.154 . 95 : goto lb01,
+			     tcp . 192.168.0.154 . 96 : goto lb01 }
+	}
+
+	map proto-services-dnat-lo {
+		type inet_proto . ipv4_addr . inet_service : verdict
 		elements = { tcp . 192.168.0.10 . 80 : goto lb01-back,
 			     tcp . 192.168.0.10 . 81 : goto lb01-back,
 			     tcp . 192.168.0.10 . 82 : goto lb01-back,
@@ -64,23 +84,7 @@ table netdev nftlb {
 			     tcp . 192.168.0.15 . 93 : goto lb01-back,
 			     tcp . 192.168.0.15 . 94 : goto lb01-back,
 			     tcp . 192.168.0.15 . 95 : goto lb01-back,
-			     tcp . 192.168.0.15 . 96 : goto lb01-back,
-			     tcp . 192.168.0.154 . 80 : goto lb01,
-			     tcp . 192.168.0.154 . 81 : goto lb01,
-			     tcp . 192.168.0.154 . 82 : goto lb01,
-			     tcp . 192.168.0.154 . 83 : goto lb01,
-			     tcp . 192.168.0.154 . 84 : goto lb01,
-			     tcp . 192.168.0.154 . 85 : goto lb01,
-			     tcp . 192.168.0.154 . 86 : goto lb01,
-			     tcp . 192.168.0.154 . 87 : goto lb01,
-			     tcp . 192.168.0.154 . 88 : goto lb01,
-			     tcp . 192.168.0.154 . 90 : goto lb01,
-			     tcp . 192.168.0.154 . 91 : goto lb01,
-			     tcp . 192.168.0.154 . 92 : goto lb01,
-			     tcp . 192.168.0.154 . 93 : goto lb01,
-			     tcp . 192.168.0.154 . 94 : goto lb01,
-			     tcp . 192.168.0.154 . 95 : goto lb01,
-			     tcp . 192.168.0.154 . 96 : goto lb01 }
+			     tcp . 192.168.0.15 . 96 : goto lb01-back }
 	}
 
 	map map-lb01-back {
@@ -90,14 +94,18 @@ table netdev nftlb {
 	}
 
 	chain ingress-lo {
-		type filter hook ingress device "lo" priority 100; policy accept;
-		ip protocol . ip saddr . th sport vmap @proto-services-lo
+		type filter hook ingress device "lo" priority 101; policy accept;
 		ip protocol . ip daddr . th dport vmap @proto-services-lo
 	}
 
 	chain lb01 {
 		meta protocol ip update @map-lb01-back { ip saddr : ether saddr }
 		ip daddr set symhash mod 20 map { 0-4 : 192.168.0.10, 5-9 : 192.168.0.11, 10-14 : 192.168.0.13, 15-19 : 192.168.0.15 } ether daddr set ip daddr map { 192.168.0.10 : 02:02:02:02:02:02, 192.168.0.11 : 03:03:03:03:03:03, 192.168.0.13 : 05:05:05:05:05:05, 192.168.0.15 : 07:07:07:07:07:07 } ether saddr set 01:01:01:01:01:01 fwd to "lo"
+	}
+
+	chain ingress-dnat-lo {
+		type filter hook ingress device "lo" priority 100; policy accept;
+		ip protocol . ip saddr . th sport vmap @proto-services-dnat-lo
 	}
 
 	chain lb01-back {

@@ -6,10 +6,6 @@ table ip nftlb {
 			     sctp . 192.168.0.100 : goto nat-lb01 }
 	}
 
-	map services-back {
-		type inet_proto . ipv4_addr : ipv4_addr
-	}
-
 	map services-back-m {
 		type mark : ipv4_addr
 	}
@@ -29,7 +25,6 @@ table ip nftlb {
 	chain postrouting {
 		type nat hook postrouting priority srcnat; policy accept;
 		ct mark 0x80000000/1 masquerade
-		snat to ip protocol . ip daddr map @services-back
 		snat to ct mark map @services-back-m
 	}
 

@@ -5,10 +5,6 @@ table ip nftlb {
 			     udp . 192.168.105.189 . 80 : goto nat-lb02 }
 	}
 
-	map proto-services-back {
-		type inet_proto . ipv4_addr . inet_service : ipv4_addr
-	}
-
 	map proto-services-back-m {
 		type mark : ipv4_addr
 		elements = { 0x00000003 : 192.168.105.189 }
@@ -27,7 +23,6 @@ table ip nftlb {
 	chain postrouting {
 		type nat hook postrouting priority srcnat; policy accept;
 		ct mark 0x80000000/1 masquerade
-		snat to ip protocol . ip daddr . th dport map @proto-services-back
 		snat to ct mark map @proto-services-back-m
 	}
 
@@ -46,15 +41,5 @@ table ip nftlb {
 	}
 
 	chain nat-lb02 {
-	}
-}
-table netdev nftlb {
-	map proto-services-lo {
-		type inet_proto . ipv4_addr . inet_service : verdict
-	}
-
-	chain ingress-lo {
-		type filter hook ingress device "lo" priority 100; policy accept;
-		ip protocol . ip daddr . th dport vmap @proto-services-lo
 	}
 }

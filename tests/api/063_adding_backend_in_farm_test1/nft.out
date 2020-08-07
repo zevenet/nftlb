@@ -4,10 +4,6 @@ table ip nftlb {
 		elements = { tcp . 172.16.1.1 . 80 : goto nat-test1 }
 	}
 
-	map proto-services-back {
-		type inet_proto . ipv4_addr . inet_service : ipv4_addr
-	}
-
 	map proto-services-back-m {
 		type mark : ipv4_addr
 	}
@@ -25,18 +21,17 @@ table ip nftlb {
 	chain postrouting {
 		type nat hook postrouting priority srcnat; policy accept;
 		ct mark 0x80000000/1 masquerade
-		snat to ip protocol . ip daddr . th dport map @proto-services-back
 		snat to ct mark map @proto-services-back-m
+	}
+
+	chain nat-test1 {
+		dnat ip addr . port to ct mark map { 0x00000200 : 127.0.0.2 . 80 }
 	}
 
 	chain filter {
 		type filter hook prerouting priority mangle; policy accept;
 		meta mark set ct mark
 		ip protocol . ip daddr . th dport vmap @filter-proto-services
-	}
-
-	chain nat-test1 {
-		dnat ip addr . port to ct mark map { 0x00000200 : 127.0.0.2 . 80 }
 	}
 
 	chain filter-test1 {

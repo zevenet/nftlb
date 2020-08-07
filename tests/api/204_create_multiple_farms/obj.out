@@ -1,0 +1,148 @@
+{
+        "farms": [
+                {
+                        "name": "lb02",
+                        "family": "ipv4",
+                        "virtual-addr": "192.168.0.100",
+                        "virtual-ports": "80-88",
+                        "source-addr": "",
+                        "mode": "dsr",
+                        "protocol": "tcp",
+                        "scheduler": "hash",
+                        "sched-param": "srcip ",
+                        "persistence": "none",
+                        "persist-ttl": "60",
+                        "helper": "none",
+                        "log": "none",
+                        "mark": "0x0",
+                        "priority": "1",
+                        "state": "up",
+                        "new-rtlimit": "0",
+                        "new-rtlimit-burst": "0",
+                        "rst-rtlimit": "0",
+                        "rst-rtlimit-burst": "0",
+                        "est-connlimit": "0",
+                        "tcp-strict": "off",
+                        "queue": "-1",
+                        "backends": [
+                                {
+                                        "name": "bck0",
+                                        "ip-addr": "192.168.0.10",
+                                        "port": "",
+                                        "weight": "5",
+                                        "priority": "1",
+                                        "mark": "0x0",
+                                        "est-connlimit": "0",
+                                        "state": "up"
+                                },
+                                {
+                                        "name": "bck1",
+                                        "ip-addr": "192.168.0.11",
+                                        "port": "",
+                                        "weight": "5",
+                                        "priority": "1",
+                                        "mark": "0x0",
+                                        "est-connlimit": "0",
+                                        "state": "up"
+                                }
+                        ],
+                        "policies": []
+                },
+                {
+                        "name": "lb04",
+                        "family": "ipv4",
+                        "virtual-addr": "10.72.33.44",
+                        "virtual-ports": "80-99",
+                        "source-addr": "",
+                        "mode": "snat",
+                        "protocol": "tcp",
+                        "scheduler": "hash",
+                        "sched-param": "nonesrcip ",
+                        "persistence": "srcip ",
+                        "persist-ttl": "60",
+                        "helper": "none",
+                        "log": "none",
+                        "mark": "0x0",
+                        "priority": "1",
+                        "state": "up",
+                        "new-rtlimit": "0",
+                        "new-rtlimit-burst": "0",
+                        "rst-rtlimit": "0",
+                        "rst-rtlimit-burst": "0",
+                        "est-connlimit": "0",
+                        "tcp-strict": "off",
+                        "queue": "-1",
+                        "backends": [
+                                {
+                                        "name": "bck0",
+                                        "ip-addr": "192.168.0.10",
+                                        "port": "",
+                                        "weight": "5",
+                                        "priority": "1",
+                                        "mark": "0x0",
+                                        "est-connlimit": "0",
+                                        "state": "up"
+                                },
+                                {
+                                        "name": "bck1",
+                                        "ip-addr": "192.168.0.11",
+                                        "port": "",
+                                        "weight": "5",
+                                        "priority": "1",
+                                        "mark": "0x0",
+                                        "est-connlimit": "0",
+                                        "state": "up"
+                                }
+                        ],
+                        "policies": []
+                },
+                {
+                        "name": "lb05",
+                        "family": "ipv4",
+                        "virtual-addr": "10.72.33.55",
+                        "virtual-ports": "2002",
+                        "source-addr": "",
+                        "mode": "snat",
+                        "protocol": "tcp",
+                        "scheduler": "hash",
+                        "sched-param": "nonesrcip ",
+                        "persistence": "srcip ",
+                        "persist-ttl": "60",
+                        "helper": "none",
+                        "log": "none",
+                        "mark": "0x0",
+                        "priority": "1",
+                        "state": "up",
+                        "new-rtlimit": "0",
+                        "new-rtlimit-burst": "0",
+                        "rst-rtlimit": "0",
+                        "rst-rtlimit-burst": "0",
+                        "est-connlimit": "0",
+                        "tcp-strict": "off",
+                        "queue": "-1",
+                        "backends": [
+                                {
+                                        "name": "bck0",
+                                        "ip-addr": "192.168.0.10",
+                                        "port": "",
+                                        "weight": "5",
+                                        "priority": "1",
+                                        "mark": "0x0",
+                                        "est-connlimit": "0",
+                                        "state": "up"
+                                },
+                                {
+                                        "name": "bck1",
+                                        "ip-addr": "192.168.0.11",
+                                        "port": "",
+                                        "weight": "5",
+                                        "priority": "1",
+                                        "mark": "0x0",
+                                        "est-connlimit": "0",
+                                        "state": "up"
+                                }
+                        ],
+                        "policies": []
+                }
+        ]
+}

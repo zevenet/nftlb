@@ -1,0 +1,100 @@
+{
+	"farms" : [
+		{
+			"name" : "lb02",
+			"family" : "ipv4",
+			"virtual-addr" : "192.168.0.100",
+			"virtual-ports" : "80-88",
+			"mode" : "dsr",
+			"protocol" : "tcp",
+			"scheduler" : "hash",
+			"state" : "up",
+			"backends" : [
+				{
+					"name" : "bck0",
+					"ip-addr" : "192.168.0.10",
+					"ether-addr" : "02:02:02:02:02:02",
+					"weight" : "5",
+					"priority" : "1",
+					"state" : "up"
+				},
+				{
+					"name" : "bck1",
+					"ip-addr" : "192.168.0.11",
+					"ether-addr" : "03:03:03:03:03:03",
+					"weight" : "5",
+					"priority" : "1",
+					"state" : "up"
+				}
+			],
+			"ether-addr" : "01:01:01:01:01:01",
+			"iface" : "lo",
+			"oface" : "lo",
+			"ether-addr" : "01:01:01:01:01:01"
+		},
+		{
+			"name" : "lb04",
+			"family" : "ipv4",
+			"virtual-addr" : "10.72.33.44",
+			"virtual-ports" : "80-99",
+			"mode" : "snat",
+			"protocol" : "tcp",
+			"scheduler" : "hash",
+			"persistence" : "srcip",
+			"state" : "up",
+			"backends" : [
+				{
+					"name" : "bck0",
+					"ip-addr" : "192.168.0.10",
+					"ether-addr" : "02:02:02:02:02:02",
+					"weight" : "5",
+					"priority" : "1",
+					"state" : "up"
+				},
+				{
+					"name" : "bck1",
+					"ip-addr" : "192.168.0.11",
+					"ether-addr" : "03:03:03:03:03:03",
+					"weight" : "5",
+					"priority" : "1",
+					"state" : "up"
+				}
+			],
+			"ether-addr" : "0f:0f:0f:0f:0f:0f",
+			"iface" : "lo",
+			"oface" : "lo"
+		},
+		{
+			"name" : "lb05",
+			"family" : "ipv4",
+			"virtual-addr" : "10.72.33.55",
+			"virtual-ports" : "2002",
+			"mode" : "snat",
+			"protocol" : "tcp",
+			"scheduler" : "hash",
+			"persistence" : "srcip",
+			"state" : "up",
+			"backends" : [
+				{
+					"name" : "bck0",
+					"ip-addr" : "192.168.0.10",
+					"ether-addr" : "02:02:02:02:02:02",
+					"weight" : "5",
+					"priority" : "1",
+					"state" : "up"
+				},
+				{
+					"name" : "bck1",
+					"ip-addr" : "192.168.0.11",
+					"ether-addr" : "03:03:03:03:03:03",
+					"weight" : "5",
+					"priority" : "1",
+					"state" : "up"
+				}
+			],
+			"ether-addr" : "0f:0f:0f:0f:0f:0f",
+			"iface" : "lo",
+			"oface" : "lo"
+		}
+	]
+}

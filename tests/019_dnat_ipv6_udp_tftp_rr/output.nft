@@ -9,10 +9,6 @@ table ip6 nftlb {
 		elements = { udp . 2001:db8:0:1:1:1:1:1 . 69 : goto nat-lb01 }
 	}
 
-	map proto-services6-back {
-		type inet_proto . ipv6_addr . inet_service : ipv6_addr
-	}
-
 	map proto-services6-back-m {
 		type mark : ipv6_addr
 	}
@@ -30,7 +26,6 @@ table ip6 nftlb {
 	chain postrouting {
 		type nat hook postrouting priority srcnat; policy accept;
 		ct mark 0x80000000/1 masquerade
-		snat to ip6 nexthdr . ip6 daddr . th dport map @proto-services6-back
 		snat to ct mark map @proto-services6-back-m
 	}
 
