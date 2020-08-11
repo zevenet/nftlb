@@ -779,6 +779,7 @@ static struct json_t *add_dump_list(json_t *obj, const char *objname, int object
 			add_dump_obj(item, CONFIG_KEY_LOG, buf);
 			if (f->logprefix && strcmp(f->logprefix, DEFAULT_LOG_LOGPREFIX) != 0)
 				add_dump_obj(item, CONFIG_KEY_LOGPREFIX, f->logprefix);
+			buf[0] = '\0';
 
 			config_dump_hex(value, f->mark);
 			add_dump_obj(item, CONFIG_KEY_MARK, value);
