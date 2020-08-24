@@ -31,21 +31,35 @@
 #include "sessions.h"
 #include "tools.h"
 
-static int backend_s_set_marked(struct farm *f)
+#define BACKEND_MARK_MIN			0x00000001
+#define BACKEND_MARK_MAX			0x00000FFF
+
+static int backend_gen_next_mark(void)
 {
+	struct list_head *farms = obj_get_farms();
+	struct farm *f;
 	struct backend *b;
+	int mark = BACKEND_MARK_MIN;
+	int found = 0;
 
-	tools_printlog(LOG_DEBUG, "%s():%d: finding marked backends for %s", __FUNCTION__, __LINE__, f->name);
-
-	list_for_each_entry(b, &f->backends, list) {
-		if (b->mark != DEFAULT_MARK) {
-			f->bcks_are_marked = 1;
-			return 1;
+	for (mark = BACKEND_MARK_MIN; mark <= BACKEND_MARK_MAX; mark++) {
+		found = 0;
+		list_for_each_entry(f, farms, list) {
+			list_for_each_entry(b, &f->backends, list) {
+				if (mark == b->mark) {
+					found = 1;
+					continue;
+				}
+			}
+			if (found)
+				continue;
 		}
+
+		if (!found)
+			return mark;
 	}
 
-	f->bcks_are_marked = 0;
-	return 0;
+	return DEFAULT_MARK;
 }
 
 static struct backend * backend_create(struct farm *f, char *name)
@@ -68,7 +82,7 @@ static struct backend * backend_create(struct farm *f, char *name)
 	b->srcaddr = DEFAULT_SRCADDR;
 	b->weight = DEFAULT_WEIGHT;
 	b->priority = DEFAULT_PRIORITY;
-	b->mark = DEFAULT_MARK;
+	b->mark = backend_gen_next_mark();
 	b->estconnlimit = DEFAULT_ESTCONNLIMIT;
 	b->estconnlimit_logprefix = DEFAULT_B_ESTCONNLIMIT_LOGPREFIX;
 	b->state = DEFAULT_BACKEND_STATE;
@@ -76,7 +90,6 @@ static struct backend * backend_create(struct farm *f, char *name)
 
 	list_add_tail(&b->list, &f->backends);
 	f->total_bcks++;
-	backend_s_set_marked(f);
 
 	return b;
 }
@@ -175,6 +188,7 @@ void backend_s_print(struct farm *f)
 		tools_printlog(LOG_DEBUG,"       [%s] %s", CONFIG_KEY_STATE, obj_print_state(b->state));
 		tools_printlog(LOG_DEBUG,"      *[%s] %d", CONFIG_KEY_ACTION, b->action);
 	}
+
 }
 
 struct backend * backend_lookup_by_key(struct farm *f, int key, const char *name, int value)
@@ -368,15 +382,13 @@ static int backend_set_mark(struct backend *b, int new_value)
 {
 	int old_value = b->mark;
 
+	if (new_value < BACKEND_MARK_MIN || new_value > BACKEND_MARK_MAX)
+		return 0;
+
 	tools_printlog(LOG_DEBUG, "%s():%d: current value is %d, but new value will be %d",
 				   __FUNCTION__, __LINE__, old_value, new_value);
 
 	b->mark = new_value;
-
-	if (b->mark != DEFAULT_MARK)
-		b->parent->bcks_are_marked = 1;
-	else
-		backend_s_set_marked(b->parent);
 
 	return 0;
 }

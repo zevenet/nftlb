@@ -776,10 +776,7 @@ static void print_log_format(char *buf, int key, int type, struct farm *f, struc
 
 static int need_filter(struct farm *f)
 {
-	return (!farm_is_ingress_mode(f)) && (f->helper != DEFAULT_HELPER || f->bcks_are_marked || f->mark != DEFAULT_MARK || farm_get_masquerade(f) ||
-			f->newrtlimit != DEFAULT_NEWRTLIMIT || f->rstrtlimit != DEFAULT_RSTRTLIMIT || f->estconnlimit != DEFAULT_ESTCONNLIMIT ||
-			f->tcpstrict != DEFAULT_TCPSTRICT || f->queue != DEFAULT_QUEUE || f->bcks_have_srcaddr ||
-			f->persistence != DEFAULT_PERSIST || (f->srcaddr != DEFAULT_SRCADDR && strcmp(f->srcaddr, "") != 0));
+	return (!farm_is_ingress_mode(f) && f->mode != VALUE_MODE_LOCAL);
 }
 
 static int need_forward(struct farm *f)
@@ -1854,9 +1851,6 @@ static int run_farm_rules_check_sessions(struct sbuffer *buf, struct farm *f, in
 		break;
 
 	default:
-		if (!f->bcks_are_marked)
-			return 0;
-
 		get_farm_chain(chain, f, NFTLB_F_CHAIN_PRE_FILTER);
 		if (stype == SESSION_TYPE_STATIC) {
 			concat_buf(buf, " ; add rule %s %s %s ct mark set", print_nft_table_family(family, NFTLB_F_CHAIN_PRE_FILTER), NFTLB_TABLE_NAME, chain);
@@ -1901,9 +1895,6 @@ static int run_farm_rules_update_sessions(struct sbuffer *buf, struct farm *f, i
 		concat_exec_cmd(buf, " }");
 		break;
 	default:
-		if (!f->bcks_are_marked)
-			return 0;
-
 		concat_buf(buf, " ; add rule %s %s %s ct mark != 0x00000000 update @%s { ", print_nft_table_family(family, NFTLB_F_CHAIN_PRE_FILTER), NFTLB_TABLE_NAME, chain, map_str);
 		run_farm_rules_gen_meta_param(buf, f, family, f->persistence, NFTLB_MAP_KEY_RULE);
 		concat_exec_cmd(buf, " : ct mark }");
@@ -2006,11 +1997,11 @@ static int run_farm_rules_filter_marks(struct sbuffer *buf, struct farm *f, int 
 {
 	int mark = farm_get_mark(f);
 
-	if (!f->bcks_are_marked && mark == DEFAULT_MARK)
+	if (mark == DEFAULT_MARK)
 		return 0;
 
 	if (action == ACTION_START || action == ACTION_RELOAD) {
-		if (f->bcks_are_marked && f->bcks_available != 0) {
+		if (f->bcks_available != 0) {
 			concat_buf(buf, " ; add rule %s %s %s ct state new ct mark 0x0 ct mark set", print_nft_table_family(family, NFTLB_F_CHAIN_PRE_FILTER), NFTLB_TABLE_NAME, chain);
 			if (run_farm_rules_gen_sched(buf, f, family) == -1)
 				return -1;
@@ -2351,16 +2342,10 @@ static int run_farm_rules_gen_nat(struct sbuffer *buf, struct farm *f, int famil
 
 		if (f->bcks_have_port)
 			bck_map_data = BCK_MAP_IPADDR_PORT;
-		if (f->bcks_are_marked) {
-			get_farm_rules_nat_params(buf, f, family);
-			concat_buf(buf, " to ct mark");
-			run_farm_rules_gen_bck_map(buf, f, BCK_MAP_MARK, bck_map_data, NFTLB_CHECK_USABLE);
-		} else {
-			get_farm_rules_nat_params(buf, f, family);
-			concat_buf(buf, " to");
-			run_farm_rules_gen_sched(buf, f, family);
-			run_farm_rules_gen_bck_map(buf, f, BCK_MAP_WEIGHT, bck_map_data, NFTLB_CHECK_USABLE);
-		}
+
+		get_farm_rules_nat_params(buf, f, family);
+		concat_buf(buf, " to ct mark");
+		run_farm_rules_gen_bck_map(buf, f, BCK_MAP_MARK, bck_map_data, NFTLB_CHECK_USABLE);
 
 		concat_exec_cmd(buf, "");
 		break;

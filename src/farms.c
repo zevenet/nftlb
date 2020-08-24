@@ -95,7 +95,6 @@ static struct farm * farm_create(char *name)
 	pfarm->total_bcks = 0;
 	pfarm->bcks_available = 0;
 	pfarm->bcks_usable = 0;
-	pfarm->bcks_are_marked = 0;
 	pfarm->bcks_have_port = 0;
 	pfarm->bcks_have_srcaddr = 0;
 	pfarm->bcks_have_if = 0;
@@ -464,7 +463,6 @@ static void farm_print(struct farm *f)
 	tools_printlog(LOG_DEBUG,"    *[total_bcks] %d", f->total_bcks);
 	tools_printlog(LOG_DEBUG,"    *[bcks_available] %d", f->bcks_available);
 	tools_printlog(LOG_DEBUG,"    *[bcks_usable] %d", f->bcks_usable);
-	tools_printlog(LOG_DEBUG,"    *[bcks_are_marked] %d", f->bcks_are_marked);
 	tools_printlog(LOG_DEBUG,"    *[bcks_have_port] %d", f->bcks_have_port);
 	tools_printlog(LOG_DEBUG,"    *[bcks_have_srcaddr] %d", f->bcks_have_srcaddr);
 	tools_printlog(LOG_DEBUG,"    *[policies_action] %d", f->policies_action);
