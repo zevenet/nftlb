@@ -197,7 +197,7 @@ char * obj_print_helper(int helper);
 void obj_print_log(int log, char *buf);
 char * obj_print_state(int state);
 char * obj_print_switch(int value);
-int obj_set_attribute(struct config_pair *c, int actionable);
+int obj_set_attribute(struct config_pair *c, int actionable, int apply_action);
 int obj_set_attribute_string(char *src, char **dst);
 int obj_equ_attribute_string(char *stra, char *strb);
 void obj_set_attribute_int(int *src, int value);

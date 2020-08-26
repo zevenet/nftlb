@@ -199,7 +199,7 @@ int element_s_delete(struct policy *p)
 	return 0;
 }
 
-int element_set_attribute(struct config_pair *c)
+int element_set_attribute(struct config_pair *c, int apply_action)
 {
 	struct policy *p = obj_get_current_policy();
 	struct element *e = obj_get_current_element();
@@ -227,7 +227,7 @@ int element_set_attribute(struct config_pair *c)
 	return 0;
 }
 
-int element_pos_actionable(struct config_pair *c)
+int element_pos_actionable(struct config_pair *c, int apply_action)
 {
 	struct policy *p = obj_get_current_policy();
 	struct element *e = obj_get_current_element();
@@ -237,7 +237,16 @@ int element_pos_actionable(struct config_pair *c)
 
 	tools_printlog(LOG_DEBUG, "%s():%d: pos actionable element %s of policy %s with param %d", __FUNCTION__, __LINE__, e->data, p->name, c->key);
 
-	policy_set_action(p, ACTION_RELOAD);
+	switch (c->key) {
+	case KEY_DATA:
+		if (apply_action != ACTION_START)
+			element_set_action(e, apply_action);
+		policy_set_action(p, apply_action);
+		break;
+	default:
+		policy_set_action(p, ACTION_RELOAD);
+		break;
+	}
 
 	return 0;
 }

@@ -36,8 +36,10 @@ for DIRTEST in `ls -d */`; do
 		./$FEXEC
 	fi
 
-	if [ "$VERB" = "POST" ] || [ "$VERB" = "PUT" ]; then
-		CURL_ARGS="-d @${FILE}"
+	if [ "$VERB" = "POST" ] || [ "$VERB" = "PUT" ] || [ "$VERB" = "DELETE" ] ; then
+		if [ -e "${FILE}" ]; then
+			CURL_ARGS="-d @${FILE}"
+		fi
 	fi
 	CURL_OUTPUT="report-${INDEX_OUT}-req.out"
 	rm -f report-*-req.out

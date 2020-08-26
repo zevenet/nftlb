@@ -2617,6 +2617,19 @@ static int run_set_elements(struct sbuffer *buf, struct policy *p)
 		if (index)
 			concat_exec_cmd(buf, " }");
 		break;
+	case ACTION_STOP:
+		list_for_each_entry(e, &p->elements, list) {
+			if (index)
+				concat_buf(buf, ", %s", e->data);
+			else {
+				index++;
+				concat_buf(buf, " ; delete element %s %s %s { %s", NFTLB_NETDEV_FAMILY_STR, NFTLB_TABLE_NAME, p->name, e->data);
+			}
+			e->action = ACTION_NONE;
+		}
+		if (index)
+			concat_exec_cmd(buf, " }");
+		break;
 	default:
 		break;
 	}
@@ -2659,8 +2672,8 @@ static int run_policy_set(struct sbuffer *buf, struct policy *p)
 
 	return 0;
 }
-
 int nft_rulerize_policies(struct policy *p)
+
 {
 	struct sbuffer buf;
 	int ret = 0;

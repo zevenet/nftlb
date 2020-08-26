@@ -126,6 +126,7 @@
 #define CONFIG_VALUE_ACTION_START	"start"
 #define CONFIG_VALUE_ACTION_RELOAD	"reload"
 #define CONFIG_VALUE_ACTION_NONE	"none"
+#define CONFIG_VALUE_ACTION_FLUSH	"flush"
 #define CONFIG_VALUE_SWITCH_ON		"on"
 #define CONFIG_VALUE_SWITCH_OFF		"off"
 #define CONFIG_VALUE_POLICIES_TYPE_BL	"blacklist"
@@ -149,7 +150,8 @@ struct config_pair {
 	enum levels	level;
 	enum keys	key;
 	char		*str_value;
-	int		int_value;
+	int			int_value;
+	int			action;
 };
 
 void config_pair_init(struct config_pair *c);
@@ -157,7 +159,7 @@ char *config_get_output(void);
 void config_delete_output(void);
 void config_set_output(char *fmt, ...);
 int config_file(const char *file);
-int config_buffer(const char *buf);
+int config_buffer(const char *buf, int apply_action);
 int config_print_farms(char **buf, char *name);
 int config_print_farm_sessions(char **buf, char *name);
 int config_print_policies(char **buf, char *name);

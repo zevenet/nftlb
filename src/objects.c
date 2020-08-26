@@ -462,7 +462,7 @@ char * obj_print_switch(int state)
 	}
 }
 
-int obj_set_attribute(struct config_pair *c, int actionable)
+int obj_set_attribute(struct config_pair *c, int actionable, int apply_action)
 {
 	int ret = 0;
 	int action = ACTION_NONE;
@@ -521,10 +521,10 @@ int obj_set_attribute(struct config_pair *c, int actionable)
 			policy_pos_actionable(c);
 		break;
 	case LEVEL_ELEMENTS:
-		ret = element_set_attribute(c);
+		ret = element_set_attribute(c, apply_action);
 
 		if (actionable)
-			element_pos_actionable(c);
+			element_pos_actionable(c, apply_action);
 		break;
 	default:
 		tools_printlog(LOG_ERR, "%s():%d: unknown level %d", __FUNCTION__, __LINE__, c->level);

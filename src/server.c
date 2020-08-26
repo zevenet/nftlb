@@ -149,7 +149,8 @@ static int get_request(int fd, struct sbuffer *buf, struct nftlb_http_state *sta
 	}
 
 	if (state->method != WS_POST_ACTION &&
-	    state->method != WS_PUT_ACTION)
+	    state->method != WS_PUT_ACTION &&
+	    state->method != WS_DELETE_ACTION)
 		return 0;
 
 	state->body = strstr(get_buf_data(buf), "\r\n\r\n");
@@ -285,132 +286,171 @@ static int send_delete_response(struct nftlb_http_state *state)
 		return 0;
 	}
 
-	if (strcmp(firstlevel, CONFIG_KEY_FARMS) == 0 &&
-		strcmp(thirdlevel, CONFIG_KEY_BCKS) == 0 &&
-		strcmp(fifthlevel, CONFIG_KEY_SESSIONS) == 0) {
-		ret = config_set_session_backend_action(secondlevel, fourthlevel, CONFIG_VALUE_ACTION_DELETE);
-		if (ret < 0) {
-			config_print_response(&state->body_response, "%s%s", "error deleting sessions from backend",
-									config_get_output());
-			config_delete_output();
-			state->status_code = WS_HTTP_500;
-			goto delete_end;
-		}
+	if (strlen(state->body) == 0) {
 
-	} else if (strcmp(firstlevel, CONFIG_KEY_FARMS) == 0 &&
-		strcmp(thirdlevel, CONFIG_KEY_BCKS) == 0) {
-		ret = config_set_backend_action(secondlevel, fourthlevel, CONFIG_VALUE_ACTION_DELETE);
-		if (ret < 0) {
-			config_print_response(&state->body_response, "%s%s", "error deleting backend",
-									config_get_output());
-			config_delete_output();
-			state->status_code = WS_HTTP_500;
-			goto delete_end;
-		}
+		if (strcmp(firstlevel, CONFIG_KEY_FARMS) == 0 &&
+			strcmp(thirdlevel, CONFIG_KEY_BCKS) == 0 &&
+			strcmp(fifthlevel, CONFIG_KEY_SESSIONS) == 0) {
+			ret = config_set_session_backend_action(secondlevel, fourthlevel, CONFIG_VALUE_ACTION_DELETE);
+			if (ret < 0) {
+				config_print_response(&state->body_response, "%s%s", "error deleting sessions from backend",
+										config_get_output());
+				config_delete_output();
+				state->status_code = WS_HTTP_500;
+				goto delete_end;
+			}
 
-	} else if (strcmp(firstlevel, CONFIG_KEY_FARMS) == 0 &&
-		strcmp(thirdlevel, CONFIG_KEY_SESSIONS) == 0) {
-		ret = config_set_session_action(secondlevel, fourthlevel, CONFIG_VALUE_ACTION_STOP);
-		if (ret < 0) {
-			config_print_response(&state->body_response, "%s%s", "error deleting session",
-									config_get_output());
-			config_delete_output();
-			state->status_code = WS_HTTP_500;
-			goto delete_end;
-		}
+		} else if (strcmp(firstlevel, CONFIG_KEY_FARMS) == 0 &&
+			strcmp(thirdlevel, CONFIG_KEY_BCKS) == 0) {
+			ret = config_set_backend_action(secondlevel, fourthlevel, CONFIG_VALUE_ACTION_DELETE);
+			if (ret < 0) {
+				config_print_response(&state->body_response, "%s%s", "error deleting backend",
+										config_get_output());
+				config_delete_output();
+				state->status_code = WS_HTTP_500;
+				goto delete_end;
+			}
 
-	} else if (strcmp(firstlevel, CONFIG_KEY_FARMS) == 0 &&
-			   strcmp(thirdlevel, CONFIG_KEY_POLICIES) == 0) {
-		ret = config_set_farm_action(secondlevel, CONFIG_VALUE_ACTION_RELOAD);
-		if (ret < 0) {
-			config_print_response(&state->body_response, "%s%s", "error reloading farm",
-									config_get_output());
-			config_delete_output();
-			state->status_code = WS_HTTP_500;
-			goto delete_end;
-		}
-		ret = config_set_fpolicy_action(secondlevel, fourthlevel, CONFIG_VALUE_ACTION_DELETE);
-		if (ret != 0) {
-			config_print_response(&state->body_response, "%s%s", "error stopping farm policy",
-									config_get_output());
-			config_delete_output();
-			state->status_code = WS_HTTP_500;
-			goto delete_end;
-		}
-		obj_rulerize(OBJ_START);
+		} else if (strcmp(firstlevel, CONFIG_KEY_FARMS) == 0 &&
+			strcmp(thirdlevel, CONFIG_KEY_SESSIONS) == 0) {
+			ret = config_set_session_action(secondlevel, fourthlevel, CONFIG_VALUE_ACTION_STOP);
+			if (ret < 0) {
+				config_print_response(&state->body_response, "%s%s", "error deleting session",
+										config_get_output());
+				config_delete_output();
+				state->status_code = WS_HTTP_500;
+				goto delete_end;
+			}
 
-	} else if (strcmp(firstlevel, CONFIG_KEY_POLICIES) == 0 &&
-			   strcmp(thirdlevel, CONFIG_KEY_ELEMENTS) == 0) {
-		ret = config_get_elements(secondlevel);
-		if (ret != 0) {
-			config_print_response(&state->body_response, "%s%s", "could not get the policy elements",
-									config_get_output());
-			config_delete_output();
-			state->status_code = WS_HTTP_500;
-			goto delete_end;
-		}
+		} else if (strcmp(firstlevel, CONFIG_KEY_FARMS) == 0 &&
+				   strcmp(thirdlevel, CONFIG_KEY_POLICIES) == 0) {
+			ret = config_set_farm_action(secondlevel, CONFIG_VALUE_ACTION_RELOAD);
+			if (ret < 0) {
+				config_print_response(&state->body_response, "%s%s", "error reloading farm",
+										config_get_output());
+				config_delete_output();
+				state->status_code = WS_HTTP_500;
+				goto delete_end;
+			}
+			ret = config_set_fpolicy_action(secondlevel, fourthlevel, CONFIG_VALUE_ACTION_DELETE);
+			if (ret != 0) {
+				config_print_response(&state->body_response, "%s%s", "error stopping farm policy",
+										config_get_output());
+				config_delete_output();
+				state->status_code = WS_HTTP_500;
+				goto delete_end;
+			}
+			obj_rulerize(OBJ_START);
 
-		// subnet support
-		if (strcmp(fifthlevel,"") != 0 &&
-			(strlen(fourthlevel) + strlen(fifthlevel) + 1 < SRV_MAX_IDENT)) {
-			strcat(fourthlevel, "/");
-			strcat(fourthlevel, fifthlevel);
-		}
+		} else if (strcmp(firstlevel, CONFIG_KEY_POLICIES) == 0 &&
+				   strcmp(thirdlevel, CONFIG_KEY_ELEMENTS) == 0) {
+			ret = config_get_elements(secondlevel);
+			if (ret != 0) {
+				config_print_response(&state->body_response, "%s%s", "could not get the policy elements",
+										config_get_output());
+				config_delete_output();
+				state->status_code = WS_HTTP_500;
+				goto delete_end;
+			}
 
-		ret = config_set_element_action(secondlevel, fourthlevel, CONFIG_VALUE_ACTION_STOP);
-		if (ret < 0) {
-			config_print_response(&state->body_response, "%s%s", "error deleting policy element",
-									config_get_output());
-			config_delete_output();
-			state->status_code = WS_HTTP_500;
+			// subnet support
+			if (strcmp(fifthlevel,"") != 0 &&
+				(strlen(fourthlevel) + strlen(fifthlevel) + 1 < SRV_MAX_IDENT)) {
+				strcat(fourthlevel, "/");
+				strcat(fourthlevel, fifthlevel);
+			}
+
+			ret = config_set_element_action(secondlevel, fourthlevel, CONFIG_VALUE_ACTION_STOP);
+			if (ret < 0) {
+				config_print_response(&state->body_response, "%s%s", "error deleting policy element",
+										config_get_output());
+				config_delete_output();
+				state->status_code = WS_HTTP_500;
+				config_delete_elements(secondlevel);
+				goto delete_end;
+			}
+			config_set_policy_action(secondlevel, CONFIG_VALUE_ACTION_FLUSH);
+			obj_rulerize(OBJ_START);
 			config_delete_elements(secondlevel);
-			goto delete_end;
-		}
-		config_set_policy_action(secondlevel, CONFIG_VALUE_ACTION_RELOAD);
-		obj_rulerize(OBJ_START);
-		config_delete_elements(secondlevel);
 
-	} else if (strcmp(firstlevel, CONFIG_KEY_FARMS) == 0 &&
-			   strcmp(thirdlevel, "") == 0) {
-		ret = config_set_farm_action(secondlevel, CONFIG_VALUE_ACTION_STOP);
-		if (ret < 0) {
-			config_print_response(&state->body_response, "%s%s", "error deleting farm",
+		} else if (strcmp(firstlevel, CONFIG_KEY_FARMS) == 0 &&
+				   strcmp(thirdlevel, "") == 0) {
+			ret = config_set_farm_action(secondlevel, CONFIG_VALUE_ACTION_STOP);
+			if (ret < 0) {
+				config_print_response(&state->body_response, "%s%s", "error deleting farm",
+										config_get_output());
+				config_delete_output();
+				state->status_code = WS_HTTP_500;
+				goto delete_end;
+			}
+			obj_rulerize(OBJ_START);
+			config_set_farm_action(secondlevel, CONFIG_VALUE_ACTION_DELETE);
+
+		} else if (strcmp(firstlevel, CONFIG_KEY_POLICIES) == 0 &&
+				   strcmp(thirdlevel, "") == 0) {
+
+			ret = config_set_policy_action(secondlevel, CONFIG_VALUE_ACTION_STOP);
+			if (ret < 0) {
+				config_print_response(&state->body_response, "%s%s", "error stopping policy",
+										config_get_output());
+				config_delete_output();
+				state->status_code = WS_HTTP_500;
+				goto delete_end;
+			}
+			obj_rulerize(OBJ_START_INV);
+
+			ret = config_set_policy_action(secondlevel, CONFIG_VALUE_ACTION_DELETE);
+			if (ret < 0) {
+				config_print_response(&state->body_response, "%s%s", "error deleting policy",
+										config_get_output());
+				config_delete_output();
+				state->status_code = WS_HTTP_500;
+				goto delete_end;
+			}
+
+		} else {
+			config_print_response(&state->body_response, "%s%s", "invalid request",
 									config_get_output());
 			config_delete_output();
-			state->status_code = WS_HTTP_500;
-			goto delete_end;
-		}
-		obj_rulerize(OBJ_START);
-		config_set_farm_action(secondlevel, CONFIG_VALUE_ACTION_DELETE);
-
-	} else if (strcmp(firstlevel, CONFIG_KEY_POLICIES) == 0 &&
-			   strcmp(thirdlevel, "") == 0) {
-
-		ret = config_set_policy_action(secondlevel, CONFIG_VALUE_ACTION_STOP);
-		if (ret < 0) {
-			config_print_response(&state->body_response, "%s%s", "error stopping policy",
-									config_get_output());
-			config_delete_output();
-			state->status_code = WS_HTTP_500;
-			goto delete_end;
-		}
-		obj_rulerize(OBJ_START_INV);
-
-		ret = config_set_policy_action(secondlevel, CONFIG_VALUE_ACTION_DELETE);
-		if (ret < 0) {
-			config_print_response(&state->body_response, "%s%s", "error deleting policy",
-									config_get_output());
-			config_delete_output();
-			state->status_code = WS_HTTP_500;
-			goto delete_end;
+			state->status_code = WS_HTTP_404;
+			return 0;
 		}
 
 	} else {
-		config_print_response(&state->body_response, "%s%s", "invalid request",
-								config_get_output());
-		config_delete_output();
-		state->status_code = WS_HTTP_404;
-		return 0;
+
+		switch (config_buffer(state->body, ACTION_STOP)) {
+		case PARSER_OK:
+			break;
+		case PARSER_STRUCT_FAILED:
+			config_print_response(&state->body_response, "%s%s",
+						  "the structure is invalid", config_get_output());
+			config_delete_output();
+			state->status_code = WS_HTTP_400;
+			goto delete_end;
+			break;
+		case PARSER_OBJ_UNKNOWN:
+			config_print_response(&state->body_response, "%s%s",
+						  "the object to modify is unknown", config_get_output());
+			config_delete_output();
+			state->status_code = WS_HTTP_400;
+			goto delete_end;
+			break;
+		default:
+			config_print_response(&state->body_response, "%s%s",
+						  "error parsing buffer", config_get_output());
+			config_delete_output();
+			state->status_code = WS_HTTP_400;
+			goto delete_end;
+			break;
+		}
+
+		if (obj_rulerize(OBJ_START) != 0) {
+			config_print_response(&state->body_response, "%s%s", "error generating rules",
+									config_get_output());
+			config_delete_output();
+			state->status_code = WS_HTTP_500;
+			goto delete_end;
+		}
 	}
 
 	config_print_response(&state->body_response, "%s%s", "success", config_get_output());
@@ -439,7 +479,7 @@ static int send_post_response(struct nftlb_http_state *state)
 		return 0;
 	}
 
-	switch (config_buffer(state->body)) {
+	switch (config_buffer(state->body, ACTION_START)) {
 	case PARSER_OK:
 		break;
 	case PARSER_STRUCT_FAILED:

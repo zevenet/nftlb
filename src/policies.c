@@ -198,12 +198,8 @@ int policy_set_action(struct policy *p, int action)
 	if (action == ACTION_STOP)
 		farm_s_lookup_policy_action(p->name, action);
 
-	if (p->action > action) {
-		p->action = action;
-		return 1;
-	}
-
-	return 0;
+	p->action = action;
+	return 1;
 }
 
 int policy_s_set_action(int action)

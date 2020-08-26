@@ -38,8 +38,8 @@ struct element * element_lookup_by_name(struct policy *p, const char *data);
 int element_set_action(struct element *e, int action);
 int element_s_set_action(struct policy *p, int action);
 int element_s_delete(struct policy *p);
-int element_set_attribute(struct config_pair *c);
-int element_pos_actionable(struct config_pair *c);
+int element_set_attribute(struct config_pair *c, int apply_action);
+int element_pos_actionable(struct config_pair *c, int apply_action);
 int element_get_list(struct policy *p);
 
 #endif /* _ELEMENTS_H_ */

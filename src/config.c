@@ -38,7 +38,7 @@
 #define CONFIG_MAXBUF			4096
 #define CONFIG_OUTBUF_SIZE		255
 
-static int config_json(json_t *element, int level, int source, int key);
+static int config_json(json_t *element, int level, int source, int key, int apply_action);
 
 struct config_pair c;
 unsigned int continue_obj = 0;
@@ -50,6 +50,7 @@ static void init_pair(struct config_pair *c)
 	c->key = -1;
 	c->str_value = NULL;
 	c->int_value = -1;
+	c->action = ACTION_START;
 }
 
 static void config_dump_int(char *buf, int value)
@@ -248,6 +249,8 @@ static int config_value_action(const char *value)
 		return ACTION_START;
 	if (strcmp(value, CONFIG_VALUE_ACTION_RELOAD) == 0)
 		return ACTION_RELOAD;
+	if (strcmp(value, CONFIG_VALUE_ACTION_FLUSH) == 0)
+		return ACTION_FLUSH;
 
 	return ACTION_NONE;
 }
@@ -523,7 +526,7 @@ static int jump_config_value(int level, int key)
 	return 0;
 }
 
-static int config_json_object(json_t *element, int level, int source)
+static int config_json_object(json_t *element, int level, int source, int apply_action)
 {
 	const char *key;
 	json_t *value;
@@ -538,7 +541,7 @@ static int config_json_object(json_t *element, int level, int source)
 
 		c.key = ret;
 		if (jump_config_value(level, c.key) == 0) {
-			ret = config_json(value, level, source, c.key);
+			ret = config_json(value, level, source, c.key, apply_action);
 			if (ret) {
 				tools_printlog(LOG_ERR, "%s():%d: error parsing object in level %d", __FUNCTION__, __LINE__, c.level);
 				return ret;
@@ -549,20 +552,20 @@ static int config_json_object(json_t *element, int level, int source)
 	return ret;
 }
 
-static int config_json_array(json_t *element, int level, int source)
+static int config_json_array(json_t *element, int level, int source, int apply_action)
 {
 	size_t size = json_array_size(element);
 	size_t i;
 	int ret = PARSER_OK;
 
 	for (i = 0; i < size && ret == PARSER_OK; i++) {
-		ret = config_json(json_array_get(element, i), level, source, -1);
+		ret = config_json(json_array_get(element, i), level, source, -1, apply_action);
 	}
 
 	return ret;
 }
 
-static int config_json_string(json_t *element, int level, int source)
+static int config_json_string(json_t *element, int level, int source, int apply_action)
 {
 	int ret;
 
@@ -571,15 +574,15 @@ static int config_json_string(json_t *element, int level, int source)
 	if (ret != PARSER_OK)
 		return ret;
 
-	tools_printlog(LOG_DEBUG, "%s():%d: %d(level) %d(key) %s(value) %d(value)", __FUNCTION__, __LINE__, c.level, c.key, c.str_value, c.int_value);
+	tools_printlog(LOG_DEBUG, "%s():%d: %d(level) %d(key) %s(value) %d(value) apply_action %d", __FUNCTION__, __LINE__, c.level, c.key, c.str_value, c.int_value, apply_action);
 
-	ret = obj_set_attribute(&c, source);
+	ret = obj_set_attribute(&c, source, apply_action);
 	init_pair(&c);
 
 	return ret;
 }
 
-static int config_json(json_t *element, int level, int source, int key)
+static int config_json(json_t *element, int level, int source, int key, int apply_action)
 {
 	int ret = PARSER_OK;
 
@@ -587,7 +590,7 @@ static int config_json(json_t *element, int level, int source, int key)
 
 	switch (json_typeof(element)) {
 	case JSON_OBJECT:
-		ret = config_json_object(element, level, source);
+		ret = config_json_object(element, level, source, apply_action);
 		break;
 	case JSON_ARRAY:
 		if (level == LEVEL_INIT && key == KEY_FARMS)
@@ -603,7 +606,7 @@ static int config_json(json_t *element, int level, int source, int key)
 		if (level == LEVEL_POLICIES && key == KEY_ELEMENTS)
 			level = LEVEL_ELEMENTS;
 
-		ret = config_json_array(element, level, source);
+		ret = config_json_array(element, level, source, apply_action);
 
 		if (level == LEVEL_FARMS || level == LEVEL_POLICIES)
 			level = LEVEL_INIT;
@@ -615,7 +618,7 @@ static int config_json(json_t *element, int level, int source, int key)
 
 		break;
 	case JSON_STRING:
-		ret = config_json_string(element, level, source);
+		ret = config_json_string(element, level, source, apply_action);
 
 		break;
 	default:
@@ -630,10 +633,7 @@ void config_pair_init(struct config_pair *c)
 	if (!c)
 		return;
 
-	c->level = -1;
-	c->key = -1;
-	c->str_value = NULL;
-	c->int_value = -1;
+	init_pair(c);
 }
 
 int config_file(const char *file)
@@ -652,7 +652,7 @@ int config_file(const char *file)
 	root = json_loadf(fd, JSON_ALLOW_NUL, &error);
 
 	if (root) {
-		ret = config_json(root, LEVEL_INIT, CONFIG_SRC_FILE, -1);
+		ret = config_json(root, LEVEL_INIT, CONFIG_SRC_FILE, -1, ACTION_START);
 		json_decref(root);
 	} else {
 		tools_printlog(LOG_ERR, "Configuration file error '%s' on line %d: %s", file, error.line, error.text);
@@ -685,7 +685,7 @@ void config_set_output(char *fmt, ...)
 	va_end(args);
 }
 
-int config_buffer(const char *buf)
+int config_buffer(const char *buf, int apply_action)
 {
 	json_error_t	error;
 	json_t		*root;
@@ -696,7 +696,7 @@ int config_buffer(const char *buf)
 	root = json_loadb(buf, strlen(buf), JSON_ALLOW_NUL, &error);
 
 	if (root) {
-		ret = config_json(root, LEVEL_INIT, CONFIG_SRC_BUFFER, -1);
+		ret = config_json(root, LEVEL_INIT, CONFIG_SRC_BUFFER, -1, apply_action);
 		json_decref(root);
 	} else {
 		tools_printlog(LOG_ERR, "Configuration error on line %d: %s", error.line, error.text);
