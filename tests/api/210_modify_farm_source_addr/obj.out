@@ -57,7 +57,7 @@
                         "mode": "dnat",
                         "protocol": "tcp",
                         "scheduler": "hash",
-                        "sched-param": "nonesrcip ",
+                        "sched-param": "srcip ",
                         "persistence": "srcip ",
                         "persist-ttl": "60",
                         "helper": "none",

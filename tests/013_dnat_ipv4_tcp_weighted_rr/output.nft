@@ -8,8 +8,13 @@ table ip nftlb {
 		type mark : ipv4_addr
 	}
 
+	map filter-proto-services {
+		type inet_proto . ipv4_addr . inet_service : verdict
+		elements = { tcp . 192.168.56.101 . 80 : goto filter-lb01 }
+	}
+
 	chain prerouting {
-		type nat hook prerouting priority filter; policy accept;
+		type nat hook prerouting priority dstnat; policy accept;
 		ip protocol . ip daddr . th dport vmap @nat-proto-services
 	}
 
@@ -19,7 +24,17 @@ table ip nftlb {
 		snat to ct mark map @proto-services-back-m
 	}
 
+	chain filter {
+		type filter hook prerouting priority mangle; policy accept;
+		meta mark set ct mark
+		ip protocol . ip daddr . th dport vmap @filter-proto-services
+	}
+
+	chain filter-lb01 {
+		ct state new ct mark 0x00000000 ct mark set numgen random mod 7 map { 0-1 : 0x00000001, 2 : 0x00000002, 3 : 0x00000003, 4-5 : 0x00000004, 6 : 0x00000005 }
+	}
+
 	chain nat-lb01 {
-		dnat to numgen random mod 7 map { 0-1 : 192.168.0.10, 2 : 192.168.0.11, 3 : 192.168.0.12, 4-5 : 192.168.0.13, 6 : 192.168.0.14 }
+		dnat to ct mark map { 0x00000001 : 192.168.0.10, 0x00000002 : 192.168.0.11, 0x00000003 : 192.168.0.12, 0x00000004 : 192.168.0.13, 0x00000005 : 192.168.0.14 }
 	}
 }

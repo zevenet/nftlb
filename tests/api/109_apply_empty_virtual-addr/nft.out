@@ -8,8 +8,13 @@ table ip nftlb {
 		type mark : ipv4_addr
 	}
 
+	map filter-port-services {
+		type inet_proto . inet_service : verdict
+		elements = { tcp . 6595 : goto filter-lb01 }
+	}
+
 	chain prerouting {
-		type nat hook prerouting priority filter; policy accept;
+		type nat hook prerouting priority dstnat; policy accept;
 		ip protocol . th dport vmap @nat-port-services
 	}
 
@@ -17,6 +22,15 @@ table ip nftlb {
 		type nat hook postrouting priority srcnat; policy accept;
 		ct mark 0x80000000/1 masquerade
 		snat to ct mark map @port-services-back-m
+	}
+
+	chain filter {
+		type filter hook prerouting priority mangle; policy accept;
+		meta mark set ct mark
+		ip protocol . th dport vmap @filter-port-services
+	}
+
+	chain filter-lb01 {
 	}
 
 	chain nat-lb01 {

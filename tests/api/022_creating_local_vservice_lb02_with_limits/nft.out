@@ -12,11 +12,12 @@ table ip nftlb {
 
 	map filter-proto-services {
 		type inet_proto . ipv4_addr . inet_service : verdict
-		elements = { tcp . 127.0.0.1 . 8080 : goto filter-lb01 }
+		elements = { tcp . 127.0.0.1 . 8080 : goto filter-lb01,
+			     udp . 192.168.105.189 . 80 : goto filter-lb02 }
 	}
 
 	chain prerouting {
-		type nat hook prerouting priority filter; policy accept;
+		type nat hook prerouting priority dstnat; policy accept;
 		ip protocol . ip daddr . th dport vmap @nat-proto-services
 	}
 
@@ -38,6 +39,9 @@ table ip nftlb {
 
 	chain nat-lb01 {
 		dnat ip addr . port to ct mark map { 0x00000003 : 172.16.138.204 . 81, 0x80000001 : 172.16.138.202 . 80, 0x80000002 : 172.16.138.203 . 80, 0x80000004 : 172.16.138.205 . 80 }
+	}
+
+	chain filter-lb02 {
 	}
 
 	chain nat-lb02 {

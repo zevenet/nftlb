@@ -82,6 +82,7 @@ table ip nftlb {
 
 	map persist-lb04 {
 		type ipv4_addr : mark
+		size 65535
 		timeout 1m
 	}
 
@@ -91,11 +92,12 @@ table ip nftlb {
 
 	map persist-lb05 {
 		type ipv4_addr : mark
+		size 65535
 		timeout 1m
 	}
 
 	chain prerouting {
-		type nat hook prerouting priority filter; policy accept;
+		type nat hook prerouting priority dstnat; policy accept;
 		ip protocol . ip daddr . th dport vmap @nat-proto-services
 	}
 
@@ -112,18 +114,24 @@ table ip nftlb {
 	}
 
 	chain filter-lb04 {
-		ct state new ct mark 0x00000000 ct mark set 0x80000000
+		ct mark set ip saddr map @static-sessions-lb04 accept
+		ct state new ct mark set ip saddr map @persist-lb04
+		ct state new ct mark 0x00000000 ct mark set jhash ip saddr mod 10 map { 0-4 : 0x80000003, 5-9 : 0x80000004 }
+		ct mark != 0x00000000 update @persist-lb04 { ip saddr : ct mark }
 	}
 
 	chain nat-lb04 {
-		dnat to jhash ip saddr mod 10 map { 0-4 : 192.168.0.10, 5-9 : 192.168.0.11 }
+		dnat to ct mark map { 0x80000003 : 192.168.0.10, 0x80000004 : 192.168.0.11 }
 	}
 
 	chain filter-lb05 {
-		ct state new ct mark 0x00000000 ct mark set 0x80000000
+		ct mark set ip saddr map @static-sessions-lb05 accept
+		ct state new ct mark set ip saddr map @persist-lb05
+		ct state new ct mark 0x00000000 ct mark set jhash ip saddr mod 10 map { 0-4 : 0x80000005, 5-9 : 0x80000006 }
+		ct mark != 0x00000000 update @persist-lb05 { ip saddr : ct mark }
 	}
 
 	chain nat-lb05 {
-		dnat to jhash ip saddr mod 10 map { 0-4 : 192.168.0.10, 5-9 : 192.168.0.11 }
+		dnat to ct mark map { 0x80000005 : 192.168.0.10, 0x80000006 : 192.168.0.11 }
 	}
 }

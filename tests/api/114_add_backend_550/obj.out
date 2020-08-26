@@ -31,7 +31,7 @@
                                         "port": "80",
                                         "weight": "5",
                                         "priority": "5",
-                                        "mark": "0x0",
+                                        "mark": "0x1",
                                         "est-connlimit": "500",
                                         "state": "up"
                                 }

@@ -11,7 +11,8 @@ table ip nftlb {
 
 	map filter-proto-services {
 		type inet_proto . ipv4_addr . inet_service : verdict
-		elements = { udp . 192.168.105.189 . 53 : goto filter-newfarm6 }
+		elements = { tcp . 192.168.105.189 . 80 : goto filter-newfarm,
+			     udp . 192.168.105.189 . 53 : goto filter-newfarm6 }
 	}
 
 	set rst-rtlimit-newfarm6 {
@@ -21,7 +22,7 @@ table ip nftlb {
 	}
 
 	chain prerouting {
-		type nat hook prerouting priority filter; policy accept;
+		type nat hook prerouting priority dstnat; policy accept;
 		ip protocol . ip daddr . th dport vmap @nat-proto-services
 	}
 
@@ -35,6 +36,9 @@ table ip nftlb {
 		type filter hook prerouting priority mangle; policy accept;
 		meta mark set ct mark
 		ip protocol . ip daddr . th dport vmap @filter-proto-services
+	}
+
+	chain filter-newfarm {
 	}
 
 	chain nat-newfarm {

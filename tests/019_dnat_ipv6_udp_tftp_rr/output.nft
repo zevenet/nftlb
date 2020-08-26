@@ -19,7 +19,7 @@ table ip6 nftlb {
 	}
 
 	chain prerouting {
-		type nat hook prerouting priority filter; policy accept;
+		type nat hook prerouting priority dstnat; policy accept;
 		ip6 nexthdr . ip6 daddr . th dport vmap @nat-proto-services6
 	}
 
@@ -37,9 +37,10 @@ table ip6 nftlb {
 
 	chain filter-lb01 {
 		ip6 nexthdr udp ct helper set "tftp-udp"
+		ct state new ct mark 0x00000000 ct mark set numgen inc mod 10 map { 0-4 : 0x00000001, 5-9 : 0x00000002 }
 	}
 
 	chain nat-lb01 {
-		dnat to numgen inc mod 10 map { 0-4 : 2001:db8:0:1:1:1:1:2, 5-9 : 2001:db8:0:1:1:1:1:3 }
+		dnat to ct mark map { 0x00000001 : 2001:db8:0:1:1:1:1:2, 0x00000002 : 2001:db8:0:1:1:1:1:3 }
 	}
 }

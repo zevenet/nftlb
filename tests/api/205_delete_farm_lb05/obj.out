@@ -31,7 +31,7 @@
                                         "port": "",
                                         "weight": "5",
                                         "priority": "1",
-                                        "mark": "0x0",
+                                        "mark": "0x1",
                                         "est-connlimit": "0",
                                         "state": "up"
                                 },
@@ -41,7 +41,7 @@
                                         "port": "",
                                         "weight": "5",
                                         "priority": "1",
-                                        "mark": "0x0",
+                                        "mark": "0x2",
                                         "est-connlimit": "0",
                                         "state": "up"
                                 }
@@ -57,7 +57,7 @@
                         "mode": "snat",
                         "protocol": "tcp",
                         "scheduler": "hash",
-                        "sched-param": "nonesrcip ",
+                        "sched-param": "srcip ",
                         "persistence": "srcip ",
                         "persist-ttl": "60",
                         "helper": "none",
@@ -79,7 +79,7 @@
                                         "port": "",
                                         "weight": "5",
                                         "priority": "1",
-                                        "mark": "0x0",
+                                        "mark": "0x3",
                                         "est-connlimit": "0",
                                         "state": "up"
                                 },
@@ -89,7 +89,7 @@
                                         "port": "",
                                         "weight": "5",
                                         "priority": "1",
-                                        "mark": "0x0",
+                                        "mark": "0x4",
                                         "est-connlimit": "0",
                                         "state": "up"
                                 }

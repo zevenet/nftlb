@@ -24,7 +24,7 @@ table ip nftlb {
 	}
 
 	chain prerouting {
-		type nat hook prerouting priority filter; policy accept;
+		type nat hook prerouting priority dstnat; policy accept;
 		ip protocol . ip daddr . th dport vmap @nat-proto-services
 	}
 
@@ -49,7 +49,7 @@ table ip nftlb {
 	}
 
 	chain forward {
-		type filter hook forward priority filter; policy accept;
+		type filter hook forward priority -100; policy accept;
 		ct mark vmap @forward-proto-services
 	}
 

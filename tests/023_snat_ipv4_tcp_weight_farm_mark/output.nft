@@ -14,7 +14,7 @@ table ip nftlb {
 	}
 
 	chain prerouting {
-		type nat hook prerouting priority filter; policy accept;
+		type nat hook prerouting priority dstnat; policy accept;
 		ip protocol . ip daddr . th dport vmap @nat-proto-services
 	}
 
@@ -31,10 +31,10 @@ table ip nftlb {
 	}
 
 	chain filter-lb01 {
-		ct state new ct mark 0x00000000 ct mark set 0x8000dead
+		ct state new ct mark 0x00000000 ct mark set numgen random mod 10 map { 0-4 : 0x8000dead, 5-9 : 0x8000deaf }
 	}
 
 	chain nat-lb01 {
-		dnat to numgen random mod 10 map { 0-4 : 192.168.0.10, 5-9 : 192.168.0.11 }
+		dnat to ct mark map { 0x8000dead : 192.168.0.10, 0x8000deaf : 192.168.0.11 }
 	}
 }

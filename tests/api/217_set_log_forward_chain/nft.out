@@ -1,5 +1,3 @@
-table netdev nftlb {
-}
 table ip nftlb {
 	map nat-proto-services {
 		type inet_proto . ipv4_addr . inet_service : verdict
@@ -51,6 +49,7 @@ table ip nftlb {
 	chain filter-Internal-Web-Server-FARM-HTTPS {
 		ct mark set ip saddr map @static-sessions-Internal-Web-Server-FARM-HTTPS accept
 		ct state new ct mark set ip saddr map @persist-Internal-Web-Server-FARM-HTTPS
+		ct state new ct mark 0x00000000 ct mark set numgen random mod 20 map { 0-9 : 0x00000202, 10-19 : 0x00000203 }
 		ct mark != 0x00000000 update @persist-Internal-Web-Server-FARM-HTTPS { ip saddr : ct mark }
 	}
 

@@ -14,7 +14,7 @@ table ip nftlb {
 	}
 
 	chain prerouting {
-		type nat hook prerouting priority filter; policy accept;
+		type nat hook prerouting priority dstnat; policy accept;
 		ip protocol . ip daddr . th dport vmap @nat-proto-services
 	}
 
@@ -22,10 +22,6 @@ table ip nftlb {
 		type nat hook postrouting priority srcnat; policy accept;
 		ct mark 0x80000000/1 masquerade
 		snat to ct mark map @proto-services-back-m
-	}
-
-	chain nat-test1 {
-		dnat ip addr . port to ct mark map { 0x00000200 : 127.0.0.2 . 80 }
 	}
 
 	chain filter {
@@ -36,5 +32,9 @@ table ip nftlb {
 
 	chain filter-test1 {
 		ct state new ct mark 0x00000000 ct mark set numgen random mod 1 map { 0 : 0x00000200 }
+	}
+
+	chain nat-test1 {
+		dnat ip addr . port to ct mark map { 0x00000200 : 127.0.0.2 . 80 }
 	}
 }

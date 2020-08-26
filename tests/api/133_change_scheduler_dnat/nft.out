@@ -24,11 +24,12 @@ table ip nftlb {
 
 	map persist-newfarm {
 		type ipv4_addr : mark
+		size 65535
 		timeout 2m
 	}
 
 	chain prerouting {
-		type nat hook prerouting priority filter; policy accept;
+		type nat hook prerouting priority dstnat; policy accept;
 		ip protocol . ip daddr . th dport vmap @nat-proto-services
 	}
 
@@ -46,9 +47,13 @@ table ip nftlb {
 
 	chain filter-newfarm {
 		ip protocol tcp ct helper set "ftp-tcp"
+		ct mark set ip saddr map @static-sessions-newfarm accept
+		ct state new ct mark set ip saddr map @persist-newfarm
+		ct state new ct mark 0x00000000 ct mark set numgen inc mod 1 map { 0 : 0x00000001 }
+		ct mark != 0x00000000 update @persist-newfarm { ip saddr : ct mark }
 	}
 
 	chain nat-newfarm {
-		dnat ip addr . port to numgen inc mod 1 map { 0 : 192.168.0.151 . 8080 }
+		dnat ip addr . port to ct mark map { 0x00000001 : 192.168.0.151 . 8080 }
 	}
 }

@@ -23,8 +23,28 @@ table ip nftlb {
 		type mark : ipv4_addr
 	}
 
+	map filter-proto-services {
+		type inet_proto . ipv4_addr . inet_service : verdict
+		elements = { tcp . 192.168.0.100 . 80 : goto filter-lb01,
+			     tcp . 192.168.0.100 . 81 : goto filter-lb01,
+			     tcp . 192.168.0.100 . 82 : goto filter-lb01,
+			     tcp . 192.168.0.100 . 83 : goto filter-lb01,
+			     tcp . 192.168.0.100 . 84 : goto filter-lb01,
+			     tcp . 192.168.0.100 . 85 : goto filter-lb01,
+			     tcp . 192.168.0.100 . 86 : goto filter-lb01,
+			     tcp . 192.168.0.100 . 87 : goto filter-lb01,
+			     tcp . 192.168.0.100 . 88 : goto filter-lb01,
+			     tcp . 192.168.0.100 . 90 : goto filter-lb01,
+			     tcp . 192.168.0.100 . 91 : goto filter-lb01,
+			     tcp . 192.168.0.100 . 92 : goto filter-lb01,
+			     tcp . 192.168.0.100 . 93 : goto filter-lb01,
+			     tcp . 192.168.0.100 . 94 : goto filter-lb01,
+			     tcp . 192.168.0.100 . 95 : goto filter-lb01,
+			     tcp . 192.168.0.100 . 96 : goto filter-lb01 }
+	}
+
 	chain prerouting {
-		type nat hook prerouting priority filter; policy accept;
+		type nat hook prerouting priority dstnat; policy accept;
 		ip protocol . ip daddr . th dport vmap @nat-proto-services
 	}
 
@@ -34,7 +54,17 @@ table ip nftlb {
 		snat to ct mark map @proto-services-back-m
 	}
 
+	chain filter {
+		type filter hook prerouting priority mangle; policy accept;
+		meta mark set ct mark
+		ip protocol . ip daddr . th dport vmap @filter-proto-services
+	}
+
+	chain filter-lb01 {
+		ct state new ct mark 0x00000000 ct mark set symhash mod 20 map { 0-4 : 0x00000001, 5-9 : 0x00000002, 10-14 : 0x00000004, 15-19 : 0x00000006 }
+	}
+
 	chain nat-lb01 {
-		dnat to symhash mod 20 map { 0-4 : 192.168.0.10, 5-9 : 192.168.0.11, 10-14 : 192.168.0.13, 15-19 : 192.168.0.15 }
+		dnat to ct mark map { 0x00000001 : 192.168.0.10, 0x00000002 : 192.168.0.11, 0x00000004 : 192.168.0.13, 0x00000006 : 192.168.0.15 }
 	}
 }
