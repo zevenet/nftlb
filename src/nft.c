@@ -1807,7 +1807,7 @@ static int run_farm_rules_check_sessions(struct sbuffer *buf, struct farm *f, in
 	char map_str[255] = { 0 };
 	char chain[255] = { 0 };
 
-	if (f->persistence == VALUE_META_NONE)
+	if (f->persistence == VALUE_META_NONE || f->total_bcks == 0)
 		return 0;
 
 	if (action != ACTION_START && action != ACTION_RELOAD)
@@ -1871,7 +1871,7 @@ static int run_farm_rules_update_sessions(struct sbuffer *buf, struct farm *f, i
 {
 	char map_str[255] = { 0 };
 
-	if (f->persistence == VALUE_META_NONE)
+	if (f->persistence == VALUE_META_NONE || f->total_bcks == 0)
 		return 0;
 
 	sprintf(map_str, "persist-%s", f->name);
@@ -1996,9 +1996,6 @@ static int run_farm_rules_gen_limits_per_bck(struct sbuffer *buf, struct farm *f
 static int run_farm_rules_filter_marks(struct sbuffer *buf, struct farm *f, int family, char *chain, int action)
 {
 	int mark = farm_get_mark(f);
-
-	if (mark == DEFAULT_MARK)
-		return 0;
 
 	if (action == ACTION_START || action == ACTION_RELOAD) {
 		if (f->bcks_available != 0) {
@@ -2152,7 +2149,7 @@ static int run_farm_rules_forward(struct sbuffer *buf, struct farm *f, int famil
 		run_farm_gen_flowtable_rules(buf, f, family, chain, flowtable, action);
 		break;
 	case ACTION_RELOAD:
-		run_base_table(buf, NFTLB_F_CHAIN_ING_FILTER, family, action);
+		run_base_table(buf, NFTLB_F_CHAIN_FWD_FILTER, family, action);
 		run_base_chain(buf, f, NFTLB_F_CHAIN_FWD_FILTER, family, get_rules_needed(f), action);
 		run_farm_rules_gen_vsrv(buf, f, NFTLB_F_CHAIN_FWD_FILTER, family, action);
 		run_farm_gen_log_rules(buf,f, family, chain, VALUE_LOG_FORWARD, NFTLB_F_CHAIN_FWD_FILTER, action);
@@ -2672,8 +2669,8 @@ static int run_policy_set(struct sbuffer *buf, struct policy *p)
 
 	return 0;
 }
-int nft_rulerize_policies(struct policy *p)
 
+int nft_rulerize_policies(struct policy *p)
 {
 	struct sbuffer buf;
 	int ret = 0;

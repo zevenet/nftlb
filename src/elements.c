@@ -239,9 +239,10 @@ int element_pos_actionable(struct config_pair *c, int apply_action)
 
 	switch (c->key) {
 	case KEY_DATA:
-		if (apply_action != ACTION_START)
+		if (apply_action != ACTION_START) {
 			element_set_action(e, apply_action);
-		policy_set_action(p, apply_action);
+			policy_set_action(p, ACTION_RELOAD);
+		}
 		break;
 	default:
 		policy_set_action(p, ACTION_RELOAD);

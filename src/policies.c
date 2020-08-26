@@ -152,6 +152,9 @@ int policy_set_attribute(struct config_pair *c)
 			p = policy_create(c->str_value);
 			if (!p)
 				return -1;
+			policy_set_action(p, ACTION_START);
+		} else {
+			policy_set_action(p, ACTION_RELOAD);
 		}
 		obj_set_current_policy(p);
 		break;
