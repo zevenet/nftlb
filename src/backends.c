@@ -775,6 +775,7 @@ static int backend_switch(struct backend *b)
 int backend_set_state(struct backend *b, int new_value)
 {
 	int old_value = b->state;
+	struct farm *f = b->parent;
 
 	syslog(LOG_DEBUG, "%s():%d: backend %s current value is %s, but new value will be %s",
 	       __FUNCTION__, __LINE__, b->name, obj_print_state(old_value), obj_print_state(new_value));
@@ -801,6 +802,7 @@ int backend_set_state(struct backend *b, int new_value)
 		break;
 	}
 
+	backend_s_gen_priority(f);
 	return 0;
 }
 
