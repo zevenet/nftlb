@@ -17,5 +17,7 @@ nftlb_SOURCES = config.c	\
 		farmpolicy.c \
 		sessions.c	\
 		checksum.c	\
-		tools.c
+		tools.c		\
+		addresses.c \
+		farmaddress.c
 nftlb_LDADD = ${LIBNFTABLES_LIBS} ${LIBJSON_LIBS} ${LIBMNL_LIBS} -lev

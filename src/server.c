@@ -253,6 +253,11 @@ static int send_get_response(struct nftlb_http_state *state)
 			   config_print_policies(&state->body_response, secondlevel) == 0) {
 		state->status_code = WS_HTTP_200;
 		return 0;
+
+	} else if (strcmp(firstlevel, CONFIG_KEY_ADDRESSES) == 0 &&
+			   config_print_addresses(&state->body_response, secondlevel) == 0) {
+		state->status_code = WS_HTTP_200;
+		return 0;
 	}
 
 	config_print_response(&state->body_response, "%s%s", "invalid request",
@@ -278,7 +283,8 @@ static int send_delete_response(struct nftlb_http_state *state)
 		return -1;
 
 	if (strcmp(firstlevel, CONFIG_KEY_FARMS) != 0 &&
-		strcmp(firstlevel, CONFIG_KEY_POLICIES) != 0) {
+		strcmp(firstlevel, CONFIG_KEY_POLICIES) != 0 &&
+		strcmp(firstlevel, CONFIG_KEY_ADDRESSES) != 0) {
 		config_print_response(&state->body_response, "%s%s", "invalid request",
 								config_get_output());
 		config_delete_output();
@@ -321,6 +327,21 @@ static int send_delete_response(struct nftlb_http_state *state)
 				state->status_code = WS_HTTP_500;
 				goto delete_end;
 			}
+
+		} else if (strcmp(firstlevel, CONFIG_KEY_FARMS) == 0 &&
+			strcmp(thirdlevel, CONFIG_KEY_ADDRESSES) == 0) {
+			config_set_farm_action(secondlevel, CONFIG_VALUE_ACTION_RELOAD);
+			ret = config_set_farmaddress_action(secondlevel, fourthlevel, CONFIG_VALUE_ACTION_STOP);
+			ret = 1;
+			if (ret < 0) {
+				config_print_response(&state->body_response, "%s%s", "error deleting session",
+										config_get_output());
+				config_delete_output();
+				state->status_code = WS_HTTP_500;
+				goto delete_end;
+			}
+			obj_rulerize(OBJ_START);
+			config_set_farmaddress_action(secondlevel, fourthlevel, CONFIG_VALUE_ACTION_DELETE);
 
 		} else if (strcmp(firstlevel, CONFIG_KEY_FARMS) == 0 &&
 				   strcmp(thirdlevel, CONFIG_KEY_POLICIES) == 0) {
@@ -411,6 +432,28 @@ static int send_delete_response(struct nftlb_http_state *state)
 				goto delete_end;
 			}
 
+		} else if (strcmp(firstlevel, CONFIG_KEY_ADDRESSES) == 0 &&
+				   strcmp(thirdlevel, "") == 0) {
+
+			ret = config_set_address_action(secondlevel, CONFIG_VALUE_ACTION_STOP);
+			if (ret < 0) {
+				config_print_response(&state->body_response, "%s%s", "error stopping address",
+										config_get_output());
+				config_delete_output();
+				state->status_code = WS_HTTP_500;
+				goto delete_end;
+			}
+			obj_rulerize(OBJ_START_INV);
+
+			ret = config_set_address_action(secondlevel, CONFIG_VALUE_ACTION_DELETE);
+			if (ret < 0) {
+				config_print_response(&state->body_response, "%s%s", "error deleting address",
+										config_get_output());
+				config_delete_output();
+				state->status_code = WS_HTTP_500;
+				goto delete_end;
+			}
+
 		} else {
 			config_print_response(&state->body_response, "%s%s", "invalid request",
 									config_get_output());
@@ -474,7 +517,8 @@ static int send_post_response(struct nftlb_http_state *state)
 		return -1;
 
 	if ((strcmp(firstlevel, CONFIG_KEY_FARMS) != 0) &&
-		(strcmp(firstlevel, CONFIG_KEY_POLICIES) != 0)) {
+		(strcmp(firstlevel, CONFIG_KEY_POLICIES) != 0) &&
+		(strcmp(firstlevel, CONFIG_KEY_ADDRESSES) != 0)) {
 		config_print_response(&state->body_response, "%s%s", "invalid request",
 								config_get_output());
 		config_delete_output();

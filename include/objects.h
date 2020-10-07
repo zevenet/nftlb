@@ -83,6 +83,8 @@ enum levels {
 	LEVEL_POLICIES,
 	LEVEL_ELEMENTS,
 	LEVEL_SESSIONS,
+	LEVEL_ADDRESSES,
+	LEVEL_FARMADDRESS,
 };
 
 enum actions {
@@ -103,11 +105,14 @@ enum keys {
 	KEY_OFACE,
 	KEY_FAMILY,
 	KEY_ETHADDR,
+	KEY_IETHADDR,
+	KEY_OETHADDR,
 	KEY_VIRTADDR,
 	KEY_VIRTPORTS,
 	KEY_IPADDR,
 	KEY_SRCADDR,
 	KEY_PORT,
+	KEY_PORTS,
 	KEY_MODE,
 	KEY_PROTO,
 	KEY_SCHED,
@@ -147,6 +152,7 @@ enum keys {
 	KEY_BACKEND,
 	KEY_USED,
 	KEY_INTRACONNECT,
+	KEY_ADDRESSES,
 };
 
 enum families {
@@ -163,6 +169,8 @@ struct obj_config {
 	struct element		*eptr;
 	struct farmpolicy	*fpptr;
 	struct session		*sptr;
+	struct address		*aptr;
+	struct farmaddress	*faptr;
 	struct config_pair	*c;
 };
 
@@ -180,12 +188,17 @@ struct policy * obj_get_current_policy(void);
 struct farmpolicy * obj_get_current_farmpolicy(void);
 struct element * obj_get_current_element(void);
 struct session * obj_get_current_session(void);
+struct address * obj_get_current_address(void);
+struct farmaddress * obj_get_current_farmaddress(void);
+
 void obj_set_current_farm(struct farm *f);
 void obj_set_current_backend(struct backend *b);
 void obj_set_current_policy(struct policy *p);
 void obj_set_current_farmpolicy(struct farmpolicy *fp);
 void obj_set_current_element(struct element *e);
 void obj_set_current_session(struct session *s);
+void obj_set_current_address(struct address *a);
+void obj_set_current_farmaddress(struct farmaddress *fa);
 
 char * obj_print_key(int key);
 char * obj_print_family(int family);
@@ -209,5 +222,9 @@ struct list_head * obj_get_policies(void);
 int obj_get_total_policies(void);
 void obj_set_total_policies(int new_value);
 char * obj_print_policy_type(int type);
+
+int obj_get_total_addresses(void);
+struct list_head * obj_get_addresses(void);
+void obj_set_total_addresses(int new_value);
 
 #endif /* _OBJECTS_H_ */

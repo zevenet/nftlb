@@ -33,6 +33,8 @@
 #include "policies.h"
 #include "elements.h"
 #include "sessions.h"
+#include "addresses.h"
+#include "farmaddress.h"
 #include "tools.h"
 
 #define CONFIG_MAXBUF			4096
@@ -379,6 +381,7 @@ static int config_value(const char *value)
 	case KEY_ETHADDR:
 	case KEY_VIRTADDR:
 	case KEY_VIRTPORTS:
+	case KEY_PORTS:
 	case KEY_SRCADDR:
 	case KEY_PORT:
 	case KEY_LOGPREFIX:
@@ -420,6 +423,10 @@ static int config_key(const char *key)
 		return KEY_FAMILY;
 	if (strcmp(key, CONFIG_KEY_ETHADDR) == 0)
 		return KEY_ETHADDR;
+	if (strcmp(key, CONFIG_KEY_IETHADDR) == 0)
+		return KEY_IETHADDR;
+	if (strcmp(key, CONFIG_KEY_OETHADDR) == 0)
+		return KEY_OETHADDR;
 	if (strcmp(key, CONFIG_KEY_VIRTADDR) == 0)
 		return KEY_VIRTADDR;
 	if (strcmp(key, CONFIG_KEY_VIRTPORTS) == 0)
@@ -508,6 +515,10 @@ static int config_key(const char *key)
 		return KEY_USED;
 	if (strcmp(key, CONFIG_KEY_INTRACONNECT) == 0)
 		return KEY_INTRACONNECT;
+	if (strcmp(key, CONFIG_KEY_ADDRESSES) == 0)
+		return KEY_ADDRESSES;
+	if (strcmp(key, CONFIG_KEY_PORTS) == 0)
+		return KEY_PORTS;
 
 	config_set_output(". Unknown key '%s'", key);
 	tools_printlog(LOG_ERR, "%s():%d: unknown key '%s'", __FUNCTION__, __LINE__, key);
@@ -516,10 +527,10 @@ static int config_key(const char *key)
 
 static int jump_config_value(int level, int key)
 {
-	if ((level == LEVEL_INIT && key != KEY_FARMS && key != KEY_POLICIES) ||
+	if ((level == LEVEL_INIT && key != KEY_FARMS && key != KEY_POLICIES && key != KEY_ADDRESSES) ||
 	    (key == KEY_BCKS && level != LEVEL_FARMS) ||
+	    (key == KEY_ADDRESSES && level != LEVEL_FARMS && level != LEVEL_INIT) ||
 	    (key == KEY_SESSIONS && level != LEVEL_FARMS) ||
-	    (key == KEY_POLICIES && level != LEVEL_FARMS && level != LEVEL_INIT) ||
 	    (key == KEY_ELEMENTS && level != LEVEL_POLICIES))
 			return -1;
 
@@ -597,8 +608,12 @@ static int config_json(json_t *element, int level, int source, int key, int appl
 			level = LEVEL_FARMS;
 		if (level == LEVEL_INIT && key == KEY_POLICIES)
 			level = LEVEL_POLICIES;
+		if (level == LEVEL_INIT && key == KEY_ADDRESSES)
+			level = LEVEL_ADDRESSES;
 		if (level == LEVEL_FARMS && key == KEY_BCKS)
 			level = LEVEL_BCKS;
+		if (level == LEVEL_FARMS && key == KEY_ADDRESSES)
+			level = LEVEL_FARMADDRESS;
 		if (level == LEVEL_FARMS && key == KEY_SESSIONS)
 			level = LEVEL_SESSIONS;
 		if (level == LEVEL_FARMS && key == KEY_POLICIES)
@@ -608,11 +623,10 @@ static int config_json(json_t *element, int level, int source, int key, int appl
 
 		ret = config_json_array(element, level, source, apply_action);
 
-		if (level == LEVEL_FARMS || level == LEVEL_POLICIES)
+		if (level == LEVEL_FARMS || level == LEVEL_POLICIES || level == LEVEL_ADDRESSES)
 			level = LEVEL_INIT;
-		if (level == LEVEL_BCKS || level == LEVEL_FARMPOLICY || level == LEVEL_SESSIONS) {
+		if (level == LEVEL_BCKS || level == LEVEL_FARMPOLICY || level == LEVEL_SESSIONS || level == LEVEL_FARMADDRESS)
 			level = LEVEL_FARMS;
-		}
 		if (level == LEVEL_ELEMENTS)
 			level = LEVEL_POLICIES;
 
@@ -724,6 +738,8 @@ static struct json_t *add_dump_list(json_t *obj, const char *objname, int object
 	struct farmpolicy *fp;
 	struct policy *p;
 	struct element *e;
+	struct farmaddress *fa;
+	struct address *a = NULL;
 	struct session *s;
 	json_t *jarray;
 	json_t *item;
@@ -742,11 +758,18 @@ static struct json_t *add_dump_list(json_t *obj, const char *objname, int object
 			if (name != NULL && (strcmp(name, "") != 0) && (strcmp(f->name, name) != 0))
 				continue;
 
+			fa = farmaddress_get_first(f);
+			if (fa)
+				a = fa->address;
+
 			item = json_object();
 			add_dump_obj(item, CONFIG_KEY_NAME, f->name);
-			add_dump_obj(item, CONFIG_KEY_FAMILY, obj_print_family(f->family));
-			add_dump_obj(item, CONFIG_KEY_VIRTADDR, f->virtaddr);
-			add_dump_obj(item, CONFIG_KEY_VIRTPORTS, f->virtports);
+
+			if (a) {
+				add_dump_obj(item, CONFIG_KEY_FAMILY, obj_print_family(a->family));
+				add_dump_obj(item, CONFIG_KEY_VIRTADDR, a->ipaddr);
+				add_dump_obj(item, CONFIG_KEY_VIRTPORTS, a->ports);
+			}
 
 			if (f->srcaddr)
 				add_dump_obj(item, CONFIG_KEY_SRCADDR, f->srcaddr);
@@ -759,7 +782,8 @@ static struct json_t *add_dump_list(json_t *obj, const char *objname, int object
 				add_dump_obj(item, CONFIG_KEY_RESPONSETTL, value);
 			}
 
-			add_dump_obj(item, CONFIG_KEY_PROTO, obj_print_proto(f->protocol));
+			if (a)
+				add_dump_obj(item, CONFIG_KEY_PROTO, obj_print_proto(a->protocol));
 			add_dump_obj(item, CONFIG_KEY_SCHED, obj_print_sched(f->scheduler));
 
 			obj_print_meta(f->schedparam, (char *)buf);
@@ -819,14 +843,16 @@ static struct json_t *add_dump_list(json_t *obj, const char *objname, int object
 			if (f->intra_connect)
 				add_dump_obj(item, CONFIG_KEY_INTRACONNECT, obj_print_switch(f->intra_connect));
 
+			add_dump_list(item, CONFIG_KEY_ADDRESSES, LEVEL_FARMADDRESS, &f->addresses, NULL);
 			add_dump_list(item, CONFIG_KEY_BCKS, LEVEL_BCKS, &f->backends, NULL);
+
+			add_dump_list(item, CONFIG_KEY_POLICIES, LEVEL_FARMPOLICY, &f->policies, NULL);
 
 			if (f->total_static_sessions != 0)
 				add_dump_list(item, CONFIG_KEY_SESSIONS, LEVEL_SESSIONS, &f->static_sessions, NULL);
 
-			add_dump_list(item, CONFIG_KEY_POLICIES, LEVEL_FARMPOLICY, &f->policies, NULL);
-
 			json_array_append_new(jarray, item);
+			a = NULL;
 		}
 		break;
 	case LEVEL_BCKS:
@@ -874,10 +900,42 @@ static struct json_t *add_dump_list(json_t *obj, const char *objname, int object
 			if (p->logprefix && strcmp(p->logprefix, DEFAULT_POLICY_LOGPREFIX) != 0)
 				add_dump_obj(item, CONFIG_KEY_LOGPREFIX, p->logprefix);
 
-
 			config_dump_int(value, p->used);
 			add_dump_obj(item, CONFIG_KEY_USED, value);
 			add_dump_elements(item, p);
+			json_array_append_new(jarray, item);
+		}
+		break;
+	case LEVEL_FARMADDRESS:
+		list_for_each_entry(fa, head, list) {
+			item = json_object();
+			add_dump_obj(item, CONFIG_KEY_NAME, fa->address->name);
+			add_dump_obj(item, CONFIG_KEY_FAMILY, obj_print_family(fa->address->family));
+			add_dump_obj(item, CONFIG_KEY_IPADDR, fa->address->ipaddr);
+			add_dump_obj(item, CONFIG_KEY_PORTS, fa->address->ports);
+			add_dump_obj(item, CONFIG_KEY_PROTO, obj_print_proto(fa->address->protocol));
+
+			config_dump_int(value, fa->address->used);
+			add_dump_obj(item, CONFIG_KEY_USED, value);
+
+			json_array_append_new(jarray, item);
+		}
+		break;
+	case LEVEL_ADDRESSES:
+		list_for_each_entry(a, head, list) {
+			if (name != NULL && (strcmp(name, "") != 0) && (strcmp(a->name, name) != 0))
+				continue;
+
+			item = json_object();
+			add_dump_obj(item, CONFIG_KEY_NAME, a->name);
+			add_dump_obj(item, CONFIG_KEY_FAMILY, obj_print_family(a->family));
+			add_dump_obj(item, CONFIG_KEY_IPADDR, a->ipaddr);
+			add_dump_obj(item, CONFIG_KEY_PORTS, a->ports);
+			add_dump_obj(item, CONFIG_KEY_PROTO, obj_print_proto(a->protocol));
+
+			config_dump_int(value, a->used);
+			add_dump_obj(item, CONFIG_KEY_USED, value);
+
 			json_array_append_new(jarray, item);
 		}
 		break;
@@ -1273,4 +1331,66 @@ void config_print_response(char **buf, char *fmt, ...)
 	va_end(args);
 
 	sprintf(*buf + len, "\"}");
+}
+
+int config_set_address_action(const char *name, const char *value)
+{
+	struct address *a;
+
+	if (!name || strcmp(name, "") == 0)
+		return address_s_set_action(config_value_action(value));
+
+	a = address_lookup_by_name(name);
+	if (!a) {
+		config_set_output(". Unknown address '%s'", name);
+		return -1;
+	}
+
+	return address_set_action(a, config_value_action(value));
+}
+
+int config_set_farmaddress_action(const char *fname, const char *faname, const char *value)
+{
+	struct farm *f;
+	struct farmaddress *fa;
+
+	if (!fname || strcmp(fname, "") == 0) {
+		config_set_output(". Please select a valid farm");
+		return -1;
+	}
+
+	f = farm_lookup_by_name(fname);
+	if (!f) {
+		config_set_output(". Unknown farm '%s'", fname);
+		return -1;
+	}
+
+	if (!faname || strcmp(faname, "") == 0)
+		return farmaddress_s_set_action(f, config_value_action(value));
+
+	fa = farmaddress_lookup_by_name(f, faname);
+	if (!fa) {
+		config_set_output(". Unknown farm address '%s' in farm '%s'", faname, fname);
+		return -1;
+	}
+
+	farmaddress_set_action(fa, config_value_action(value));
+
+	return 0;
+}
+
+int config_print_addresses(char **buf, char *name)
+{
+	struct list_head *addresses = obj_get_addresses();
+	json_t* jdata = json_object();
+
+	add_dump_list(jdata, CONFIG_KEY_ADDRESSES, LEVEL_ADDRESSES, addresses, name);
+
+	*buf = json_dumps(jdata, JSON_INDENT(8));
+	json_decref(jdata);
+
+	if (*buf == NULL)
+		return -1;
+
+	return 0;
 }

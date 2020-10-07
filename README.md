@@ -66,6 +66,11 @@ The configuration files have the following format:
 		{ <object farm 2> },
 		{ ... }
 	],
+	"addresses" : [
+		{ <object address 1> },
+		{ <object address 2> },
+		{ ... }
+	],
 	"policies" : [
 		{ <object policy 1> },
 		{ <object policy 2> },
@@ -78,7 +83,7 @@ Where every farm object has the following attributes:
 {
 	"name" : "<string>",				*Name of the service (required)*
 	"family": "<ipv4 | ipv6 | dual>",		*Family of the virtual service (ipv4 by default)*
-	"virtual-addr": "<ip address>",			*IP address for the virtual service (required)*
+	"virtual-addr": "<ip address>",			*IP address for the virtual service (OBSOLETE)*
 	"virtual-ports": "<port list>",			*Port list separated by commas or ranges separated by a hyphen*
 	"source-addr": "<ip address>",			*Source IP address instead of masquerading*
 	"mode": "<snat | dnat | dsr | stlsdnat | local>",	*Topology to be implemented (required)*
@@ -106,6 +111,11 @@ Where every farm object has the following attributes:
 	"intra-connect": "<on | off>",				*Option to enable connectivity from the local machine (disabled by default)*
 	"queue": "<number>",				*Number of the queue to send the packets to userspace (disabled by default)*
 	"state": "<up | down | off>",			*Set the status of the virtual service (up by default)*
+	"addresses" : [					*List of addresses*
+		{<object address 1>},
+		{<object address 2>},
+		{...}
+	],
 	"backends" : [					*List of backends*
 		{<object backend 1>},
 		{<object backend 2>},
@@ -125,11 +135,21 @@ Where every farm object has the following attributes:
 	]
 }
 ```
+Where every address object has the following attributes:
+```
+{
+	"name" : "<string>",				*Name of the address (required)*
+	"family": "<ipv4 | ipv6 | dual>",		*Family of the address (ipv4 by default)*
+	"ip-addr": "<ip address>",			*IP address*
+	"ports": "<port list>",				*Port list separated by commas or ranges separated by a hyphen*
+	"protocol": "<tcp | udp | sctp | all>",		*Protocol to be used by the address (tcp by default)*
+}
+```
 Where every backend object has the following attributes:
 ```
 {
 	"name" : "<string>",				*Name of the backend (required)*
-	"ip-addr": "<ip address>",			*IP address for the backend (required, except for DSR)*
+	"ip-addr": "<ip address>",			*IP address for the backend (required)*
 	"port": "<number>",				*Backend port to redirect the connections*
 	"source-addr": "<ip address>",			*Source IP address for a certain backend instead of masquerading or virtual service source address*
 	"weight": "<number>",				*Weight of the backend (1 by default)*
@@ -193,6 +213,35 @@ Get the static and dynamic sessions.
 ```
 curl -H "Key: <MYKEY>" -X GET http://<NFTLB IP>:5555/farms/lb01/sessions
 ```
+Addresses listing.
+```
+curl -H "Key: <MYKEY>" http://<NFTLB IP>:5555/addresses
+```
+Addresses listing.
+```
+curl -H "Key: <MYKEY>" http://<NFTLB IP>:5555/addresses
+```
+Create a new address.
+```
+curl -H "Key: <MYKEY>" -X POST http://<NFTLB IP>:5555/addresses -d '{ "addresses" : [ { "name" : "myaddr", "family": "ipv4", "ip-addr" : "192.168.0.150", "ports": "8080", "protocol": "tcp" } ] }'
+```
+Assign an address to a farm.
+```
+curl -H "Key: <MYKEY>" -X POST http://<NFTLB IP>:5555/farms -d '{ "farms" : [ { "name" : "myfarm", "addresses" : [ { "name" : "myaddr" } ] } ] }'
+```
+Delete an address.
+```
+curl -H "Key: <MYKEY>" -X DELETE http://<NFTLB IP>:5555/addresses/myaddr
+```
+Delete an assigned address.
+```
+curl -H "Key: <MYKEY>" -X DELETE http://<NFTLB IP>:5555/farms/myfarm/addresses/myaddr
+```
+Delete an address.
+```
+curl -H "Key: <MYKEY>" -X DELETE http://<NFTLB IP>:5555/addresses/myaddr
+```
+
 
 ## How it works
 

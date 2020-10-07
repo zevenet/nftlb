@@ -28,6 +28,8 @@
 #include "policies.h"
 #include "elements.h"
 #include "sessions.h"
+#include "addresses.h"
+#include "farmaddress.h"
 #include "tools.h"
 
 #include <stdio.h>
@@ -41,11 +43,14 @@ int			total_farms = 0;
 int			dsr_counter = 0;
 struct list_head	policies;
 int			total_policies = 0;
+struct list_head	addresses;
+int			total_addresses = 0;
 
 void objects_init(void)
 {
 	init_list_head(&farms);
 	init_list_head(&policies);
+	init_list_head(&addresses);
 }
 
 struct list_head * obj_get_farms(void)
@@ -56,6 +61,11 @@ struct list_head * obj_get_farms(void)
 struct list_head * obj_get_policies(void)
 {
 	return &policies;
+}
+
+struct list_head * obj_get_addresses(void)
+{
+	return &addresses;
 }
 
 int obj_get_total_farms(void)
@@ -80,6 +90,17 @@ void obj_set_total_policies(int new_value)
 		total_policies = new_value;
 }
 
+int obj_get_total_addresses(void)
+{
+	return total_addresses;
+}
+
+void obj_set_total_addresses(int new_value)
+{
+	if (new_value >= 0)
+		total_addresses = new_value;
+}
+
 int obj_get_dsr_counter(void)
 {
 	tools_printlog(LOG_DEBUG, "%s():%d: current dsr counter is %d", __FUNCTION__, __LINE__, dsr_counter);
@@ -102,6 +123,9 @@ static void obj_config_init(void)
 	current_obj.fpptr = NULL;
 	current_obj.pptr = NULL;
 	current_obj.eptr = NULL;
+	current_obj.sptr = NULL;
+	current_obj.aptr = NULL;
+	current_obj.faptr = NULL;
 }
 
 struct obj_config * obj_get_current_object(void)
@@ -139,6 +163,16 @@ struct session * obj_get_current_session(void)
 	return current_obj.sptr;
 }
 
+struct address * obj_get_current_address(void)
+{
+	return current_obj.aptr;
+}
+
+struct farmaddress * obj_get_current_farmaddress(void)
+{
+	return current_obj.faptr;
+}
+
 void obj_set_current_farm(struct farm *f)
 {
 	current_obj.fptr = f;
@@ -169,6 +203,16 @@ void obj_set_current_session(struct session *s)
 	current_obj.sptr = s;
 }
 
+void obj_set_current_address(struct address *a)
+{
+	current_obj.aptr = a;
+}
+
+void obj_set_current_farmaddress(struct farmaddress *fa)
+{
+	current_obj.faptr = fa;
+}
+
 char * obj_print_key(int key)
 {
 	switch (key) {
@@ -188,6 +232,10 @@ char * obj_print_key(int key)
 		return CONFIG_KEY_FAMILY;
 	case KEY_ETHADDR:
 		return CONFIG_KEY_ETHADDR;
+	case KEY_IETHADDR:
+		return CONFIG_KEY_IETHADDR;
+	case KEY_OETHADDR:
+		return CONFIG_KEY_OETHADDR;
 	case KEY_VIRTADDR:
 		return CONFIG_KEY_VIRTADDR;
 	case KEY_VIRTPORTS:
@@ -526,6 +574,24 @@ int obj_set_attribute(struct config_pair *c, int actionable, int apply_action)
 		if (actionable)
 			element_pos_actionable(c, apply_action);
 		break;
+	case LEVEL_ADDRESSES:
+		if (actionable)
+			address_pre_actionable(c);
+
+		ret = address_set_attribute(c);
+
+		if (actionable)
+			address_pos_actionable(c);
+		break;
+	case LEVEL_FARMADDRESS:
+		if (actionable)
+			action = farmaddress_pre_actionable(c);
+
+		ret = farmaddress_set_attribute(c);
+
+		if (actionable && action)
+			farmaddress_pos_actionable(c);
+		break;
 	default:
 		tools_printlog(LOG_ERR, "%s():%d: unknown level %d", __FUNCTION__, __LINE__, c->level);
 		return PARSER_FAILED;
@@ -537,6 +603,7 @@ int obj_set_attribute(struct config_pair *c, int actionable, int apply_action)
 int obj_set_attribute_string(char *src, char **dst)
 {
 	int size = strlen(src)+1;
+
 	*dst = (char *)malloc(size);
 
 	if (!*dst) {

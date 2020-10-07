@@ -25,6 +25,7 @@
 
 #include "farmpolicy.h"
 #include "farms.h"
+#include "farmaddress.h"
 #include "objects.h"
 #include "network.h"
 #include "tools.h"
@@ -144,8 +145,10 @@ int farmpolicy_s_lookup_policy_action(struct farm *f, char *name, int action)
 	if (fp)
 		ret = farmpolicy_set_action(fp, action);
 
-	if (ret)
-		f->action = ACTION_RELOAD;
+	if (ret) {
+		farm_set_action(f, ACTION_RELOAD);
+		farmaddress_s_set_action(f, ACTION_RELOAD);
+	}
 
 	return 0;
 }
@@ -169,8 +172,6 @@ int farmpolicy_set_attribute(struct config_pair *c)
 			return 0;
 		fp = farmpolicy_create(f, p);
 		obj_set_current_farmpolicy(fp);
-		if (fp->farm->policies_used > 0 && fp->farm->iface == DEFAULT_IFNAME)
-			farm_set_ifinfo(fp->farm, KEY_IFACE);
 		break;
 	default:
 		return PARSER_STRUCT_FAILED;
@@ -189,6 +190,8 @@ int farmpolicy_pre_actionable(struct config_pair *c)
 	tools_printlog(LOG_DEBUG, "%s():%d: pre actionable farm policy for farm %s", __FUNCTION__, __LINE__, f->name);
 
 	farm_set_action(f, ACTION_RELOAD);
+	farmaddress_s_set_action(f, ACTION_RELOAD);
+	farm_rulerize(f);
 
 	return 0;
 }
@@ -204,6 +207,7 @@ int farmpolicy_pos_actionable(struct config_pair *c)
 	tools_printlog(LOG_DEBUG, "%s():%d: pos actionable farm policy %s for farm %s with param %d", __FUNCTION__, __LINE__, fp->policy->name, f->name, c->key);
 
 	farm_set_action(f, ACTION_RELOAD);
+	farmaddress_s_set_action(f, ACTION_RELOAD);
 
 	return 0;
 }

@@ -1,0 +1,386 @@
+/*
+ *   This file is part of nftlb, nftables load balancer.
+ *
+ *   Copyright (C) ZEVENET SL.
+ *   Author: Laura Garcia <laura.garcia@zevenet.com>
+ *
+ *   This program is free software: you can redistribute it and/or modify
+ *   it under the terms of the GNU Affero General Public License as
+ *   published by the Free Software Foundation, either version 3 of the
+ *   License, or any later version.
+ *
+ *   This program is distributed in the hope that it will be useful,
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *   GNU Affero General Public License for more details.
+ *
+ *   You should have received a copy of the GNU Affero General Public License
+ *   along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <net/if.h>
+
+#include "addresses.h"
+#include "farms.h"
+#include "backends.h"
+#include "policies.h"
+#include "objects.h"
+#include "network.h"
+#include "config.h"
+#include "nft.h"
+#include "tools.h"
+
+
+struct address * address_create(char *name)
+{
+	struct list_head *addresses = obj_get_addresses();
+
+	struct address *paddress = (struct address *)malloc(sizeof(struct address));
+	if (!paddress) {
+		tools_printlog(LOG_ERR, "Address memory allocation error");
+		return NULL;
+	}
+
+	obj_set_attribute_string(name, &paddress->name);
+
+	paddress->fqdn = DEFAULT_FQDN;
+	paddress->iface = DEFAULT_IFNAME;
+	paddress->iethaddr = DEFAULT_ETHADDR;
+	paddress->ifidx = DEFAULT_IFIDX;
+	paddress->ipaddr = DEFAULT_VIRTADDR;
+	paddress->ports = DEFAULT_VIRTPORTS;
+	paddress->family = DEFAULT_FAMILY;
+	paddress->protocol = DEFAULT_PROTO;
+	paddress->action = DEFAULT_ACTION;
+
+	init_list_head(&paddress->policies);
+
+	paddress->total_policies = 0;
+	paddress->used = 0;
+
+	list_add_tail(&paddress->list, addresses);
+	obj_set_total_addresses(obj_get_total_addresses() + 1);
+
+	return paddress;
+}
+
+static int address_delete(struct address *paddress)
+{
+	tools_printlog(LOG_DEBUG, "%s():%d: deleting address %s",
+				   __FUNCTION__, __LINE__, paddress->name);
+
+	list_del(&paddress->list);
+
+	if (paddress->name && strcmp(paddress->name, "") != 0)
+		free(paddress->name);
+	if (paddress->fqdn && strcmp(paddress->fqdn, "") != 0)
+		free(paddress->fqdn);
+	if (paddress->iface && strcmp(paddress->iface, "") != 0)
+		free(paddress->iface);
+	if (paddress->iethaddr && strcmp(paddress->iethaddr, "") != 0)
+		free(paddress->iethaddr);
+	if (paddress->ipaddr && strcmp(paddress->ipaddr, "") != 0)
+		free(paddress->ipaddr);
+	if (paddress->ports && strcmp(paddress->ports, "") != 0)
+		free(paddress->ports);
+
+	free(paddress);
+	obj_set_total_addresses(obj_get_total_addresses() - 1);
+
+	return 0;
+}
+
+int address_set_ports(struct address *a, char *new_value)
+{
+	tools_printlog(LOG_DEBUG, "%s():%d: address %s old port %s new port %s", __FUNCTION__, __LINE__, a->name, a->ports, new_value);
+
+	if (strcmp(new_value, "0") != 0)
+		obj_set_attribute_string(new_value, &a->ports);
+
+	if (strcmp(new_value, "") == 0)
+		a->protocol = VALUE_PROTO_ALL;
+
+	return 0;
+}
+
+void address_print(struct address *a)
+{
+	struct policy *p;
+
+	tools_printlog(LOG_DEBUG," [address] ");
+	tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_NAME, a->name);
+
+	if (a->fqdn)
+		tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_FQDN, a->fqdn);
+
+	if (a->iface)
+		tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_IFACE, a->iface);
+
+	if (a->iethaddr)
+		tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_IETHADDR, a->iethaddr);
+
+	tools_printlog(LOG_DEBUG,"    *[ifidx] %d", a->ifidx);
+
+	if (a->ipaddr)
+		tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_IPADDR, a->ipaddr);
+
+	if (a->ports)
+		tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_PORTS, a->ports);
+
+	tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_FAMILY, obj_print_family(a->family));
+
+	tools_printlog(LOG_DEBUG,"    *[used] %d", a->used);
+	tools_printlog(LOG_DEBUG,"    *[%s] %d", CONFIG_KEY_ACTION, a->action);
+
+	list_for_each_entry(p, &a->policies, list)
+		policy_print(p);
+}
+
+static int address_set_iface_info(struct address *a)
+{
+	unsigned char ether[ETH_HW_ADDR_LEN];
+	char streth[ETH_HW_STR_LEN] = {};
+	char if_str[IFNAMSIZ];
+	int if_index;
+	int ret = 0;
+
+	tools_printlog(LOG_DEBUG, "%s():%d: address %s set interface info for interface", __FUNCTION__, __LINE__, a->name);
+
+	if (a->iface && strcmp(a->iface, IFACE_LOOPBACK) == 0) {
+		tools_printlog(LOG_DEBUG, "%s():%d: address %s doesn't require input netinfo, loopback interface", __FUNCTION__, __LINE__, a->name);
+		a->ifidx = 0;
+		return 0;
+	}
+
+	ret = net_get_local_ifname_per_vip(a->ipaddr, if_str);
+
+	if (ret != 0) {
+		tools_printlog(LOG_ERR, "%s():%d: inbound interface not found with IP %s by address %s", __FUNCTION__, __LINE__, a->ipaddr, a->name);
+		return -1;
+	}
+
+	obj_set_attribute_string(if_str, &a->iface);
+	net_strim_netface(a->iface);
+
+	if_index = if_nametoindex(a->iface);
+
+	if (if_index == 0) {
+		tools_printlog(LOG_ERR, "%s():%d: index of the inbound interface %s in address %s not found", __FUNCTION__, __LINE__, a->iface, a->name);
+		return -1;
+	}
+
+	a->ifidx = if_index;
+
+	net_get_local_ifinfo((unsigned char **)&ether, a->iface);
+	net_strim_netface(a->iface);
+
+	sprintf(streth, "%02x:%02x:%02x:%02x:%02x:%02x", ether[0],
+		ether[1], ether[2], ether[3], ether[4], ether[5]);
+
+	obj_set_attribute_string(streth, &a->iethaddr);
+
+	return 0;
+}
+
+int address_set_netinfo(struct address *a)
+{
+	tools_printlog(LOG_DEBUG, "%s():%d: address %s", __FUNCTION__, __LINE__, a->name);
+
+	address_set_iface_info(a);
+	farm_s_set_oface_info(a);
+
+	return 0;
+}
+
+int address_changed(struct config_pair *c)
+{
+	struct address *a = obj_get_current_address();
+
+	if (!a)
+		return -1;
+
+	tools_printlog(LOG_DEBUG, "%s():%d: address %s with param %d", __FUNCTION__, __LINE__, a->name, c->key);
+
+	switch (c->key) {
+	case KEY_NAME:
+		return 1;
+		break;
+	case KEY_FQDN:
+		return !obj_equ_attribute_string(a->fqdn, c->str_value);
+		break;
+	case KEY_IFACE:
+		return !obj_equ_attribute_string(a->iface, c->str_value);
+		break;
+	case KEY_IETHADDR:
+		return !obj_equ_attribute_string(a->iethaddr, c->str_value);
+		break;
+	case KEY_FAMILY:
+		return !obj_equ_attribute_int(a->family, c->int_value);
+		break;
+	case KEY_IPADDR:
+		return !obj_equ_attribute_string(a->ipaddr, c->str_value);
+		break;
+	case KEY_PORTS:
+		return !obj_equ_attribute_string(a->ports, c->str_value);
+		break;
+	case KEY_PROTO:
+		return !obj_equ_attribute_int(a->protocol, c->int_value);
+		break;
+	case KEY_ACTION:
+		return !obj_equ_attribute_int(a->action, c->int_value);
+		break;
+	default:
+		break;
+	}
+
+	return 0;
+}
+
+void address_s_print(void)
+{
+	struct list_head *addresses = obj_get_addresses();
+	struct address *a;
+
+	list_for_each_entry(a, addresses, list)
+		address_print(a);
+}
+
+struct address * address_lookup_by_name(const char *name)
+{
+	struct list_head *addresses = obj_get_addresses();
+	struct address *a;
+
+	list_for_each_entry(a, addresses, list) {
+		if (strcmp(a->name, name) == 0)
+			return a;
+	}
+
+	return NULL;
+}
+
+int address_pre_actionable(struct config_pair *c)
+{
+	struct address *a = obj_get_current_address();
+
+	if (!a)
+		return -1;
+
+	return ACTION_START;
+}
+
+int address_pos_actionable(struct config_pair *c)
+{
+	struct address *a = obj_get_current_address();
+
+	if (!a)
+		return -1;
+
+	return 0;
+}
+
+int address_set_attribute(struct config_pair *c)
+{
+	struct address *a = obj_get_current_address();
+	int ret = PARSER_FAILED;
+
+	if (c->key != KEY_NAME && !a)
+		return PARSER_OBJ_UNKNOWN;
+
+	switch (c->key) {
+	case KEY_NAME:
+		a = address_lookup_by_name(c->str_value);
+		if (!a) {
+			a = address_create(c->str_value);
+			if (!a)
+				return -1;
+		}
+		obj_set_current_address(a);
+		ret = PARSER_OK;
+		break;
+	case KEY_FQDN:
+		ret = obj_set_attribute_string(c->str_value, &a->fqdn);
+		break;
+	case KEY_IFACE:
+		ret = obj_set_attribute_string(c->str_value, &a->iface);
+		net_strim_netface(a->iface);
+		break;
+	case KEY_FAMILY:
+		a->family = c->int_value;
+		ret = PARSER_OK;
+		break;
+	case KEY_ETHADDR:
+		ret = obj_set_attribute_string(c->str_value, &a->iethaddr);
+		break;
+	case KEY_IETHADDR:
+		ret = obj_set_attribute_string(c->str_value, &a->iethaddr);
+		farm_s_set_oface_info(a);
+		break;
+	case KEY_IPADDR:
+		ret = obj_set_attribute_string(c->str_value, &a->ipaddr);
+		address_set_netinfo(a);
+		break;
+	case KEY_PORTS:
+		ret = address_set_ports(a, c->str_value);
+		break;
+	case KEY_PROTO:
+		a->protocol = c->int_value;
+		ret = PARSER_OK;
+		break;
+	case KEY_ACTION:
+		ret = address_set_action(a, c->int_value);
+		break;
+	default:
+		return PARSER_STRUCT_FAILED;
+	}
+
+	return ret;
+}
+
+int address_set_action(struct address *a, int action)
+{
+	tools_printlog(LOG_DEBUG, "%s():%d: address %s action is %d - new action %d", __FUNCTION__, __LINE__, a->name, a->action, action);
+
+	if (a->action == action)
+		return 0;
+
+	if (action == ACTION_DELETE) {
+		farm_s_lookup_address_action(a->name, action);
+		address_delete(a);
+		return 1;
+	}
+
+	if (action == ACTION_STOP)
+		farm_s_lookup_address_action(a->name, action);
+
+	a->action = action;
+	return 1;
+}
+
+int address_s_set_action(int action)
+{
+	struct list_head *addresses = obj_get_addresses();
+	struct address *a, *next;
+
+	list_for_each_entry_safe(a, next, addresses, list)
+		address_set_action(a, action);
+
+	return 0;
+}
+
+int address_no_port(struct address *a)
+{
+	if (obj_equ_attribute_string(a->ports, DEFAULT_VIRTPORTS))
+		return 1;
+	return 0;
+}
+
+int address_no_ipaddr(struct address *a)
+{
+	if (obj_equ_attribute_string(a->ipaddr, DEFAULT_VIRTADDR))
+		return 1;
+	return 0;
+}

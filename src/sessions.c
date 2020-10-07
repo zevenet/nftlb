@@ -25,6 +25,7 @@
 
 #include "sessions.h"
 #include "farms.h"
+#include "farmaddress.h"
 #include "objects.h"
 #include "tools.h"
 #include "nft.h"
@@ -285,13 +286,17 @@ void session_s_print(struct farm *f)
 
 int session_get_timed(struct farm *f)
 {
+	struct farmaddress *fa;
 	const char *buf;
+
 	tools_printlog(LOG_DEBUG, "%s():%d: farm %s", __FUNCTION__, __LINE__, f->name);
 
-	nft_get_rules_buffer(&buf, KEY_SESSIONS, f, NULL);
 	f->total_timed_sessions = 0;
-	nft_parse_sessions(f, buf);
-	nft_del_rules_buffer(buf);
+	list_for_each_entry(fa, &f->addresses, list) {
+		nft_get_rules_buffer(&buf, KEY_SESSIONS, fa, NULL);
+		nft_parse_sessions(f, buf);
+		nft_del_rules_buffer(buf);
+	}
 	session_s_print(f);
 	return 0;
 }

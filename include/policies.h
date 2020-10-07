@@ -44,6 +44,7 @@ struct policy {
 	struct list_head	elements;
 };
 
+void policy_print(struct policy *p);
 void policies_s_print(void);
 struct policy * policy_lookup_by_name(const char *name);
 int policy_set_attribute(struct config_pair *c);

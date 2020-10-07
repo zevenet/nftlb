@@ -101,8 +101,8 @@ enum switches {
 #define VALUE_RLD_TCPSTRICT_STOP			(1 << 8)
 #define VALUE_RLD_QUEUE_STOP				(1 << 9)
 
-#define STATEFUL_RLD_START(x)				(x & VALUE_RLD_NEWRTLIMIT_START) || (x & VALUE_RLD_RSTRTLIMIT_START) || (x & VALUE_RLD_ESTCONNLIMIT_START) || (x & VALUE_RLD_TCPSTRICT_START) || (x & VALUE_RLD_QUEUE_START)
-#define STATEFUL_RLD_STOP(x)				(x & VALUE_RLD_NEWRTLIMIT_STOP) || (x & VALUE_RLD_RSTRTLIMIT_STOP) || (x & VALUE_RLD_ESTCONNLIMIT_STOP) || (x & VALUE_RLD_TCPSTRICT_STOP) || (x & VALUE_RLD_QUEUE_STOP)
+#define STATEFUL_RLD_START(x)				(x & VALUE_RLD_NEWRTLIMIT_START) || (x & VALUE_RLD_RSTRTLIMIT_START) || (x & VALUE_RLD_ESTCONNLIMIT_START) || (x & VALUE_RLD_TCPSTRICT_START)
+#define STATEFUL_RLD_STOP(x)				(x & VALUE_RLD_NEWRTLIMIT_STOP) || (x & VALUE_RLD_RSTRTLIMIT_STOP) || (x & VALUE_RLD_ESTCONNLIMIT_STOP) || (x & VALUE_RLD_TCPSTRICT_STOP)
 
 struct farm {
 	struct list_head	list;
@@ -110,19 +110,12 @@ struct farm {
 	int			reload_action;
 	char			*name;
 	char			*fqdn;
-	char			*iface;
-	char			*iethaddr;
-	int			ifidx;
 	char			*oface;
 	char			*oethaddr;
 	int			ofidx;
-	char			*virtaddr;
-	char			*virtports;
 	char			*srcaddr;
-	int			family;
 	int			mode;
 	int			responsettl;
-	int			protocol;
 	int			scheduler;
 	int			schedparam;
 	int			persistence;
@@ -162,6 +155,9 @@ struct farm {
 	struct list_head	timed_sessions;
 	int					total_static_sessions;
 	struct list_head	static_sessions;
+	struct list_head	addresses;
+	int					addresses_used;
+	int					addresses_action;
 };
 
 struct list_head * farm_s_get_head(void);
@@ -171,11 +167,11 @@ int farm_is_ingress_mode(struct farm *f);
 int farm_needs_policies(struct farm *f);
 int farm_needs_flowtable(struct farm *f);
 int farm_needs_intraconnect(struct farm *f);
-int farm_set_ifinfo(struct farm *f, int key);
+struct farm * farm_get_first(void);
+int farm_set_iface_info(struct farm *f);
+int farm_set_oface_info(struct farm *f);
 struct farm * farm_lookup_by_name(const char *name);
 
-int farm_no_port(struct farm *f);
-int farm_no_virtaddr(struct farm *f);
 int farm_changed(struct config_pair *c);
 int farm_pre_actionable(struct config_pair *c);
 int farm_pos_actionable(struct config_pair *c);
@@ -186,9 +182,12 @@ int farm_s_set_action(int action);
 int farm_get_masquerade(struct farm *f);
 void farm_s_set_backend_ether_by_oifidx(int interface_idx, const char * ip_bck, char * ether_bck);
 int farm_s_lookup_policy_action(char *name, int action);
+int farm_s_lookup_address_action(char *name, int action);
 
 int farm_rulerize(struct farm *f);
 int farm_s_rulerize(void);
 int farm_get_mark(struct farm *f);
+void farm_s_set_oface_info(struct address *a);
+
 
 #endif /* _FARMS_H_ */

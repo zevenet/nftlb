@@ -96,7 +96,7 @@ static int policy_set_family(struct policy *p, int new_value)
 	return 0;
 }
 
-static void policy_print(struct policy *p)
+void policy_print(struct policy *p)
 {
 	tools_printlog(LOG_DEBUG," [policy] ");
 	tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_NAME, p->name);

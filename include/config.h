@@ -32,11 +32,14 @@
 #define CONFIG_KEY_OFACE		"oface"
 #define CONFIG_KEY_FAMILY		"family"
 #define CONFIG_KEY_ETHADDR		"ether-addr"
+#define CONFIG_KEY_IETHADDR		"iether-addr"
+#define CONFIG_KEY_OETHADDR		"oether-addr"
 #define CONFIG_KEY_VIRTADDR		"virtual-addr"
 #define CONFIG_KEY_VIRTPORTS		"virtual-ports"
 #define CONFIG_KEY_IPADDR		"ip-addr"
 #define CONFIG_KEY_SRCADDR		"source-addr"
 #define CONFIG_KEY_PORT			"port"
+#define CONFIG_KEY_PORTS			"ports"
 #define CONFIG_KEY_MODE			"mode"
 #define CONFIG_KEY_RESPONSETTL	"responsettl"
 #define CONFIG_KEY_PROTO		"protocol"
@@ -75,9 +78,9 @@
 #define CONFIG_KEY_CLIENT		"client"
 #define CONFIG_KEY_BACKEND		"backend"
 #define CONFIG_KEY_INTRACONNECT				"intra-connect"
-
 #define CONFIG_KEY_USED				"used"
 #define CONFIG_KEY_EXPIRATION			"expiration"
+#define CONFIG_KEY_ADDRESSES		"addresses"
 
 #define CONFIG_VALUE_FAMILY_IPV4	"ipv4"
 #define CONFIG_VALUE_FAMILY_IPV6	"ipv6"
@@ -173,5 +176,8 @@ int config_set_element_action(const char *pname, const char *edata, const char *
 int config_get_elements(const char *pname);
 int config_delete_elements(const char *pname);
 void config_print_response(char **buf, char *fmt, ...);
+int config_set_address_action(const char *name, const char *value);
+int config_set_farmaddress_action(const char *fname, const char *faname, const char *value);
+int config_print_addresses(char **buf, char *name);
 
 #endif /* _CONFIG_H_ */

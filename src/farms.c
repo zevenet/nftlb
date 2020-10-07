@@ -28,6 +28,7 @@
 #include "backends.h"
 #include "sessions.h"
 #include "farmpolicy.h"
+#include "farmaddress.h"
 #include "objects.h"
 #include "config.h"
 #include "nft.h"
@@ -48,19 +49,12 @@ static struct farm * farm_create(char *name)
 	obj_set_attribute_string(name, &pfarm->name);
 
 	pfarm->fqdn = DEFAULT_FQDN;
-	pfarm->iface = DEFAULT_IFNAME;
 	pfarm->oface = DEFAULT_IFNAME;
-	pfarm->iethaddr = DEFAULT_ETHADDR;
 	pfarm->oethaddr = DEFAULT_ETHADDR;
-	pfarm->ifidx = DEFAULT_IFIDX;
 	pfarm->ofidx = DEFAULT_IFIDX;
-	pfarm->virtaddr = DEFAULT_VIRTADDR;
-	pfarm->virtports = DEFAULT_VIRTPORTS;
 	pfarm->srcaddr = DEFAULT_SRCADDR;
-	pfarm->family = DEFAULT_FAMILY;
 	pfarm->mode = DEFAULT_MODE;
 	pfarm->responsettl = DEFAULT_RESPONSETTL;
-	pfarm->protocol = DEFAULT_PROTO;
 	pfarm->scheduler = DEFAULT_SCHED;
 	pfarm->schedparam = DEFAULT_SCHEDPARAM;
 	pfarm->persistence = DEFAULT_PERSIST;
@@ -110,34 +104,30 @@ static struct farm * farm_create(char *name)
 	list_add_tail(&pfarm->list, farms);
 	obj_set_total_farms(obj_get_total_farms() + 1);
 
+	init_list_head(&pfarm->addresses);
+	pfarm->addresses_used = 0;
+	pfarm->addresses_action = ACTION_NONE;
+
 	return pfarm;
 }
 
 static int farm_delete(struct farm *pfarm)
 {
-	tools_printlog(LOG_DEBUG, "%s():%d: deleting farm %s",
-				   __FUNCTION__, __LINE__, pfarm->name);
+	tools_printlog(LOG_DEBUG, "%s():%d: deleting farm %s", __FUNCTION__, __LINE__, pfarm->name);
 
 	backend_s_delete(pfarm);
 	farmpolicy_s_delete(pfarm);
+	farmaddress_s_delete(pfarm);
 	list_del(&pfarm->list);
 
 	if (pfarm->name && strcmp(pfarm->name, "") != 0)
 		free(pfarm->name);
 	if (pfarm->fqdn && strcmp(pfarm->fqdn, "") != 0)
 		free(pfarm->fqdn);
-	if (pfarm->iface && strcmp(pfarm->iface, "") != 0)
-		free(pfarm->iface);
 	if (pfarm->oface && strcmp(pfarm->oface, "") != 0)
 		free(pfarm->oface);
-	if (pfarm->iethaddr && strcmp(pfarm->iethaddr, "") != 0)
-		free(pfarm->iethaddr);
 	if (pfarm->oethaddr && strcmp(pfarm->oethaddr, "") != 0)
 		free(pfarm->oethaddr);
-	if (pfarm->virtaddr && strcmp(pfarm->virtaddr, "") != 0)
-		free(pfarm->virtaddr);
-	if (pfarm->virtports && strcmp(pfarm->virtports, "") != 0)
-		free(pfarm->virtports);
 	if (pfarm->logprefix && strcmp(pfarm->logprefix, DEFAULT_LOG_LOGPREFIX) != 0)
 		free(pfarm->logprefix);
 	if (pfarm->newrtlimit_logprefix && strcmp(pfarm->newrtlimit_logprefix, DEFAULT_LOGPREFIX) != 0)
@@ -155,29 +145,27 @@ static int farm_delete(struct farm *pfarm)
 	return 0;
 }
 
+static int farm_validate_oface(struct farm *f)
+{
+	tools_printlog(LOG_DEBUG, "%s():%d: validating output farm interface of %s", __FUNCTION__, __LINE__, f->name);
+
+	if (!f->oface || obj_equ_attribute_string(f->oface, "") ||
+		!f->oethaddr || obj_equ_attribute_string(f->oethaddr, ""))
+		return 0;
+
+	return 1;
+}
+
 static int farm_validate(struct farm *f)
 {
-	tools_printlog(LOG_DEBUG, "%s():%d: validating farm %s",
-				   __FUNCTION__, __LINE__, f->name);
+	tools_printlog(LOG_DEBUG, "%s():%d: validating farm %s", __FUNCTION__, __LINE__, f->name);
 
-	if (obj_equ_attribute_string(f->virtaddr, DEFAULT_VIRTADDR) &&
-		obj_equ_attribute_string(f->virtports, DEFAULT_VIRTPORTS))
+	if (farm_needs_policies(f) && !farmaddress_s_validate_iface(f))
 		return 0;
-
-	if (farm_needs_policies(f) &&
-		(!f->iface || (strcmp(f->iface, "") == 0))) {
-		return 0;
-	}
 
 	if ((farm_is_ingress_mode(f) || farm_needs_flowtable(f)) &&
-		((!f->iface || (strcmp(f->iface, "") == 0)) ||
-		 (!f->oface || (strcmp(f->oface, "") == 0)))) {
-		return 0;
-	}
-
-	if (farm_is_ingress_mode(f) &&
-		(!f->iethaddr || strcmp(f->iethaddr, "") == 0) &&
-		(!f->oethaddr || strcmp(f->oethaddr, "") == 0))
+		(!farmaddress_s_validate_iface(f) ||
+		!farm_validate_oface(f)))
 		return 0;
 
 	return 1;
@@ -246,18 +234,15 @@ static int farm_set_netinfo(struct farm *f)
 	}
 
 	if (farm_is_ingress_mode(f) &&
-		farm_set_ifinfo(f, KEY_IFACE) == 0 &&
-		farm_set_ifinfo(f, KEY_OFACE) == 0 ) {
+		farm_set_oface_info(f) == 0 ) {
+		f->bcks_have_if = backend_s_check_have_iface(f);
 		farm_manage_eventd();
 		backend_s_find_ethers(f);
 	}
 
-	if (farm_needs_policies(f))
-		farm_set_ifinfo(f, KEY_IFACE);
-
 	if (farm_needs_flowtable(f)) {
-		farm_set_ifinfo(f, KEY_IFACE);
-		farm_set_ifinfo(f, KEY_OFACE);
+		farm_set_oface_info(f);
+		f->bcks_have_if = backend_s_check_have_iface(f);
 	}
 
 	return 0;
@@ -328,19 +313,6 @@ static int farm_set_mode(struct farm *f, int new_value)
 	return 0;
 }
 
-static int farm_set_port(struct farm *f, char *new_value)
-{
-	tools_printlog(LOG_DEBUG, "%s():%d: farm %s old port %s new port %s", __FUNCTION__, __LINE__, f->name, f->virtports, new_value);
-
-	if (strcmp(new_value, "0") != 0)
-		obj_set_attribute_string(new_value, &f->virtports);
-
-	if (strcmp(new_value, "") == 0)
-		f->protocol = VALUE_PROTO_ALL;
-
-	return 0;
-}
-
 static int farm_set_sched(struct farm *f, int new_value)
 {
 	int old_value = f->scheduler;
@@ -376,6 +348,11 @@ static int farm_set_persistence(struct farm *f, int new_value)
 static void farm_print(struct farm *f)
 {
 	char buf[100] = {};
+	struct farmaddress *fa = farmaddress_get_first(f);
+	struct address *a = NULL;
+
+	if (fa)
+		a = fa->address;
 
 	tools_printlog(LOG_DEBUG," [farm] ");
 	tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_NAME, f->name);
@@ -383,38 +360,41 @@ static void farm_print(struct farm *f)
 	if (f->fqdn)
 		tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_FQDN, f->fqdn);
 
-	if (f->iface)
-		tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_IFACE, f->iface);
-
-	if (f->iethaddr)
-		tools_printlog(LOG_DEBUG,"    [i-%s] %s", CONFIG_KEY_ETHADDR, f->iethaddr);
-
-	tools_printlog(LOG_DEBUG,"    *[ifidx] %d", f->ifidx);
-
 	if (f->oface)
 		tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_OFACE, f->oface);
 
 	if (f->oethaddr)
-		tools_printlog(LOG_DEBUG,"    [o-%s] %s", CONFIG_KEY_ETHADDR, f->oethaddr);
+		tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_OETHADDR, f->oethaddr);
 
 	tools_printlog(LOG_DEBUG,"    *[ofidx] %d", f->ofidx);
 
-	if (f->virtaddr)
-		tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_VIRTADDR, f->virtaddr);
+	if (a) {
+		if (a->iface)
+			tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_IFACE, a->iface);
 
-	if (f->virtports)
-		tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_VIRTPORTS, f->virtports);
+		if (a->iethaddr)
+			tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_IETHADDR, a->iethaddr);
+
+		tools_printlog(LOG_DEBUG,"    *[ifidx] %d", a->ifidx);
+
+		if (a->ipaddr)
+			tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_VIRTADDR, a->ipaddr);
+
+		if (a->ports)
+			tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_VIRTPORTS, a->ports);
+
+		tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_FAMILY, obj_print_family(a->family));
+		tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_PROTO, obj_print_proto(a->protocol));
+	}
 
 	if (f->srcaddr)
 		tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_SRCADDR, f->srcaddr);
 
-	tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_FAMILY, obj_print_family(f->family));
 	tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_MODE, obj_print_mode(f->mode));
 
 	if (f->mode == VALUE_MODE_STLSDNAT)
 		tools_printlog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_RESPONSETTL, f->responsettl);
 
-	tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_PROTO, obj_print_proto(f->protocol));
 	tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_SCHED, obj_print_sched(f->scheduler));
 
 	obj_print_meta(f->schedparam, (char *)buf);
@@ -465,21 +445,28 @@ static void farm_print(struct farm *f)
 	tools_printlog(LOG_DEBUG,"    *[bcks_usable] %d", f->bcks_usable);
 	tools_printlog(LOG_DEBUG,"    *[bcks_have_port] %d", f->bcks_have_port);
 	tools_printlog(LOG_DEBUG,"    *[bcks_have_srcaddr] %d", f->bcks_have_srcaddr);
+	tools_printlog(LOG_DEBUG,"    *[bcks_have_if] %d", f->bcks_have_if);
 	tools_printlog(LOG_DEBUG,"    *[policies_action] %d", f->policies_action);
 	tools_printlog(LOG_DEBUG,"    *[policies_used] %d", f->policies_used);
 	tools_printlog(LOG_DEBUG,"    *[total_static_sessions] %d", f->total_static_sessions);
 	tools_printlog(LOG_DEBUG,"    *[total_timed_sessions] %d", f->total_timed_sessions);
-	tools_printlog(LOG_DEBUG,"    *[%s] %d", CONFIG_KEY_ACTION, f->action);
-	tools_printlog(LOG_DEBUG,"    *[reload_action] %x", f->reload_action);
 	tools_printlog(LOG_DEBUG,"    *[nft_chains] %x", f->nft_chains);
+	tools_printlog(LOG_DEBUG,"    *[addresses_action] %d", f->addresses_action);
+	tools_printlog(LOG_DEBUG,"    *[addresses_used] %d", f->addresses_used);
+	tools_printlog(LOG_DEBUG,"    *[reload_action] %x", f->reload_action);
+	tools_printlog(LOG_DEBUG,"    *[%s] %d", CONFIG_KEY_ACTION, f->action);
 
-	if (f->total_bcks != 0)
+	if (f->addresses_used > 0)
+		farmaddress_s_print(f);
+
+	if (f->total_bcks > 0)
 		backend_s_print(f);
+
+	if (f->policies_used > 0)
+		farmpolicy_s_print(f);
 
 	if (f->total_static_sessions || f->total_timed_sessions)
 		session_s_print(f);
-
-	farmpolicy_s_print(f);
 }
 
 static int farm_set_newrtlimit(struct farm *f, int new_value)
@@ -546,20 +533,6 @@ static int farm_set_queue(struct farm *f, int new_value)
 	return PARSER_OK;
 }
 
-int farm_no_port(struct farm *f)
-{
-	if (obj_equ_attribute_string(f->virtports, DEFAULT_VIRTPORTS))
-		return 1;
-	return 0;
-}
-
-int farm_no_virtaddr(struct farm *f)
-{
-	if (obj_equ_attribute_string(f->virtaddr, DEFAULT_VIRTADDR))
-		return 1;
-	return 0;
-}
-
 int farm_changed(struct config_pair *c)
 {
 	struct farm *f = obj_get_current_farm();
@@ -579,23 +552,20 @@ int farm_changed(struct config_pair *c)
 	case KEY_FQDN:
 		return !obj_equ_attribute_string(f->fqdn, c->str_value);
 		break;
+	case KEY_ETHADDR:
+	case KEY_IETHADDR:
 	case KEY_IFACE:
-		return !obj_equ_attribute_string(f->iface, c->str_value);
+	case KEY_FAMILY:
+	case KEY_VIRTADDR:
+	case KEY_VIRTPORTS:
+	case KEY_PROTO:
+		return 1;
+		break;
+	case KEY_OETHADDR:
+		return !obj_equ_attribute_string(f->oethaddr, c->str_value);
 		break;
 	case KEY_OFACE:
 		return !obj_equ_attribute_string(f->oface, c->str_value);
-		break;
-	case KEY_ETHADDR:
-		return !obj_equ_attribute_string(f->iethaddr, c->str_value);
-		break;
-	case KEY_FAMILY:
-		return !obj_equ_attribute_int(f->family, c->int_value);
-		break;
-	case KEY_VIRTADDR:
-		return !obj_equ_attribute_string(f->virtaddr, c->str_value);
-		break;
-	case KEY_VIRTPORTS:
-		return !obj_equ_attribute_string(f->virtports, c->str_value);
 		break;
 	case KEY_SRCADDR:
 		return !obj_equ_attribute_string(f->srcaddr, c->str_value);
@@ -605,9 +575,6 @@ int farm_changed(struct config_pair *c)
 		break;
 	case KEY_RESPONSETTL:
 		return !obj_equ_attribute_int(f->responsettl, c->int_value);
-		break;
-	case KEY_PROTO:
-		return !obj_equ_attribute_int(f->protocol, c->int_value);
 		break;
 	case KEY_SCHED:
 		return !obj_equ_attribute_int(f->scheduler, c->int_value);
@@ -705,9 +672,8 @@ void farm_s_print(void)
 	struct list_head *farms = obj_get_farms();
 	struct farm *f;
 
-	list_for_each_entry(f, farms, list) {
+	list_for_each_entry(f, farms, list)
 		farm_print(f);
-	}
 }
 
 struct farm * farm_lookup_by_name(const char *name)
@@ -733,7 +699,13 @@ int farm_needs_policies(struct farm *f)
 	return (f->policies_used > 0) || (f->policies_action != ACTION_NONE);
 }
 
-int farm_set_ifinfo(struct farm *f, int key)
+struct farm * farm_get_first(void)
+{
+	struct list_head *farms = obj_get_farms();
+	return list_first_entry(farms, struct farm, list);
+}
+
+int farm_set_oface_info(struct farm *f)
 {
 	unsigned char ether[ETH_HW_ADDR_LEN];
 	char streth[ETH_HW_STR_LEN] = {};
@@ -743,92 +715,49 @@ int farm_set_ifinfo(struct farm *f, int key)
 	int if_index;
 	int ret = 0;
 
-	tools_printlog(LOG_DEBUG, "%s():%d: farm %s set interface info for interface key %d", __FUNCTION__, __LINE__, f->name, key);
+	tools_printlog(LOG_DEBUG, "%s():%d: farm %s set interface info for interface", __FUNCTION__, __LINE__, f->name);
 
 	if (!(farm_is_ingress_mode(f) ||
-		(farm_needs_policies(f) && key == KEY_IFACE) ||
 		farm_needs_flowtable(f))) {
 		tools_printlog(LOG_DEBUG, "%s():%d: farm %s doesn't require netinfo", __FUNCTION__, __LINE__, f->name);
 		return 0;
 	}
 
-	switch (key) {
-	case KEY_IFACE:
-		ret = net_get_local_ifname_per_vip(f->virtaddr, if_str);
-
-		if (ret != 0) {
-			tools_printlog(LOG_ERR, "%s():%d: inbound interface not found with VIP %s by farm %s", __FUNCTION__, __LINE__, f->virtaddr, f->name);
-			return -1;
-		}
-
-		obj_set_attribute_string(if_str, &f->iface);
-		net_strim_netface(f->iface);
-
-		if_index = if_nametoindex(f->iface);
-
-		if (if_index == 0) {
-			tools_printlog(LOG_ERR, "%s():%d: index of the inbound interface %s in farm %s not found", __FUNCTION__, __LINE__, f->iface, f->name);
-			return -1;
-		}
-
-		f->ifidx = if_index;
-		ether_addr = &f->iethaddr;
-
-		net_get_local_ifinfo((unsigned char **)&ether, f->iface);
-		net_strim_netface(f->iface);
-
-		/* By default, use the same inbound and outbound interface until
-		 * the backends network configuration says a different thing */
-		if (f->ofidx == DEFAULT_IFIDX) {
-			f->ofidx = f->ifidx;
-			obj_set_attribute_string(f->iface, &f->oface);
-		}
-
-		sprintf(streth, "%02x:%02x:%02x:%02x:%02x:%02x", ether[0],
-			ether[1], ether[2], ether[3], ether[4], ether[5]);
-
-		obj_set_attribute_string(streth, ether_addr);
-		break;
-
-	case KEY_OFACE:
-		if (f->oface && strcmp(f->oface, IFACE_LOOPBACK) == 0) {
-			tools_printlog(LOG_DEBUG, "%s():%d: farm %s doesn't require output netinfo, loopback interface", __FUNCTION__, __LINE__, f->name);
-			f->ofidx = 0;
-			return 0;
-		}
-
-		ether_addr = &f->oethaddr;
-
-		b = backend_get_first(f);
-		if (!b || b->ipaddr == DEFAULT_IPADDR) {
-			tools_printlog(LOG_DEBUG, "%s():%d: there is no backend yet in the farm %s", __FUNCTION__, __LINE__, f->name);
-			return 0;
-		}
-
-		ret = net_get_local_ifidx_per_remote_host(b->ipaddr, &if_index);
-		if (ret == -1) {
-			tools_printlog(LOG_ERR, "%s():%d: unable to get the outbound interface to %s for the farm %s", __FUNCTION__, __LINE__, b->ipaddr, f->name);
-			return -1;
-		}
-
-		f->ofidx = if_index;
-
-		if (if_indextoname(if_index, if_str) == NULL) {
-			tools_printlog(LOG_ERR, "%s():%d: unable to get the outbound interface name with index %d required by the farm %s", __FUNCTION__, __LINE__, if_index, f->name);
-			return -1;
-		}
-
-		obj_set_attribute_string(if_str, &f->oface);
-		net_strim_netface(f->oface);
-
-		net_get_local_ifinfo((unsigned char **)&ether, f->oface);
-		sprintf(streth, "%02x:%02x:%02x:%02x:%02x:%02x", ether[0],
-			ether[1], ether[2], ether[3], ether[4], ether[5]);
-
-		obj_set_attribute_string(streth, ether_addr);
-
-		break;
+	if (f->oface && strcmp(f->oface, IFACE_LOOPBACK) == 0) {
+		tools_printlog(LOG_DEBUG, "%s():%d: farm %s doesn't require output netinfo, loopback interface", __FUNCTION__, __LINE__, f->name);
+		f->ofidx = 0;
+		return 0;
 	}
+
+	ether_addr = &f->oethaddr;
+
+	b = backend_get_first(f);
+	if (!b || b->ipaddr == DEFAULT_IPADDR) {
+		tools_printlog(LOG_DEBUG, "%s():%d: there is no backend yet in the farm %s", __FUNCTION__, __LINE__, f->name);
+		return 0;
+	}
+
+	ret = net_get_local_ifidx_per_remote_host(b->ipaddr, &if_index);
+	if (ret == -1) {
+		tools_printlog(LOG_ERR, "%s():%d: unable to get the outbound interface to %s for the farm %s", __FUNCTION__, __LINE__, b->ipaddr, f->name);
+		return -1;
+	}
+
+	f->ofidx = if_index;
+
+	if (if_indextoname(if_index, if_str) == NULL) {
+		tools_printlog(LOG_ERR, "%s():%d: unable to get the outbound interface name with index %d required by the farm %s", __FUNCTION__, __LINE__, if_index, f->name);
+		return -1;
+	}
+
+	obj_set_attribute_string(if_str, &f->oface);
+	net_strim_netface(f->oface);
+
+	net_get_local_ifinfo((unsigned char **)&ether, f->oface);
+	sprintf(streth, "%02x:%02x:%02x:%02x:%02x:%02x", ether[0],
+		ether[1], ether[2], ether[3], ether[4], ether[5]);
+
+	obj_set_attribute_string(streth, ether_addr);
 
 	return 0;
 }
@@ -910,6 +839,8 @@ int farm_pos_actionable(struct config_pair *c)
 int farm_set_attribute(struct config_pair *c)
 {
 	struct farm *f = obj_get_current_farm();
+	struct farmaddress *fa;
+	struct address *a;
 	struct farm *nf;
 	int ret = PARSER_FAILED;
 
@@ -939,27 +870,53 @@ int farm_set_attribute(struct config_pair *c)
 		ret = obj_set_attribute_string(c->str_value, &f->fqdn);
 		break;
 	case KEY_IFACE:
-		ret = obj_set_attribute_string(c->str_value, &f->iface);
-		net_strim_netface(f->iface);
+		farmaddress_create_default(c);
+		fa = obj_get_current_farmaddress();
+		a = fa->address;
+		ret = obj_set_attribute_string(c->str_value, &a->iface);
+		net_strim_netface(a->iface);
+		address_set_netinfo(a);
 		break;
 	case KEY_OFACE:
 		ret = obj_set_attribute_string(c->str_value, &f->oface);
 		net_strim_netface(f->oface);
+		farm_set_netinfo(f);
 		break;
 	case KEY_FAMILY:
-		f->family = c->int_value;
+		farmaddress_create_default(c);
+		fa = obj_get_current_farmaddress();
+		a = fa->address;
+		a->family = c->int_value;
 		ret = PARSER_OK;
 		break;
 	case KEY_ETHADDR:
-		ret = obj_set_attribute_string(c->str_value, &f->iethaddr) ||
+		farmaddress_create_default(c);
+		fa = obj_get_current_farmaddress();
+		a = fa->address;
+		ret = obj_set_attribute_string(c->str_value, &a->iethaddr) ||
 			obj_set_attribute_string(c->str_value, &f->oethaddr);
 		break;
+	case KEY_IETHADDR:
+		farmaddress_create_default(c);
+		fa = obj_get_current_farmaddress();
+		a = fa->address;
+		ret = obj_set_attribute_string(c->str_value, &a->iethaddr);
+		break;
+	case KEY_OETHADDR:
+		ret = obj_set_attribute_string(c->str_value, &f->oethaddr);
+		break;
 	case KEY_VIRTADDR:
-		ret = obj_set_attribute_string(c->str_value, &f->virtaddr);
-		farm_set_netinfo(f);
+		farmaddress_create_default(c);
+		fa = obj_get_current_farmaddress();
+		a = fa->address;
+		ret = obj_set_attribute_string(c->str_value, &a->ipaddr);
+		address_set_netinfo(a);
 		break;
 	case KEY_VIRTPORTS:
-		ret = farm_set_port(f, c->str_value);
+		farmaddress_create_default(c);
+		fa = obj_get_current_farmaddress();
+		a = fa->address;
+		ret = address_set_ports(a, c->str_value);
 		break;
 	case KEY_SRCADDR:
 		ret = obj_set_attribute_string(c->str_value, &f->srcaddr);
@@ -972,7 +929,10 @@ int farm_set_attribute(struct config_pair *c)
 		ret = PARSER_OK;
 		break;
 	case KEY_PROTO:
-		f->protocol = c->int_value;
+		farmaddress_create_default(c);
+		fa = obj_get_current_farmaddress();
+		a = fa->address;
+		a->protocol = c->int_value;
 		ret = PARSER_OK;
 		break;
 	case KEY_SCHED:
@@ -1093,6 +1053,8 @@ int farm_set_action(struct farm *f, int action)
 		f->action = action;
 		farm_set_netinfo(f);
 		backend_s_validate(f);
+		if (action == ACTION_STOP || action == ACTION_START)
+			farmaddress_s_set_action(f, action);
 
 		return 1;
 	}
@@ -1156,6 +1118,17 @@ int farm_s_lookup_policy_action(char *name, int action)
 	return 0;
 }
 
+int farm_s_lookup_address_action(char *name, int action)
+{
+	struct list_head *farms = obj_get_farms();
+	struct farm *f, *next;
+
+	list_for_each_entry_safe(f, next, farms, list)
+		farmaddress_s_lookup_address_action(f, name, action);
+
+	return 0;
+}
+
 int farm_rulerize(struct farm *f)
 {
 	tools_printlog(LOG_DEBUG, "%s():%d: rulerize farm %s", __FUNCTION__, __LINE__, f->name);
@@ -1198,4 +1171,28 @@ int farm_get_mark(struct farm *f)
 		mark |= masquerade_mark;
 
 	return mark;
+}
+
+void farm_s_set_oface_info(struct address *a)
+{
+	struct list_head *farms = obj_get_farms();
+	struct farm *f, *next;
+	struct farmaddress *fa;
+
+	if (!a->iface)
+		return;
+
+	list_for_each_entry_safe(f, next, farms, list) {
+		if (f->ofidx != DEFAULT_IFIDX)
+			continue;
+
+		fa = farmaddress_lookup_by_name(f, a->name);
+		if (fa) {
+			if (a->iface)
+				obj_set_attribute_string(a->iface, &f->oface);
+			if (a->iethaddr)
+				obj_set_attribute_string(a->iethaddr, &f->oethaddr);
+			f->ofidx = a->ifidx;
+		}
+	}
 }
