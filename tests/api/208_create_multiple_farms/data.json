@@ -30,7 +30,7 @@
 			]
 		},
 		{
-			"name" : "lb05",
+			"name" : "lb50",
 			"family" : "ipv4",
 			"virtual-addr" : "10.72.33.55",
 			"mode" : "dnat",

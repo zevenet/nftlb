@@ -24,6 +24,16 @@
                         "est-connlimit": "0",
                         "tcp-strict": "off",
                         "queue": "-1",
+                        "addresses": [
+                                {
+                                        "name": "lb02-addr",
+                                        "family": "ipv4",
+                                        "ip-addr": "192.168.0.100",
+                                        "ports": "80-88",
+                                        "protocol": "tcp",
+                                        "used": "1"
+                                }
+                        ],
                         "backends": [
                                 {
                                         "name": "bck0",

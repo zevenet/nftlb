@@ -25,6 +25,16 @@
                         "tcp-strict": "off",
                         "queue": "-1",
                         "flow-offload": "on",
+                        "addresses": [
+                                {
+                                        "name": "lb01-addr",
+                                        "family": "ipv4",
+                                        "ip-addr": "127.0.0.1",
+                                        "ports": "80",
+                                        "protocol": "tcp",
+                                        "used": "1"
+                                }
+                        ],
                         "backends": [
                                 {
                                         "name": "bck0",

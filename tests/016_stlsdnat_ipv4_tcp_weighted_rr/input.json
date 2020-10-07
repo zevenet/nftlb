@@ -8,6 +8,8 @@
 			"mode" : "stlsdnat",
 			"protocol" : "tcp",
 			"scheduler" : "weight",
+			"iface" : "lo",
+			"oface" : "lo",
 			"state" : "up",
 			"backends" : [
 				{
@@ -16,7 +18,8 @@
 					"ether-addr" : "02:02:02:02:02:02",
 					"weight" : "2",
 					"priority" : "1",
-					"state" : "up"
+					"state" : "up",
+					"oface" : "lo"
 				},
 				{
 					"name" : "bck1",
@@ -24,7 +27,8 @@
 					"ether-addr" : "03:03:03:03:03:03",
 					"weight" : "1",
 					"priority" : "1",
-					"state" : "up"
+					"state" : "up",
+					"oface" : "lo"
 				},
 				{
 					"name" : "bck2",
@@ -32,7 +36,8 @@
 					"ether-addr" : "04:04:04:04:04:04",
 					"weight" : "1",
 					"priority" : "1",
-					"state" : "up"
+					"state" : "up",
+					"oface" : "lo"
 				},
 				{
 					"name" : "bck3",
@@ -40,7 +45,8 @@
 					"ether-addr" : "05:05:05:05:05:05",
 					"weight" : "2",
 					"priority" : "1",
-					"state" : "up"
+					"state" : "up",
+					"oface" : "lo"
 				},
 				{
 					"name" : "bck4",
@@ -48,12 +54,11 @@
 					"ether-addr" : "06:06:06:06:06:06",
 					"weight" : "1",
 					"priority" : "1",
-					"state" : "up"
+					"state" : "up",
+					"oface" : "lo"
 				}
 			],
-			"ether-addr" : "01:01:01:01:01:01",
-			"iface" : "lo",
-			"oface" : "lo"
+			"ether-addr" : "01:01:01:01:01:01"
 		}
 	]
 }

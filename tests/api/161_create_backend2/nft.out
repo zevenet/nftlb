@@ -1,4 +1,9 @@
 table ip nftlb {
+	map filter-proto-services {
+		type inet_proto . ipv4_addr . inet_service : verdict
+		elements = { tcp . 192.168.101.63 . 80 : goto filter-farm01 }
+	}
+
 	map nat-proto-services {
 		type inet_proto . ipv4_addr . inet_service : verdict
 		elements = { tcp . 192.168.101.63 . 80 : goto nat-farm01 }
@@ -6,22 +11,6 @@ table ip nftlb {
 
 	map proto-services-back-m {
 		type mark : ipv4_addr
-	}
-
-	map filter-proto-services {
-		type inet_proto . ipv4_addr . inet_service : verdict
-		elements = { tcp . 192.168.101.63 . 80 : goto filter-farm01 }
-	}
-
-	chain prerouting {
-		type nat hook prerouting priority dstnat; policy accept;
-		ip protocol . ip daddr . th dport vmap @nat-proto-services
-	}
-
-	chain postrouting {
-		type nat hook postrouting priority srcnat; policy accept;
-		ct mark 0x80000000/1 masquerade
-		snat to ct mark map @proto-services-back-m
 	}
 
 	chain filter {
@@ -35,6 +24,17 @@ table ip nftlb {
 		ct mark 0x80000200 ct count over 10  log prefix "est-connlimit-farm01-bck0 " drop
 		ct mark 0x80000201 ct count over 10  log prefix "est-connlimit-farm01-bck1 " drop
 		ct mark 0x80000202 ct count over 10  log prefix "est-connlimit-farm01-bck2 " drop
+	}
+
+	chain prerouting {
+		type nat hook prerouting priority dstnat; policy accept;
+		ip protocol . ip daddr . th dport vmap @nat-proto-services
+	}
+
+	chain postrouting {
+		type nat hook postrouting priority srcnat; policy accept;
+		ct mark 0x80000000/1 masquerade
+		snat to ct mark map @proto-services-back-m
 	}
 
 	chain nat-farm01 {

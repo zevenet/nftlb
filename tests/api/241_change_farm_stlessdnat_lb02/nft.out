@@ -1,0 +1,53 @@
+table netdev nftlb {
+	map proto-services-lo {
+		type inet_proto . ipv4_addr . inet_service : verdict
+		elements = { tcp . 192.168.0.100 . 80 : goto lb01,
+			     tcp . 192.168.0.200 . 80 : goto lb02 }
+	}
+
+	map static-sessions-lb01 {
+		type ipv4_addr . inet_service : ether_addr
+	}
+
+	map persist-lb01 {
+		type ipv4_addr . inet_service : ether_addr
+		size 65535
+		timeout 1m
+	}
+
+	map proto-services-dnat-lo {
+		type inet_proto . ipv4_addr . inet_service : verdict
+		elements = { tcp . 192.168.0.20 . 10 : goto lb02-back,
+			     tcp . 192.168.0.21 . 20 : goto lb02-back }
+	}
+
+	map map-lb02-back {
+		type ipv4_addr : ether_addr
+		size 65535
+		timeout 1m
+	}
+
+	chain ingress-lo {
+		type filter hook ingress device "lo" priority 101; policy accept;
+		ip protocol . ip daddr . th dport vmap @proto-services-lo
+	}
+
+	chain lb01 {
+		ether type ip ether daddr set ip saddr . tcp sport map @static-sessions-lb01 ether saddr set 01:01:01:01:01:01 fwd to "lo"
+		ether saddr set 01:01:01:01:01:01 ether daddr set numgen random mod 10 map { 0-4 : 02:02:02:02:02:02, 5-9 : 03:03:03:03:03:03 } ether type ip update @persist-lb01 { ip saddr . tcp sport : ether daddr } fwd to "lo"
+	}
+
+	chain ingress-dnat-lo {
+		type filter hook ingress device "lo" priority 100; policy accept;
+		ip protocol . ip saddr . th sport vmap @proto-services-dnat-lo
+	}
+
+	chain lb02-back {
+		ip saddr set 192.168.0.200 ether saddr set 0f:0f:0f:0f:0f:0f ether daddr set ip daddr map @map-lb02-back fwd to "lo"
+	}
+
+	chain lb02 {
+		meta protocol ip update @map-lb02-back { ip saddr : ether saddr }
+		ip daddr set numgen random mod 10 map { 0-4 : 192.168.0.20, 5-9 : 192.168.0.21 } ether daddr set ip daddr map { 192.168.0.20 : 04:04:04:04:04:04, 192.168.0.21 : 05:05:05:05:05:05 } th dport set ether daddr map { 04:04:04:04:04:04 : 10, 05:05:05:05:05:05 : 20 } ether saddr set 0f:0f:0f:0f:0f:0f fwd to "lo"
+	}
+}

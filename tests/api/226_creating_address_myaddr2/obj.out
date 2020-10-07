@@ -1,0 +1,20 @@
+{
+        "addresses": [
+                {
+                        "name": "myaddr",
+                        "family": "ipv4",
+                        "ip-addr": "200.1.1.1",
+                        "ports": "8080",
+                        "protocol": "tcp",
+                        "used": "0"
+                },
+                {
+                        "name": "myaddr2",
+                        "family": "ipv4",
+                        "ip-addr": "200.2.2.2",
+                        "ports": "888",
+                        "protocol": "udp",
+                        "used": "0"
+                }
+        ]
+}

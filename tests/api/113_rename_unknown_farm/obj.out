@@ -24,17 +24,23 @@
                         "est-connlimit": "0",
                         "tcp-strict": "off",
                         "queue": "-1",
+                        "addresses": [
+                                {
+                                        "name": "lb01-addr",
+                                        "family": "ipv4",
+                                        "ip-addr": "2.2.2.2",
+                                        "ports": "6595",
+                                        "protocol": "tcp",
+                                        "used": "1"
+                                }
+                        ],
                         "backends": [],
                         "policies": []
                 },
                 {
                         "name": "lb013",
-                        "family": "ipv4",
-                        "virtual-addr": "",
-                        "virtual-ports": "",
                         "source-addr": "",
                         "mode": "snat",
-                        "protocol": "tcp",
                         "scheduler": "rr",
                         "sched-param": "none",
                         "persistence": "none",
@@ -43,7 +49,7 @@
                         "log": "none",
                         "mark": "0x0",
                         "priority": "1",
-                        "state": "config_error",
+                        "state": "up",
                         "new-rtlimit": "0",
                         "new-rtlimit-burst": "0",
                         "rst-rtlimit": "0",
@@ -51,6 +57,7 @@
                         "est-connlimit": "0",
                         "tcp-strict": "off",
                         "queue": "-1",
+                        "addresses": [],
                         "backends": [],
                         "policies": []
                 }

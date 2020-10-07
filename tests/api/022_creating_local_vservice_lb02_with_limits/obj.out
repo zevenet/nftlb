@@ -24,6 +24,16 @@
                         "est-connlimit": "0",
                         "tcp-strict": "off",
                         "queue": "-1",
+                        "addresses": [
+                                {
+                                        "name": "lb01-addr",
+                                        "family": "ipv4",
+                                        "ip-addr": "127.0.0.1",
+                                        "ports": "8080",
+                                        "protocol": "tcp",
+                                        "used": "1"
+                                }
+                        ],
                         "backends": [
                                 {
                                         "name": "bck0",
@@ -103,6 +113,16 @@
                         "est-connlimit": "0",
                         "tcp-strict": "off",
                         "queue": "-1",
+                        "addresses": [
+                                {
+                                        "name": "lb02-addr",
+                                        "family": "ipv4",
+                                        "ip-addr": "192.168.105.189",
+                                        "ports": "80",
+                                        "protocol": "udp",
+                                        "used": "1"
+                                }
+                        ],
                         "backends": [],
                         "policies": []
                 }

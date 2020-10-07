@@ -1,13 +1,4 @@
 table ip nftlb {
-	map nat-proto-services {
-		type inet_proto . ipv4_addr . inet_service : verdict
-		elements = { tcp . 192.168.105.189 . 80 : goto nat-newfarm }
-	}
-
-	map proto-services-back-m {
-		type mark : ipv4_addr
-	}
-
 	map filter-proto-services {
 		type inet_proto . ipv4_addr . inet_service : verdict
 		elements = { tcp . 192.168.105.189 . 80 : goto filter-newfarm }
@@ -19,15 +10,13 @@ table ip nftlb {
 		flags dynamic
 	}
 
-	chain prerouting {
-		type nat hook prerouting priority dstnat; policy accept;
-		ip protocol . ip daddr . th dport vmap @nat-proto-services
+	map nat-proto-services {
+		type inet_proto . ipv4_addr . inet_service : verdict
+		elements = { tcp . 192.168.105.189 . 80 : goto nat-newfarm }
 	}
 
-	chain postrouting {
-		type nat hook postrouting priority srcnat; policy accept;
-		ct mark 0x80000000/1 masquerade
-		snat to ct mark map @proto-services-back-m
+	map proto-services-back-m {
+		type mark : ipv4_addr
 	}
 
 	chain filter {
@@ -38,6 +27,17 @@ table ip nftlb {
 
 	chain filter-newfarm {
 		ct state new add @new-rtlimit-newfarm { ip saddr limit rate over 22/second } log prefix "new-rtlimit-newfarm " drop
+	}
+
+	chain prerouting {
+		type nat hook prerouting priority dstnat; policy accept;
+		ip protocol . ip daddr . th dport vmap @nat-proto-services
+	}
+
+	chain postrouting {
+		type nat hook postrouting priority srcnat; policy accept;
+		ct mark 0x80000000/1 masquerade
+		snat to ct mark map @proto-services-back-m
 	}
 
 	chain nat-newfarm {

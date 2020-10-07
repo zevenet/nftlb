@@ -1,7 +1,7 @@
 {
 	"farms" : [
 		{
-			"name" : "lb05",
+			"name" : "lb50",
 			"virtual-ports" : "100,101"
 		}
 	]

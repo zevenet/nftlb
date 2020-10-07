@@ -1,4 +1,9 @@
 table ip nftlb {
+	map filter-proto-services {
+		type inet_proto . ipv4_addr . inet_service : verdict
+		elements = { tcp . 10.20.10.50 . 25 : goto filter-Ex-SMTP }
+	}
+
 	map nat-proto-services {
 		type inet_proto . ipv4_addr . inet_service : verdict
 		elements = { tcp . 10.20.10.50 . 25 : goto nat-Ex-SMTP }
@@ -13,9 +18,14 @@ table ip nftlb {
 		type inet_proto . ipv4_addr . inet_service : ipv4_addr
 	}
 
-	map filter-proto-services {
-		type inet_proto . ipv4_addr . inet_service : verdict
-		elements = { tcp . 10.20.10.50 . 25 : goto filter-Ex-SMTP }
+	chain filter {
+		type filter hook prerouting priority mangle; policy accept;
+		meta mark set ct mark
+		ip protocol . ip daddr . th dport vmap @filter-proto-services
+	}
+
+	chain filter-Ex-SMTP {
+		ct state new ct mark 0x00000000 ct mark set numgen random mod 10 map { 0-4 : 0x00000200, 5-9 : 0x00000201 }
 	}
 
 	chain prerouting {
@@ -28,16 +38,6 @@ table ip nftlb {
 		ct mark 0x80000000/1 masquerade
 		snat to ct mark map @proto-services-back-m
 		snat to ip protocol . ip daddr . th dport map @proto-services-back
-	}
-
-	chain filter {
-		type filter hook prerouting priority mangle; policy accept;
-		meta mark set ct mark
-		ip protocol . ip daddr . th dport vmap @filter-proto-services
-	}
-
-	chain filter-Ex-SMTP {
-		ct state new ct mark 0x00000000 ct mark set numgen random mod 10 map { 0-4 : 0x00000200, 5-9 : 0x00000201 }
 	}
 
 	chain nat-Ex-SMTP {

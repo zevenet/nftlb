@@ -1,7 +1,7 @@
 {
         "farms": [
                 {
-                        "name": "lb05",
+                        "name": "lb50",
                         "family": "ipv4",
                         "virtual-addr": "10.72.33.55",
                         "virtual-ports": "100,101",
@@ -24,6 +24,16 @@
                         "est-connlimit": "0",
                         "tcp-strict": "off",
                         "queue": "-1",
+                        "addresses": [
+                                {
+                                        "name": "lb50-addr",
+                                        "family": "ipv4",
+                                        "ip-addr": "10.72.33.55",
+                                        "ports": "100,101",
+                                        "protocol": "tcp",
+                                        "used": "1"
+                                }
+                        ],
                         "backends": [
                                 {
                                         "name": "bck0",

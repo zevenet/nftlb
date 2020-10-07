@@ -24,6 +24,16 @@
                         "est-connlimit": "0",
                         "tcp-strict": "off",
                         "queue": "-1",
+                        "addresses": [
+                                {
+                                        "name": "lb02-addr",
+                                        "family": "ipv4",
+                                        "ip-addr": "192.168.0.100",
+                                        "ports": "80-88",
+                                        "protocol": "tcp",
+                                        "used": "1"
+                                }
+                        ],
                         "backends": [
                                 {
                                         "name": "bck0",
@@ -72,6 +82,16 @@
                         "est-connlimit": "0",
                         "tcp-strict": "off",
                         "queue": "-1",
+                        "addresses": [
+                                {
+                                        "name": "lb04-addr",
+                                        "family": "ipv4",
+                                        "ip-addr": "10.72.33.44",
+                                        "ports": "80-99",
+                                        "protocol": "tcp",
+                                        "used": "1"
+                                }
+                        ],
                         "backends": [
                                 {
                                         "name": "bck0",
@@ -120,6 +140,16 @@
                         "est-connlimit": "0",
                         "tcp-strict": "off",
                         "queue": "-1",
+                        "addresses": [
+                                {
+                                        "name": "lb05-addr",
+                                        "family": "ipv4",
+                                        "ip-addr": "10.72.33.55",
+                                        "ports": "2002",
+                                        "protocol": "tcp",
+                                        "used": "1"
+                                }
+                        ],
                         "backends": [
                                 {
                                         "name": "bck0",

@@ -1,18 +1,4 @@
 table ip nftlb {
-	map nat-proto-services {
-		type inet_proto . ipv4_addr . inet_service : verdict
-		elements = { tcp . 10.0.0.241 . 8080 : goto nat-newfarm }
-	}
-
-	map proto-services-back-m {
-		type mark : ipv4_addr
-		elements = { 0x00000202 : 10.0.0.241 }
-	}
-
-	map proto-services-back {
-		type inet_proto . ipv4_addr . inet_service : ipv4_addr
-	}
-
 	map filter-proto-services {
 		type inet_proto . ipv4_addr . inet_service : verdict
 		elements = { tcp . 10.0.0.241 . 8080 : goto filter-newfarm }
@@ -28,16 +14,18 @@ table ip nftlb {
 		timeout 1m
 	}
 
-	chain prerouting {
-		type nat hook prerouting priority dstnat; policy accept;
-		ip protocol . ip daddr . th dport vmap @nat-proto-services
+	map nat-proto-services {
+		type inet_proto . ipv4_addr . inet_service : verdict
+		elements = { tcp . 10.0.0.241 . 8080 : goto nat-newfarm }
 	}
 
-	chain postrouting {
-		type nat hook postrouting priority srcnat; policy accept;
-		ct mark 0x80000000/1 masquerade
-		snat to ct mark map @proto-services-back-m
-		snat to ip protocol . ip daddr . th dport map @proto-services-back
+	map proto-services-back-m {
+		type mark : ipv4_addr
+		elements = { 0x00000202 : 10.0.0.241 }
+	}
+
+	map proto-services-back {
+		type inet_proto . ipv4_addr . inet_service : ipv4_addr
 	}
 
 	chain filter {
@@ -50,6 +38,18 @@ table ip nftlb {
 		ct mark set ip saddr map @static-sessions-newfarm accept
 		ct state new ct mark set ip saddr map @persist-newfarm
 		ct mark != 0x00000000 update @persist-newfarm { ip saddr : ct mark }
+	}
+
+	chain prerouting {
+		type nat hook prerouting priority dstnat; policy accept;
+		ip protocol . ip daddr . th dport vmap @nat-proto-services
+	}
+
+	chain postrouting {
+		type nat hook postrouting priority srcnat; policy accept;
+		ct mark 0x80000000/1 masquerade
+		snat to ct mark map @proto-services-back-m
+		snat to ip protocol . ip daddr . th dport map @proto-services-back
 	}
 
 	chain nat-newfarm {

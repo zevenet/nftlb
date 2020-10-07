@@ -25,6 +25,16 @@
                         "est-connlimit": "0",
                         "tcp-strict": "off",
                         "queue": "-1",
+                        "addresses": [
+                                {
+                                        "name": "test1-addr",
+                                        "family": "ipv4",
+                                        "ip-addr": "127.0.0.1",
+                                        "ports": "100",
+                                        "protocol": "tcp",
+                                        "used": "1"
+                                }
+                        ],
                         "backends": [
                                 {
                                         "name": "bck0",

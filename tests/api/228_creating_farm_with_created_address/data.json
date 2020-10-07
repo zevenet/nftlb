@@ -1,0 +1,12 @@
+{
+	"farms" : [
+		{
+			"name" : "myfarm",
+			"addresses" : [
+				{
+					"name" : "myaddr"
+				}
+			]
+		}
+	]
+}

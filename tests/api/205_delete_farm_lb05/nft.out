@@ -22,34 +22,6 @@ table netdev nftlb {
 	}
 }
 table ip nftlb {
-	map nat-proto-services {
-		type inet_proto . ipv4_addr . inet_service : verdict
-		elements = { tcp . 10.72.33.44 . 80 : goto nat-lb04,
-			     tcp . 10.72.33.44 . 81 : goto nat-lb04,
-			     tcp . 10.72.33.44 . 82 : goto nat-lb04,
-			     tcp . 10.72.33.44 . 83 : goto nat-lb04,
-			     tcp . 10.72.33.44 . 84 : goto nat-lb04,
-			     tcp . 10.72.33.44 . 85 : goto nat-lb04,
-			     tcp . 10.72.33.44 . 86 : goto nat-lb04,
-			     tcp . 10.72.33.44 . 87 : goto nat-lb04,
-			     tcp . 10.72.33.44 . 88 : goto nat-lb04,
-			     tcp . 10.72.33.44 . 89 : goto nat-lb04,
-			     tcp . 10.72.33.44 . 90 : goto nat-lb04,
-			     tcp . 10.72.33.44 . 91 : goto nat-lb04,
-			     tcp . 10.72.33.44 . 92 : goto nat-lb04,
-			     tcp . 10.72.33.44 . 93 : goto nat-lb04,
-			     tcp . 10.72.33.44 . 94 : goto nat-lb04,
-			     tcp . 10.72.33.44 . 95 : goto nat-lb04,
-			     tcp . 10.72.33.44 . 96 : goto nat-lb04,
-			     tcp . 10.72.33.44 . 97 : goto nat-lb04,
-			     tcp . 10.72.33.44 . 98 : goto nat-lb04,
-			     tcp . 10.72.33.44 . 99 : goto nat-lb04 }
-	}
-
-	map proto-services-back-m {
-		type mark : ipv4_addr
-	}
-
 	map filter-proto-services {
 		type inet_proto . ipv4_addr . inet_service : verdict
 		elements = { tcp . 10.72.33.44 . 80 : goto filter-lb04,
@@ -84,15 +56,32 @@ table ip nftlb {
 		timeout 1m
 	}
 
-	chain prerouting {
-		type nat hook prerouting priority dstnat; policy accept;
-		ip protocol . ip daddr . th dport vmap @nat-proto-services
+	map nat-proto-services {
+		type inet_proto . ipv4_addr . inet_service : verdict
+		elements = { tcp . 10.72.33.44 . 80 : goto nat-lb04,
+			     tcp . 10.72.33.44 . 81 : goto nat-lb04,
+			     tcp . 10.72.33.44 . 82 : goto nat-lb04,
+			     tcp . 10.72.33.44 . 83 : goto nat-lb04,
+			     tcp . 10.72.33.44 . 84 : goto nat-lb04,
+			     tcp . 10.72.33.44 . 85 : goto nat-lb04,
+			     tcp . 10.72.33.44 . 86 : goto nat-lb04,
+			     tcp . 10.72.33.44 . 87 : goto nat-lb04,
+			     tcp . 10.72.33.44 . 88 : goto nat-lb04,
+			     tcp . 10.72.33.44 . 89 : goto nat-lb04,
+			     tcp . 10.72.33.44 . 90 : goto nat-lb04,
+			     tcp . 10.72.33.44 . 91 : goto nat-lb04,
+			     tcp . 10.72.33.44 . 92 : goto nat-lb04,
+			     tcp . 10.72.33.44 . 93 : goto nat-lb04,
+			     tcp . 10.72.33.44 . 94 : goto nat-lb04,
+			     tcp . 10.72.33.44 . 95 : goto nat-lb04,
+			     tcp . 10.72.33.44 . 96 : goto nat-lb04,
+			     tcp . 10.72.33.44 . 97 : goto nat-lb04,
+			     tcp . 10.72.33.44 . 98 : goto nat-lb04,
+			     tcp . 10.72.33.44 . 99 : goto nat-lb04 }
 	}
 
-	chain postrouting {
-		type nat hook postrouting priority srcnat; policy accept;
-		ct mark 0x80000000/1 masquerade
-		snat to ct mark map @proto-services-back-m
+	map proto-services-back-m {
+		type mark : ipv4_addr
 	}
 
 	chain filter {
@@ -106,6 +95,17 @@ table ip nftlb {
 		ct state new ct mark set ip saddr map @persist-lb04
 		ct state new ct mark 0x00000000 ct mark set jhash ip saddr mod 10 map { 0-4 : 0x80000003, 5-9 : 0x80000004 }
 		ct mark != 0x00000000 update @persist-lb04 { ip saddr : ct mark }
+	}
+
+	chain prerouting {
+		type nat hook prerouting priority dstnat; policy accept;
+		ip protocol . ip daddr . th dport vmap @nat-proto-services
+	}
+
+	chain postrouting {
+		type nat hook postrouting priority srcnat; policy accept;
+		ct mark 0x80000000/1 masquerade
+		snat to ct mark map @proto-services-back-m
 	}
 
 	chain nat-lb04 {

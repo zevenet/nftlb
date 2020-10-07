@@ -24,6 +24,16 @@
                         "est-connlimit": "0",
                         "tcp-strict": "off",
                         "queue": "-1",
+                        "addresses": [
+                                {
+                                        "name": "newfarm-addr",
+                                        "family": "ipv4",
+                                        "ip-addr": "192.168.105.189",
+                                        "ports": "80",
+                                        "protocol": "tcp",
+                                        "used": "1"
+                                }
+                        ],
                         "backends": [],
                         "policies": []
                 },
@@ -51,6 +61,16 @@
                         "est-connlimit": "0",
                         "tcp-strict": "off",
                         "queue": "-1",
+                        "addresses": [
+                                {
+                                        "name": "newfarm6-addr",
+                                        "family": "ipv4",
+                                        "ip-addr": "192.168.105.189",
+                                        "ports": "53",
+                                        "protocol": "udp",
+                                        "used": "1"
+                                }
+                        ],
                         "backends": [],
                         "policies": []
                 }

@@ -24,6 +24,16 @@
                         "est-connlimit": "0",
                         "tcp-strict": "off",
                         "queue": "-1",
+                        "addresses": [
+                                {
+                                        "name": "lb01-addr",
+                                        "family": "ipv4",
+                                        "ip-addr": "127.0.0.1",
+                                        "ports": "80",
+                                        "protocol": "tcp",
+                                        "used": "1"
+                                }
+                        ],
                         "backends": [
                                 {
                                         "name": "b1-64588d8b49-6r67p",
@@ -36,6 +46,7 @@
                                         "state": "up"
                                 }
                         ],
+                        "policies": [],
                         "sessions": [
                                 {
                                         "client": "192.168.44.4",
@@ -49,8 +60,7 @@
                                         "client": "192.168.44.6",
                                         "backend": "b1-64588d8b49-6r67p"
                                 }
-                        ],
-                        "policies": []
+                        ]
                 }
         ]
 }

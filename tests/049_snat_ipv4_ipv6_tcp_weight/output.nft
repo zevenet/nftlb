@@ -1,4 +1,9 @@
 table ip nftlb {
+	map filter-proto-services {
+		type inet_proto . ipv4_addr . inet_service : verdict
+		elements = { tcp . 129.187.204.211 . 80 : goto filter-lb01v4 }
+	}
+
 	map nat-proto-services {
 		type inet_proto . ipv4_addr . inet_service : verdict
 		elements = { tcp . 129.187.204.211 . 80 : goto nat-lb01v4 }
@@ -8,9 +13,14 @@ table ip nftlb {
 		type mark : ipv4_addr
 	}
 
-	map filter-proto-services {
-		type inet_proto . ipv4_addr . inet_service : verdict
-		elements = { tcp . 129.187.204.211 . 80 : goto filter-lb01v4 }
+	chain filter {
+		type filter hook prerouting priority mangle; policy accept;
+		meta mark set ct mark
+		ip protocol . ip daddr . th dport vmap @filter-proto-services
+	}
+
+	chain filter-lb01v4 {
+		ct state new ct mark 0x00000000 ct mark set numgen random mod 1 map { 0 : 0x80000001 }
 	}
 
 	chain prerouting {
@@ -24,21 +34,16 @@ table ip nftlb {
 		snat to ct mark map @proto-services-back-m
 	}
 
-	chain filter {
-		type filter hook prerouting priority mangle; policy accept;
-		meta mark set ct mark
-		ip protocol . ip daddr . th dport vmap @filter-proto-services
-	}
-
-	chain filter-lb01v4 {
-		ct state new ct mark 0x00000000 ct mark set numgen random mod 1 map { 0 : 0x80000001 }
-	}
-
 	chain nat-lb01v4 {
 		dnat to ct mark map { 0x80000001 : 129.187.204.48 }
 	}
 }
 table ip6 nftlb {
+	map filter-proto-services6 {
+		type inet_proto . ipv6_addr . inet_service : verdict
+		elements = { tcp . 2001:4ca0:4101:0:81:bb:cc:d3 . 80 : goto filter-lb01v6 }
+	}
+
 	map nat-proto-services6 {
 		type inet_proto . ipv6_addr . inet_service : verdict
 		elements = { tcp . 2001:4ca0:4101:0:81:bb:cc:d3 . 80 : goto nat-lb01v6 }
@@ -48,9 +53,14 @@ table ip6 nftlb {
 		type mark : ipv6_addr
 	}
 
-	map filter-proto-services6 {
-		type inet_proto . ipv6_addr . inet_service : verdict
-		elements = { tcp . 2001:4ca0:4101:0:81:bb:cc:d3 . 80 : goto filter-lb01v6 }
+	chain filter {
+		type filter hook prerouting priority mangle; policy accept;
+		meta mark set ct mark
+		ip6 nexthdr . ip6 daddr . th dport vmap @filter-proto-services6
+	}
+
+	chain filter-lb01v6 {
+		ct state new ct mark 0x00000000 ct mark set numgen random mod 1 map { 0 : 0x80000002 }
 	}
 
 	chain prerouting {
@@ -62,16 +72,6 @@ table ip6 nftlb {
 		type nat hook postrouting priority srcnat; policy accept;
 		ct mark 0x80000000/1 masquerade
 		snat to ct mark map @proto-services6-back-m
-	}
-
-	chain filter {
-		type filter hook prerouting priority mangle; policy accept;
-		meta mark set ct mark
-		ip6 nexthdr . ip6 daddr . th dport vmap @filter-proto-services6
-	}
-
-	chain filter-lb01v6 {
-		ct state new ct mark 0x00000000 ct mark set numgen random mod 1 map { 0 : 0x80000002 }
 	}
 
 	chain nat-lb01v6 {

@@ -1,9 +1,4 @@
 table netdev nftlb {
-	map proto-services-lo {
-		type inet_proto . ipv4_addr . inet_service : verdict
-		elements = { tcp . 127.0.0.1 . 100 : goto test1 }
-	}
-
 	map proto-services-dnat-lo {
 		type inet_proto . ipv4_addr . inet_service : verdict
 	}
@@ -13,12 +8,9 @@ table netdev nftlb {
 		timeout 1m
 	}
 
-	chain ingress-lo {
-		type filter hook ingress device "lo" priority 101; policy accept;
-		ip protocol . ip daddr . th dport vmap @proto-services-lo
-	}
-
-	chain test1 {
+	map proto-services-lo {
+		type inet_proto . ipv4_addr . inet_service : verdict
+		elements = { tcp . 127.0.0.1 . 100 : goto test1 }
 	}
 
 	chain ingress-dnat-lo {
@@ -28,5 +20,13 @@ table netdev nftlb {
 
 	chain test1-back {
 		ip saddr set 127.0.0.1 ether saddr set 00:00:00:00:00:00 ether daddr set ip daddr map @map-test1-back fwd to "lo"
+	}
+
+	chain ingress-lo {
+		type filter hook ingress device "lo" priority 101; policy accept;
+		ip protocol . ip daddr . th dport vmap @proto-services-lo
+	}
+
+	chain test1 {
 	}
 }

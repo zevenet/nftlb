@@ -25,6 +25,16 @@
                         "est-connlimit": "0",
                         "tcp-strict": "off",
                         "queue": "-1",
+                        "addresses": [
+                                {
+                                        "name": "Internal-Web-Server-FARM-HTTPS-addr",
+                                        "family": "ipv4",
+                                        "ip-addr": "172.18.15.94",
+                                        "ports": "443",
+                                        "protocol": "tcp",
+                                        "used": "1"
+                                }
+                        ],
                         "backends": [
                                 {
                                         "name": "bck0",

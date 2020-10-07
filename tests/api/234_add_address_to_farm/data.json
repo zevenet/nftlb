@@ -1,0 +1,16 @@
+{
+	"farms" : [
+		{
+			"name" : "myfarm",
+			"addresses" : [
+				{
+					"name" : "myaddr4",
+					"family" : "ipv4",
+					"ip-addr" : "200.1.1.1",
+					"ports" : "80",
+					"protocol" : "tcp"
+				}
+			]
+		}
+	]
+}

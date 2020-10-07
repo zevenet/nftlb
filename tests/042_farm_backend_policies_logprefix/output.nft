@@ -21,6 +21,11 @@ table netdev nftlb {
 	}
 }
 table ip nftlb {
+	map filter-proto-services {
+		type inet_proto . ipv4_addr . inet_service : verdict
+		elements = { tcp . 127.0.0.1 . 80 : goto filter-lb01 }
+	}
+
 	map nat-proto-services {
 		type inet_proto . ipv4_addr . inet_service : verdict
 		elements = { tcp . 127.0.0.1 . 80 : goto nat-lb01 }
@@ -28,22 +33,6 @@ table ip nftlb {
 
 	map proto-services-back-m {
 		type mark : ipv4_addr
-	}
-
-	map filter-proto-services {
-		type inet_proto . ipv4_addr . inet_service : verdict
-		elements = { tcp . 127.0.0.1 . 80 : goto filter-lb01 }
-	}
-
-	chain prerouting {
-		type nat hook prerouting priority dstnat; policy accept;
-		ip protocol . ip daddr . th dport vmap @nat-proto-services
-	}
-
-	chain postrouting {
-		type nat hook postrouting priority srcnat; policy accept;
-		ct mark 0x80000000/1 masquerade
-		snat to ct mark map @proto-services-back-m
 	}
 
 	chain filter {
@@ -56,6 +45,17 @@ table ip nftlb {
 		ct state new ct mark 0x00000000 ct mark set numgen random mod 10 map { 0-4 : 0x80000001, 5-9 : 0x80000002 }
 		ct mark 0x80000001 ct count over 20  log prefix "[est-connlimit,bck,lb01,bck0]" drop
 		ct mark 0x80000002 ct count over 20  log prefix "[est-connlimit,bck,lb01,bck1]" drop
+	}
+
+	chain prerouting {
+		type nat hook prerouting priority dstnat; policy accept;
+		ip protocol . ip daddr . th dport vmap @nat-proto-services
+	}
+
+	chain postrouting {
+		type nat hook postrouting priority srcnat; policy accept;
+		ct mark 0x80000000/1 masquerade
+		snat to ct mark map @proto-services-back-m
 	}
 
 	chain nat-lb01 {

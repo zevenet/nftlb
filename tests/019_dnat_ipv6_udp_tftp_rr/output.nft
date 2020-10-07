@@ -4,6 +4,11 @@ table ip6 nftlb {
 		l3proto ip6
 	}
 
+	map filter-proto-services6 {
+		type inet_proto . ipv6_addr . inet_service : verdict
+		elements = { udp . 2001:db8:0:1:1:1:1:1 . 69 : goto filter-lb01 }
+	}
+
 	map nat-proto-services6 {
 		type inet_proto . ipv6_addr . inet_service : verdict
 		elements = { udp . 2001:db8:0:1:1:1:1:1 . 69 : goto nat-lb01 }
@@ -11,22 +16,6 @@ table ip6 nftlb {
 
 	map proto-services6-back-m {
 		type mark : ipv6_addr
-	}
-
-	map filter-proto-services6 {
-		type inet_proto . ipv6_addr . inet_service : verdict
-		elements = { udp . 2001:db8:0:1:1:1:1:1 . 69 : goto filter-lb01 }
-	}
-
-	chain prerouting {
-		type nat hook prerouting priority dstnat; policy accept;
-		ip6 nexthdr . ip6 daddr . th dport vmap @nat-proto-services6
-	}
-
-	chain postrouting {
-		type nat hook postrouting priority srcnat; policy accept;
-		ct mark 0x80000000/1 masquerade
-		snat to ct mark map @proto-services6-back-m
 	}
 
 	chain filter {
@@ -38,6 +27,17 @@ table ip6 nftlb {
 	chain filter-lb01 {
 		ip6 nexthdr udp ct helper set "tftp-udp"
 		ct state new ct mark 0x00000000 ct mark set numgen inc mod 10 map { 0-4 : 0x00000001, 5-9 : 0x00000002 }
+	}
+
+	chain prerouting {
+		type nat hook prerouting priority dstnat; policy accept;
+		ip6 nexthdr . ip6 daddr . th dport vmap @nat-proto-services6
+	}
+
+	chain postrouting {
+		type nat hook postrouting priority srcnat; policy accept;
+		ct mark 0x80000000/1 masquerade
+		snat to ct mark map @proto-services6-back-m
 	}
 
 	chain nat-lb01 {

@@ -1,4 +1,11 @@
 table ip nftlb {
+	map filter-services {
+		type inet_proto . ipv4_addr : verdict
+		elements = { tcp . 192.168.0.100 : goto filter-lb01,
+			     udp . 192.168.0.100 : goto filter-lb01,
+			     sctp . 192.168.0.100 : goto filter-lb01 }
+	}
+
 	map nat-services {
 		type inet_proto . ipv4_addr : verdict
 		elements = { tcp . 192.168.0.100 : goto nat-lb01,
@@ -10,11 +17,14 @@ table ip nftlb {
 		type mark : ipv4_addr
 	}
 
-	map filter-services {
-		type inet_proto . ipv4_addr : verdict
-		elements = { tcp . 192.168.0.100 : goto filter-lb01,
-			     udp . 192.168.0.100 : goto filter-lb01,
-			     sctp . 192.168.0.100 : goto filter-lb01 }
+	chain filter {
+		type filter hook prerouting priority mangle; policy accept;
+		meta mark set ct mark
+		ip protocol . ip daddr vmap @filter-services
+	}
+
+	chain filter-lb01 {
+		ct state new ct mark 0x00000000 ct mark set numgen inc mod 20 map { 0-4 : 0x80000001, 5-9 : 0x80000002, 10-14 : 0x80000004, 15-19 : 0x80000006 }
 	}
 
 	chain prerouting {
@@ -26,16 +36,6 @@ table ip nftlb {
 		type nat hook postrouting priority srcnat; policy accept;
 		ct mark 0x80000000/1 masquerade
 		snat to ct mark map @services-back-m
-	}
-
-	chain filter {
-		type filter hook prerouting priority mangle; policy accept;
-		meta mark set ct mark
-		ip protocol . ip daddr vmap @filter-services
-	}
-
-	chain filter-lb01 {
-		ct state new ct mark 0x00000000 ct mark set numgen inc mod 20 map { 0-4 : 0x80000001, 5-9 : 0x80000002, 10-14 : 0x80000004, 15-19 : 0x80000006 }
 	}
 
 	chain nat-lb01 {

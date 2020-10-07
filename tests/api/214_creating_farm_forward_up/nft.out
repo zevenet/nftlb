@@ -1,18 +1,4 @@
 table ip nftlb {
-	map nat-proto-services {
-		type inet_proto . ipv4_addr . inet_service : verdict
-		elements = { tcp . 172.18.15.94 . 443 : goto nat-Internal-Web-Server-FARM-HTTPS }
-	}
-
-	map proto-services-back-m {
-		type mark : ipv4_addr
-		elements = { 0x00000202 : 172.18.15.97, 0x00000203 : 172.18.15.97 }
-	}
-
-	map proto-services-back {
-		type inet_proto . ipv4_addr . inet_service : ipv4_addr
-	}
-
 	map filter-proto-services {
 		type inet_proto . ipv4_addr . inet_service : verdict
 		elements = { tcp . 172.18.15.94 . 443 : goto filter-Internal-Web-Server-FARM-HTTPS }
@@ -28,16 +14,18 @@ table ip nftlb {
 		timeout 1m
 	}
 
-	chain prerouting {
-		type nat hook prerouting priority dstnat; policy accept;
-		ip protocol . ip daddr . th dport vmap @nat-proto-services
+	map nat-proto-services {
+		type inet_proto . ipv4_addr . inet_service : verdict
+		elements = { tcp . 172.18.15.94 . 443 : goto nat-Internal-Web-Server-FARM-HTTPS }
 	}
 
-	chain postrouting {
-		type nat hook postrouting priority srcnat; policy accept;
-		ct mark 0x80000000/1 masquerade
-		snat to ct mark map @proto-services-back-m
-		snat to ip protocol . ip daddr . th dport map @proto-services-back
+	map proto-services-back-m {
+		type mark : ipv4_addr
+		elements = { 0x00000202 : 172.18.15.97, 0x00000203 : 172.18.15.97 }
+	}
+
+	map proto-services-back {
+		type inet_proto . ipv4_addr . inet_service : ipv4_addr
 	}
 
 	chain filter {
@@ -51,6 +39,18 @@ table ip nftlb {
 		ct state new ct mark set ip saddr map @persist-Internal-Web-Server-FARM-HTTPS
 		ct state new ct mark 0x00000000 ct mark set numgen random mod 20 map { 0-9 : 0x00000202, 10-19 : 0x00000203 }
 		ct mark != 0x00000000 update @persist-Internal-Web-Server-FARM-HTTPS { ip saddr : ct mark }
+	}
+
+	chain prerouting {
+		type nat hook prerouting priority dstnat; policy accept;
+		ip protocol . ip daddr . th dport vmap @nat-proto-services
+	}
+
+	chain postrouting {
+		type nat hook postrouting priority srcnat; policy accept;
+		ct mark 0x80000000/1 masquerade
+		snat to ct mark map @proto-services-back-m
+		snat to ip protocol . ip daddr . th dport map @proto-services-back
 	}
 
 	chain nat-Internal-Web-Server-FARM-HTTPS {

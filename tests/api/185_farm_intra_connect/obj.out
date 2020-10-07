@@ -25,6 +25,16 @@
                         "tcp-strict": "off",
                         "queue": "-1",
                         "intra-connect": "on",
+                        "addresses": [
+                                {
+                                        "name": "newfarm-addr",
+                                        "family": "ipv4",
+                                        "ip-addr": "",
+                                        "ports": "8080",
+                                        "protocol": "tcp",
+                                        "used": "1"
+                                }
+                        ],
                         "backends": [
                                 {
                                         "name": "bck0",
