@@ -19,5 +19,7 @@ nftlb_SOURCES = config.c	\
 		checksum.c	\
 		tools.c		\
 		addresses.c \
-		farmaddress.c
+		farmaddress.c \
+		addresspolicy.c \
+		nftst.c
 nftlb_LDADD = ${LIBNFTABLES_LIBS} ${LIBJSON_LIBS} ${LIBMNL_LIBS} -lev

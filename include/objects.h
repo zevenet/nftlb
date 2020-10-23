@@ -66,6 +66,7 @@
 #define DEFAULT_POLICY_LOGPREFIX	"KNAME-TYPE-PNAME-FNAME "
 #define DEFAULT_ELEMENT_TIME			NULL
 #define DEFAULT_SESSION_EXPIRATION		NULL
+#define DEFAULT_POLICY_ROUTE			VALUE_ROUTE_IN
 
 #define UNDEFINED_VALUE					"UNDEFINED"
 #define IFACE_LOOPBACK					"lo"
@@ -85,6 +86,7 @@ enum levels {
 	LEVEL_SESSIONS,
 	LEVEL_ADDRESSES,
 	LEVEL_FARMADDRESS,
+	LEVEL_ADDRESSPOLICY,
 };
 
 enum actions {
@@ -153,6 +155,7 @@ enum keys {
 	KEY_USED,
 	KEY_INTRACONNECT,
 	KEY_ADDRESSES,
+	KEY_ROUTE,
 };
 
 enum families {
@@ -163,15 +166,16 @@ enum families {
 };
 
 struct obj_config {
-	struct farm		*fptr;
-	struct backend		*bptr;
-	struct policy		*pptr;
-	struct element		*eptr;
-	struct farmpolicy	*fpptr;
-	struct session		*sptr;
-	struct address		*aptr;
-	struct farmaddress	*faptr;
-	struct config_pair	*c;
+	struct farm				*fptr;
+	struct backend			*bptr;
+	struct policy			*pptr;
+	struct element			*eptr;
+	struct farmpolicy		*fpptr;
+	struct session			*sptr;
+	struct address			*aptr;
+	struct farmaddress		*faptr;
+	struct addresspolicy	*apptr;
+	struct config_pair		*c;
 };
 
 void objects_init(void);
@@ -190,6 +194,7 @@ struct element * obj_get_current_element(void);
 struct session * obj_get_current_session(void);
 struct address * obj_get_current_address(void);
 struct farmaddress * obj_get_current_farmaddress(void);
+struct addresspolicy * obj_get_current_addresspolicy(void);
 
 void obj_set_current_farm(struct farm *f);
 void obj_set_current_backend(struct backend *b);
@@ -199,6 +204,7 @@ void obj_set_current_element(struct element *e);
 void obj_set_current_session(struct session *s);
 void obj_set_current_address(struct address *a);
 void obj_set_current_farmaddress(struct farmaddress *fa);
+void obj_set_current_addresspolicy(struct addresspolicy *ap);
 
 char * obj_print_key(int key);
 char * obj_print_family(int family);
@@ -222,6 +228,7 @@ struct list_head * obj_get_policies(void);
 int obj_get_total_policies(void);
 void obj_set_total_policies(int new_value);
 char * obj_print_policy_type(int type);
+char * obj_print_policy_route(int route);
 
 int obj_get_total_addresses(void);
 struct list_head * obj_get_addresses(void);

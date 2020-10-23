@@ -287,17 +287,21 @@ void session_s_print(struct farm *f)
 int session_get_timed(struct farm *f)
 {
 	struct farmaddress *fa;
+	struct nftst *n = nftst_create_from_farm(f);
 	const char *buf;
 
 	tools_printlog(LOG_DEBUG, "%s():%d: farm %s", __FUNCTION__, __LINE__, f->name);
 
 	f->total_timed_sessions = 0;
 	list_for_each_entry(fa, &f->addresses, list) {
-		nft_get_rules_buffer(&buf, KEY_SESSIONS, fa, NULL);
+		nftst_set_address(n, fa->address);
+		nftst_set_action(n, fa->action);
+		nft_get_rules_buffer(&buf, KEY_SESSIONS, n);
 		nft_parse_sessions(f, buf);
 		nft_del_rules_buffer(buf);
 	}
 	session_s_print(f);
+	nftst_delete(n);
 	return 0;
 }
 

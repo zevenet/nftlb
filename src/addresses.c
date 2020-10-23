@@ -28,6 +28,7 @@
 #include "farms.h"
 #include "backends.h"
 #include "policies.h"
+#include "addresspolicy.h"
 #include "objects.h"
 #include "network.h"
 #include "config.h"
@@ -56,11 +57,13 @@ struct address * address_create(char *name)
 	paddress->family = DEFAULT_FAMILY;
 	paddress->protocol = DEFAULT_PROTO;
 	paddress->action = DEFAULT_ACTION;
+	paddress->policies_action = ACTION_NONE;
 
 	init_list_head(&paddress->policies);
 
-	paddress->total_policies = 0;
+	paddress->policies_used = 0;
 	paddress->used = 0;
+	paddress->nft_chains = 0;
 
 	list_add_tail(&paddress->list, addresses);
 	obj_set_total_addresses(obj_get_total_addresses() + 1);
@@ -109,8 +112,6 @@ int address_set_ports(struct address *a, char *new_value)
 
 void address_print(struct address *a)
 {
-	struct policy *p;
-
 	tools_printlog(LOG_DEBUG," [address] ");
 	tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_NAME, a->name);
 
@@ -123,7 +124,7 @@ void address_print(struct address *a)
 	if (a->iethaddr)
 		tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_IETHADDR, a->iethaddr);
 
-	tools_printlog(LOG_DEBUG,"    *[ifidx] %d", a->ifidx);
+	tools_printlog(LOG_DEBUG,"   *[ifidx] %d", a->ifidx);
 
 	if (a->ipaddr)
 		tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_IPADDR, a->ipaddr);
@@ -132,12 +133,15 @@ void address_print(struct address *a)
 		tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_PORTS, a->ports);
 
 	tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_FAMILY, obj_print_family(a->family));
+	tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_PROTO, obj_print_proto(a->protocol));
 
-	tools_printlog(LOG_DEBUG,"    *[used] %d", a->used);
-	tools_printlog(LOG_DEBUG,"    *[%s] %d", CONFIG_KEY_ACTION, a->action);
+	tools_printlog(LOG_DEBUG,"   *[used] %d", a->used);
+	tools_printlog(LOG_DEBUG,"   *[%s] %d", CONFIG_KEY_ACTION, a->action);
+	tools_printlog(LOG_DEBUG,"   *[policies_action] %d", a->policies_action);
+	tools_printlog(LOG_DEBUG,"   *[nft_chains] %x", a->nft_chains);
 
-	list_for_each_entry(p, &a->policies, list)
-		policy_print(p);
+	if (a->policies_used > 0)
+		addresspolicy_s_print(a);
 }
 
 static int address_set_iface_info(struct address *a)
@@ -356,7 +360,8 @@ int address_set_action(struct address *a, int action)
 	if (action == ACTION_STOP)
 		farm_s_lookup_address_action(a->name, action);
 
-	a->action = action;
+	if (a->action > action)
+		a->action = action;
 	return 1;
 }
 
@@ -382,5 +387,54 @@ int address_no_ipaddr(struct address *a)
 {
 	if (obj_equ_attribute_string(a->ipaddr, DEFAULT_VIRTADDR))
 		return 1;
+	return 0;
+}
+
+int address_rulerize(struct address *a)
+{
+	tools_printlog(LOG_DEBUG, "%s():%d: rulerize address %s", __FUNCTION__, __LINE__, a->name);
+
+	address_print(a);
+
+	if (a->used) {
+		tools_printlog(LOG_INFO, "%s():%d: address %s won't be rulerized", __FUNCTION__, __LINE__, a->name);
+		return 0;
+	}
+
+	return nft_rulerize_address(a);
+}
+
+int address_s_rulerize(void)
+{
+	struct list_head *addresses = obj_get_addresses();
+	struct address *a, *next;
+	int ret = 0;
+	int output = 0;
+
+	tools_printlog(LOG_DEBUG, "%s():%d: rulerize addresses", __FUNCTION__, __LINE__);
+
+	list_for_each_entry_safe(a, next, addresses, list) {
+		ret = address_rulerize(a);
+		output = output || ret;
+	}
+
+	return output;
+}
+
+int address_needs_policies(struct address *a)
+{
+	return (a->policies_used > 0) || (a->policies_action != ACTION_NONE);
+}
+
+int address_s_lookup_policy_action(char *name, int action)
+{
+	struct list_head *addresses = obj_get_addresses();
+	struct address *a, *next;
+
+	tools_printlog(LOG_DEBUG, "%s():%d: name %s action %d", __FUNCTION__, __LINE__, name, action);
+
+	list_for_each_entry_safe(a, next, addresses, list)
+		addresspolicy_s_lookup_policy_action(a, name, action);
+
 	return 0;
 }

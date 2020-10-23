@@ -81,6 +81,7 @@
 #define CONFIG_KEY_USED				"used"
 #define CONFIG_KEY_EXPIRATION			"expiration"
 #define CONFIG_KEY_ADDRESSES		"addresses"
+#define CONFIG_KEY_ROUTE		"route"
 
 #define CONFIG_VALUE_FAMILY_IPV4	"ipv4"
 #define CONFIG_VALUE_FAMILY_IPV6	"ipv6"
@@ -132,8 +133,10 @@
 #define CONFIG_VALUE_ACTION_FLUSH	"flush"
 #define CONFIG_VALUE_SWITCH_ON		"on"
 #define CONFIG_VALUE_SWITCH_OFF		"off"
-#define CONFIG_VALUE_POLICIES_TYPE_BL	"blacklist"
-#define CONFIG_VALUE_POLICIES_TYPE_WL	"whitelist"
+#define CONFIG_VALUE_POLICIES_TYPE_BL		"blacklist"
+#define CONFIG_VALUE_POLICIES_TYPE_WL		"whitelist"
+#define CONFIG_VALUE_ROUTE_IN					"in"
+#define CONFIG_VALUE_ROUTE_OUT					"out"
 
 enum config_parser_output {
 	PARSER_OK,

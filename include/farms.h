@@ -24,6 +24,7 @@
 
 #include "list.h"
 #include "config.h"
+#include "nftst.h"
 
 enum modes {
 	VALUE_MODE_SNAT,
@@ -157,7 +158,6 @@ struct farm {
 	struct list_head	static_sessions;
 	struct list_head	addresses;
 	int					addresses_used;
-	int					addresses_action;
 };
 
 struct list_head * farm_s_get_head(void);

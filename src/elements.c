@@ -255,12 +255,15 @@ int element_pos_actionable(struct config_pair *c, int apply_action)
 int element_get_list(struct policy *p)
 {
 	const char *buf;
+	struct nftst *n = nftst_create_from_policy(p);
+
 	tools_printlog(LOG_DEBUG, "%s():%d: policy %s", __FUNCTION__, __LINE__, p->name);
 
-	nft_get_rules_buffer(&buf, KEY_POLICIES, NULL, p);
+	nft_get_rules_buffer(&buf, KEY_POLICIES, n);
 	p->total_elem = 0;
 	nft_parse_elements(p, buf);
 	nft_del_rules_buffer(buf);
 	element_s_print(p);
+	nftst_delete(n);
 	return 0;
 }

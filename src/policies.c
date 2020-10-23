@@ -43,6 +43,7 @@ static struct policy * policy_create(char *name)
 	obj_set_attribute_string(name, &p->name);
 
 	p->type = DEFAULT_POLICY_TYPE;
+	p->route = DEFAULT_POLICY_ROUTE;
 	p->family = DEFAULT_FAMILY;
 	p->timeout = DEFAULT_POLICY_TIMEOUT;
 	p->priority = DEFAULT_POLICY_PRIORITY;
@@ -101,6 +102,7 @@ void policy_print(struct policy *p)
 	tools_printlog(LOG_DEBUG," [policy] ");
 	tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_NAME, p->name);
 	tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_TYPE, obj_print_policy_type(p->type));
+	tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_ROUTE, obj_print_policy_route(p->route));
 	tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_FAMILY, obj_print_family(p->family));
 	tools_printlog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_TIMEOUT, p->timeout);
 	tools_printlog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_PRIORITY, p->priority);
@@ -161,6 +163,9 @@ int policy_set_attribute(struct config_pair *c)
 	case KEY_TYPE:
 		p->type = c->int_value;
 		break;
+	case KEY_ROUTE:
+		p->route = c->int_value;
+		break;
 	case KEY_FAMILY:
 		policy_set_family(p, c->int_value);
 		break;
@@ -198,8 +203,10 @@ int policy_set_action(struct policy *p, int action)
 		return 1;
 	}
 
-	if (action == ACTION_STOP)
+	if (action == ACTION_STOP) {
 		farm_s_lookup_policy_action(p->name, action);
+		address_s_lookup_policy_action(p->name, action);
+	}
 
 	p->action = action;
 	return 1;
@@ -230,6 +237,7 @@ int policy_pre_actionable(struct config_pair *c)
 		break;
 	case KEY_FAMILY:
 	case KEY_TYPE:
+	case KEY_ROUTE:
 	case KEY_TIMEOUT:
 		policy_set_action(p, ACTION_STOP);
 		break;
@@ -257,6 +265,7 @@ int policy_pos_actionable(struct config_pair *c)
 		break;
 	case KEY_FAMILY:
 	case KEY_TYPE:
+	case KEY_ROUTE:
 	case KEY_TIMEOUT:
 		policy_set_action(p, ACTION_START);
 		break;

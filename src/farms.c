@@ -34,6 +34,7 @@
 #include "nft.h"
 #include "network.h"
 #include "tools.h"
+#include "nftst.h"
 
 
 static struct farm * farm_create(char *name)
@@ -106,7 +107,6 @@ static struct farm * farm_create(char *name)
 
 	init_list_head(&pfarm->addresses);
 	pfarm->addresses_used = 0;
-	pfarm->addresses_action = ACTION_NONE;
 
 	return pfarm;
 }
@@ -366,7 +366,7 @@ static void farm_print(struct farm *f)
 	if (f->oethaddr)
 		tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_OETHADDR, f->oethaddr);
 
-	tools_printlog(LOG_DEBUG,"    *[ofidx] %d", f->ofidx);
+	tools_printlog(LOG_DEBUG,"   *[ofidx] %d", f->ofidx);
 
 	if (a) {
 		if (a->iface)
@@ -375,7 +375,7 @@ static void farm_print(struct farm *f)
 		if (a->iethaddr)
 			tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_IETHADDR, a->iethaddr);
 
-		tools_printlog(LOG_DEBUG,"    *[ifidx] %d", a->ifidx);
+		tools_printlog(LOG_DEBUG,"   *[ifidx] %d", a->ifidx);
 
 		if (a->ipaddr)
 			tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_VIRTADDR, a->ipaddr);
@@ -439,22 +439,21 @@ static void farm_print(struct farm *f)
 	tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_FLOWOFFLOAD, obj_print_switch(f->flow_offload));
 	tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_INTRACONNECT, obj_print_switch(f->intra_connect));
 
-	tools_printlog(LOG_DEBUG,"    *[total_weight] %d", f->total_weight);
-	tools_printlog(LOG_DEBUG,"    *[total_bcks] %d", f->total_bcks);
-	tools_printlog(LOG_DEBUG,"    *[bcks_available] %d", f->bcks_available);
-	tools_printlog(LOG_DEBUG,"    *[bcks_usable] %d", f->bcks_usable);
-	tools_printlog(LOG_DEBUG,"    *[bcks_have_port] %d", f->bcks_have_port);
-	tools_printlog(LOG_DEBUG,"    *[bcks_have_srcaddr] %d", f->bcks_have_srcaddr);
-	tools_printlog(LOG_DEBUG,"    *[bcks_have_if] %d", f->bcks_have_if);
-	tools_printlog(LOG_DEBUG,"    *[policies_action] %d", f->policies_action);
-	tools_printlog(LOG_DEBUG,"    *[policies_used] %d", f->policies_used);
-	tools_printlog(LOG_DEBUG,"    *[total_static_sessions] %d", f->total_static_sessions);
-	tools_printlog(LOG_DEBUG,"    *[total_timed_sessions] %d", f->total_timed_sessions);
-	tools_printlog(LOG_DEBUG,"    *[nft_chains] %x", f->nft_chains);
-	tools_printlog(LOG_DEBUG,"    *[addresses_action] %d", f->addresses_action);
-	tools_printlog(LOG_DEBUG,"    *[addresses_used] %d", f->addresses_used);
-	tools_printlog(LOG_DEBUG,"    *[reload_action] %x", f->reload_action);
-	tools_printlog(LOG_DEBUG,"    *[%s] %d", CONFIG_KEY_ACTION, f->action);
+	tools_printlog(LOG_DEBUG,"   *[total_weight] %d", f->total_weight);
+	tools_printlog(LOG_DEBUG,"   *[total_bcks] %d", f->total_bcks);
+	tools_printlog(LOG_DEBUG,"   *[bcks_available] %d", f->bcks_available);
+	tools_printlog(LOG_DEBUG,"   *[bcks_usable] %d", f->bcks_usable);
+	tools_printlog(LOG_DEBUG,"   *[bcks_have_port] %d", f->bcks_have_port);
+	tools_printlog(LOG_DEBUG,"   *[bcks_have_srcaddr] %d", f->bcks_have_srcaddr);
+	tools_printlog(LOG_DEBUG,"   *[bcks_have_if] %d", f->bcks_have_if);
+	tools_printlog(LOG_DEBUG,"   *[policies_action] %d", f->policies_action);
+	tools_printlog(LOG_DEBUG,"   *[policies_used] %d", f->policies_used);
+	tools_printlog(LOG_DEBUG,"   *[total_static_sessions] %d", f->total_static_sessions);
+	tools_printlog(LOG_DEBUG,"   *[total_timed_sessions] %d", f->total_timed_sessions);
+	tools_printlog(LOG_DEBUG,"   *[nft_chains] %x", f->nft_chains);
+	tools_printlog(LOG_DEBUG,"   *[addresses_used] %d", f->addresses_used);
+	tools_printlog(LOG_DEBUG,"   *[reload_action] %x", f->reload_action);
+	tools_printlog(LOG_DEBUG,"   *[%s] %d", CONFIG_KEY_ACTION, f->action);
 
 	if (f->addresses_used > 0)
 		farmaddress_s_print(f);
@@ -1143,7 +1142,7 @@ int farm_rulerize(struct farm *f)
 		return 0;
 	}
 
-	return nft_rulerize(f);
+	return nft_rulerize_farms(f);
 }
 
 int farm_s_rulerize(void)

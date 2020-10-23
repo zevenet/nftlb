@@ -30,6 +30,7 @@
 #include "sessions.h"
 #include "addresses.h"
 #include "farmaddress.h"
+#include "addresspolicy.h"
 #include "tools.h"
 
 #include <stdio.h>
@@ -173,6 +174,11 @@ struct farmaddress * obj_get_current_farmaddress(void)
 	return current_obj.faptr;
 }
 
+struct addresspolicy * obj_get_current_addresspolicy(void)
+{
+	return current_obj.apptr;
+}
+
 void obj_set_current_farm(struct farm *f)
 {
 	current_obj.fptr = f;
@@ -211,6 +217,11 @@ void obj_set_current_address(struct address *a)
 void obj_set_current_farmaddress(struct farmaddress *fa)
 {
 	current_obj.faptr = fa;
+}
+
+void obj_set_current_addresspolicy(struct addresspolicy *ap)
+{
+	current_obj.apptr = ap;
 }
 
 char * obj_print_key(int key)
@@ -592,6 +603,15 @@ int obj_set_attribute(struct config_pair *c, int actionable, int apply_action)
 		if (actionable && action)
 			farmaddress_pos_actionable(c);
 		break;
+	case LEVEL_ADDRESSPOLICY:
+		if (actionable)
+			addresspolicy_pre_actionable(c);
+
+		ret = addresspolicy_set_attribute(c);
+
+		if (actionable)
+			addresspolicy_pos_actionable(c);
+		break;
 	default:
 		tools_printlog(LOG_ERR, "%s():%d: unknown level %d", __FUNCTION__, __LINE__, c->level);
 		return PARSER_FAILED;
@@ -645,9 +665,11 @@ int obj_rulerize(int mode)
 	obj_config_init();
 	if (mode == OBJ_START_INV) {
 		out = farm_s_rulerize();
+		out = out + address_s_rulerize();
 		out = out + policy_s_rulerize();
 	} else {
 		out = policy_s_rulerize();
+		out = out + address_s_rulerize();
 		out = out + farm_s_rulerize();
 	}
 	return out;
@@ -660,6 +682,18 @@ char * obj_print_policy_type(int type)
 		return CONFIG_VALUE_POLICIES_TYPE_BL;
 	case VALUE_TYPE_WHITE:
 		return CONFIG_VALUE_POLICIES_TYPE_WL;
+	default:
+		return NULL;
+	}
+}
+
+char * obj_print_policy_route(int route)
+{
+	switch (route) {
+	case VALUE_ROUTE_IN:
+		return CONFIG_VALUE_ROUTE_IN;
+	case VALUE_ROUTE_OUT:
+		return CONFIG_VALUE_ROUTE_OUT;
 	default:
 		return NULL;
 	}

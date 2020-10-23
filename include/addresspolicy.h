@@ -19,47 +19,28 @@
  *
  */
 
-#ifndef _POLICIES_H_
-#define _POLICIES_H_
+#ifndef _ADDRESSPOLICY_H_
+#define _ADDRESSPOLICY_H_
 
-#include "list.h"
-#include "config.h"
+#include "addresses.h"
+#include "policies.h"
 
-enum type {
-	VALUE_TYPE_BLACK,
-	VALUE_TYPE_WHITE,
-};
-
-enum route {
-	VALUE_ROUTE_IN,
-	VALUE_ROUTE_OUT,
-};
-
-struct policy {
+struct addresspolicy {
 	struct list_head	list;
-	char				*name;
-	int					type;
-	int					route;
-	int					family;
-	int					timeout;
-	int					priority;
-	int					total_elem;
-	int					used;
-	char				*logprefix;
+	struct address		*address;
+	struct policy		*policy;
 	int					action;
-	struct list_head	elements;
 };
 
-void policy_print(struct policy *p);
-void policies_s_print(void);
-struct policy * policy_lookup_by_name(const char *name);
-int policy_set_attribute(struct config_pair *c);
-int policy_set_action(struct policy *p, int action);
-int policy_s_set_action(int action);
-int policy_pre_actionable(struct config_pair *c);
-int policy_pos_actionable(struct config_pair *c);
-int policy_rulerize(struct policy *p);
-int policy_s_rulerize(void);
 
+void addresspolicy_s_print(struct address *a);
+struct addresspolicy * addresspolicy_lookup_by_name(struct address *a, const char *name);
+int addresspolicy_set_attribute(struct config_pair *c);
+int addresspolicy_set_action(struct addresspolicy *ap, int action);
+int addresspolicy_s_set_action(struct address *a, int action);
+int addresspolicy_s_delete(struct address *a);
+int addresspolicy_s_lookup_policy_action(struct address *a, char *name, int action);
+int addresspolicy_pre_actionable(struct config_pair *c);
+int addresspolicy_pos_actionable(struct config_pair *c);
 
-#endif /* _POLICIES_H_ */
+#endif /* _ADDRESSPOLICY_H_ */

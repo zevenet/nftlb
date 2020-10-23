@@ -38,8 +38,10 @@ struct address {
 	int					family;
 	int					protocol;
 	struct list_head	policies;
-	int					total_policies;
+	int					policies_used;
+	int					policies_action;
 	int					used;
+	int					nft_chains;
 };
 
 struct address * address_create(char *name);
@@ -58,6 +60,9 @@ int address_no_ipaddr(struct address *a);
 void address_print(struct address *a);
 int address_set_netinfo(struct address *a);
 int address_set_ports(struct address *a, char *new_value);
+int address_rulerize(struct address *a);
+int address_s_rulerize(void);
+int address_needs_policies(struct address *a);
 
 
 #endif /* _ADDRESSES_H_ */

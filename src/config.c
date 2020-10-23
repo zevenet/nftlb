@@ -35,6 +35,7 @@
 #include "sessions.h"
 #include "addresses.h"
 #include "farmaddress.h"
+#include "addresspolicy.h"
 #include "tools.h"
 
 #define CONFIG_MAXBUF			4096
@@ -269,6 +270,18 @@ static int config_value_type(const char *value)
 	return VALUE_TYPE_BLACK;
 }
 
+static int config_value_route(const char *value)
+{
+	if (strcmp(value, CONFIG_VALUE_ROUTE_IN) == 0)
+		return VALUE_ROUTE_IN;
+	if (strcmp(value, CONFIG_VALUE_ROUTE_OUT) == 0)
+		return VALUE_ROUTE_OUT;
+
+	config_set_output(". Parsing unknown value '%s' in '%s', using default '%s'", value, CONFIG_KEY_ROUTE, CONFIG_VALUE_ROUTE_IN);
+	tools_printlog(LOG_ERR, "%s():%d: parsing unknown value '%s' in '%s', using default '%s'", __FUNCTION__, __LINE__, value, CONFIG_KEY_ROUTE, CONFIG_VALUE_ROUTE_IN);
+	return VALUE_ROUTE_IN;
+}
+
 static int config_value(const char *value)
 {
 	int ret = PARSER_VALID_FAILED;
@@ -395,6 +408,10 @@ static int config_value(const char *value)
 	case KEY_USED:
 		ret = PARSER_OK;
 		break;
+	case KEY_ROUTE:
+		c.int_value = config_value_route(value);
+		ret = PARSER_OK;
+		break;
 	default:
 		config_set_output(". Unknown parsed key with index '%d'", c.key);
 		tools_printlog(LOG_ERR, "%s():%d: unknown parsed key with index '%d'", __FUNCTION__, __LINE__, c.key);
@@ -519,6 +536,8 @@ static int config_key(const char *key)
 		return KEY_ADDRESSES;
 	if (strcmp(key, CONFIG_KEY_PORTS) == 0)
 		return KEY_PORTS;
+	if (strcmp(key, CONFIG_KEY_ROUTE) == 0)
+		return KEY_ROUTE;
 
 	config_set_output(". Unknown key '%s'", key);
 	tools_printlog(LOG_ERR, "%s():%d: unknown key '%s'", __FUNCTION__, __LINE__, key);
@@ -527,8 +546,10 @@ static int config_key(const char *key)
 
 static int jump_config_value(int level, int key)
 {
-	if ((level == LEVEL_INIT && key != KEY_FARMS && key != KEY_POLICIES && key != KEY_ADDRESSES) ||
+	if (
+	    (key == KEY_FARMS && level != LEVEL_INIT) ||
 	    (key == KEY_BCKS && level != LEVEL_FARMS) ||
+	    (key == KEY_POLICIES && level != LEVEL_INIT && level != LEVEL_FARMS && level != LEVEL_ADDRESSES) ||
 	    (key == KEY_ADDRESSES && level != LEVEL_FARMS && level != LEVEL_INIT) ||
 	    (key == KEY_SESSIONS && level != LEVEL_FARMS) ||
 	    (key == KEY_ELEMENTS && level != LEVEL_POLICIES))
@@ -620,6 +641,8 @@ static int config_json(json_t *element, int level, int source, int key, int appl
 			level = LEVEL_FARMPOLICY;
 		if (level == LEVEL_POLICIES && key == KEY_ELEMENTS)
 			level = LEVEL_ELEMENTS;
+		if (level == LEVEL_ADDRESSES && key == KEY_POLICIES)
+			level = LEVEL_ADDRESSPOLICY;
 
 		ret = config_json_array(element, level, source, apply_action);
 
@@ -629,6 +652,8 @@ static int config_json(json_t *element, int level, int source, int key, int appl
 			level = LEVEL_FARMS;
 		if (level == LEVEL_ELEMENTS)
 			level = LEVEL_POLICIES;
+		if (level == LEVEL_ADDRESSPOLICY)
+			level = LEVEL_ADDRESSES;
 
 		break;
 	case JSON_STRING:
@@ -740,6 +765,7 @@ static struct json_t *add_dump_list(json_t *obj, const char *objname, int object
 	struct element *e;
 	struct farmaddress *fa;
 	struct address *a = NULL;
+	struct addresspolicy *ap;
 	struct session *s;
 	json_t *jarray;
 	json_t *item;
@@ -893,6 +919,7 @@ static struct json_t *add_dump_list(json_t *obj, const char *objname, int object
 			add_dump_obj(item, CONFIG_KEY_NAME, p->name);
 			add_dump_obj(item, CONFIG_KEY_FAMILY, obj_print_family(p->family));
 			add_dump_obj(item, CONFIG_KEY_TYPE, obj_print_policy_type(p->type));
+			add_dump_obj(item, CONFIG_KEY_ROUTE, obj_print_policy_route(p->route));
 			config_dump_int(value, p->timeout);
 			add_dump_obj(item, CONFIG_KEY_TIMEOUT, value);
 			config_dump_int(value, p->priority);
@@ -936,6 +963,15 @@ static struct json_t *add_dump_list(json_t *obj, const char *objname, int object
 			config_dump_int(value, a->used);
 			add_dump_obj(item, CONFIG_KEY_USED, value);
 
+			add_dump_list(item, CONFIG_KEY_POLICIES, LEVEL_ADDRESSPOLICY, &a->policies, NULL);
+
+			json_array_append_new(jarray, item);
+		}
+		break;
+	case LEVEL_ADDRESSPOLICY:
+		list_for_each_entry(ap, head, list) {
+			item = json_object();
+			add_dump_obj(item, CONFIG_KEY_NAME, ap->policy->name);
 			json_array_append_new(jarray, item);
 		}
 		break;

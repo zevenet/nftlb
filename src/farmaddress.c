@@ -43,12 +43,12 @@ static struct farmaddress * farmaddress_create(struct farm *f, struct address *a
 	fa->address = a;
 	fa->action = DEFAULT_ACTION;
 	f->addresses_used++;
-	f->addresses_action = DEFAULT_ACTION;
 
-	if (f->addresses_used > 0 && f->action == ACTION_RELOAD)
-		f->addresses_action = ACTION_RELOAD;
 	list_add_tail(&fa->list, &f->addresses);
 	a->used++;
+
+	if (f->policies_used)
+		f->policies_action = ACTION_START;
 
 	return fa;
 }
@@ -62,11 +62,6 @@ static int farmaddress_delete(struct farmaddress *fa)
 
 	if (fa->address->used > 0)
 		fa->address->used--;
-
-	fa->farm->addresses_action = ACTION_STOP;
-
-	if (fa->farm->addresses_used > 0 && fa->farm->action == ACTION_RELOAD)
-		fa->farm->addresses_action = ACTION_RELOAD;
 
 	free(fa);
 
@@ -83,7 +78,7 @@ void farmaddress_s_print(struct farm *f)
 
 		tools_printlog(LOG_DEBUG,"    [address] ");
 		tools_printlog(LOG_DEBUG,"       [%s] %s", CONFIG_KEY_NAME, fa->address->name);
-		tools_printlog(LOG_DEBUG,"       *[%s] %d", CONFIG_KEY_ACTION, fa->action);
+		tools_printlog(LOG_DEBUG,"      *[%s] %d", CONFIG_KEY_ACTION, fa->action);
 
 		if (a->iface)
 			tools_printlog(LOG_DEBUG,"       [%s] %s", CONFIG_KEY_IFACE, a->iface);
@@ -100,6 +95,8 @@ void farmaddress_s_print(struct farm *f)
 			tools_printlog(LOG_DEBUG,"       [%s] %s", CONFIG_KEY_PORTS, a->ports);
 
 		tools_printlog(LOG_DEBUG,"       [%s] %s", CONFIG_KEY_FAMILY, obj_print_family(a->family));
+		tools_printlog(LOG_DEBUG,"       [%s] %s", CONFIG_KEY_PROTO, obj_print_proto(a->protocol));
+		tools_printlog(LOG_DEBUG,"      *[policies_action] %d", a->policies_action);
 	}
 }
 
@@ -117,6 +114,7 @@ struct farmaddress * farmaddress_lookup_by_name(struct farm *f, const char *name
 
 int farmaddress_set_action(struct farmaddress *fa, int action)
 {
+	struct farm *f = fa->farm;
 	tools_printlog(LOG_DEBUG, "%s():%d: farm %s address %s action %d", __FUNCTION__, __LINE__, fa->farm->name, fa->address->ipaddr, action);
 
 	if (action == ACTION_DELETE) {
@@ -126,6 +124,10 @@ int farmaddress_set_action(struct farmaddress *fa, int action)
 
 	if (fa->action != action) {
 		fa->action = action;
+
+		if (action != ACTION_RELOAD && f->policies_used)
+			f->policies_action = action;
+
 		return 1;
 	}
 
@@ -139,7 +141,8 @@ int farmaddress_s_set_action(struct farm *f, int action)
 	tools_printlog(LOG_DEBUG, "%s():%d: farm %s", __FUNCTION__, __LINE__, f->name);
 
 	list_for_each_entry_safe(fa, next, &f->addresses, list)
-		farmaddress_set_action(fa, action);
+		if (fa->action > action)
+			farmaddress_set_action(fa, action);
 
 	return 0;
 }
