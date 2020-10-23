@@ -1,7 +1,7 @@
 {
         "policies": [
                 {
-                        "name": "mylist",
+                        "name": "black001",
                         "family": "ipv4",
                         "type": "blacklist",
                         "route": "in",
@@ -10,7 +10,7 @@
                         "used": "0",
                         "elements": [
                                 {
-                                        "data": "75.195.60.82"
+                                        "data": "35.195.60.76"
                                 }
                         ]
                 }

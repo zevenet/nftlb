@@ -1,0 +1,16 @@
+{
+	"addresses" : [
+		{
+			"name" : "lonelyaddr",
+			"family" : "ipv4",
+			"ip-addr" : "127.0.0.1",
+			"ports" : "777",
+			"protocol" : "udp",
+			"policies" : [
+				{
+					"name" : "black001"
+				}
+			]
+		}
+	]
+}

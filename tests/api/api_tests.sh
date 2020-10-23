@@ -17,7 +17,7 @@ STOPPED=0
 
 echo "" > /var/log/syslog
 
-kill `pidof nftlb` 2> /dev/null
+kill -9 `pidof nftlb` 2> /dev/null
 $NFTBIN flush ruleset
 $NFTLBIN $NFTLB_ARGS -d -k "$APISRV_KEY" -H $APISRV_ADDR -P $APISRV_PORT -l $DEBUG > /dev/null
 sleep 1s

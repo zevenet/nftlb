@@ -1,0 +1,40 @@
+{
+	"farms" : [
+		{
+			"name" : "lb01",
+			"mode" : "dnat",
+			"scheduler" : "weight",
+			"state" : "up",
+                        "addresses": [
+                                {
+                                        "name": "lb01-addr",
+                                        "family": "ipv4",
+                                        "ip-addr": "127.0.0.1",
+                                        "ports": "8080",
+                                        "protocol": "tcp"
+                                }
+                        ],
+			"backends" : [
+				{
+					"name" : "bck0",
+					"ip-addr" : "192.168.0.10",
+					"weight" : "5",
+					"priority" : "1",
+					"state" : "up"
+				},
+				{
+					"name" : "bck1",
+					"ip-addr" : "192.168.0.11",
+					"weight" : "5",
+					"priority" : "1",
+					"state" : "up"
+				}
+			],
+			"policies" : [
+				{
+					"name" : "black001"
+				}
+			]
+		}
+	]
+}

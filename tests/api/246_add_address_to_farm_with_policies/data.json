@@ -1,0 +1,16 @@
+{
+	"farms" : [
+		{
+			"name" : "lb01",
+			"addresses" : [
+				{
+					"name" : "myaddr3",
+					"family" : "ipv4",
+					"ip-addr" : "127.0.0.1",
+					"ports" : "888",
+					"protocol" : "udp"
+				}
+			]
+		}
+	]
+}

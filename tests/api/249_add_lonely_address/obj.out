@@ -1,0 +1,35 @@
+{
+        "addresses": [
+                {
+                        "name": "lb01-addr",
+                        "family": "ipv4",
+                        "ip-addr": "127.0.0.1",
+                        "ports": "8080",
+                        "protocol": "tcp",
+                        "used": "1",
+                        "policies": []
+                },
+                {
+                        "name": "myaddr3",
+                        "family": "ipv4",
+                        "ip-addr": "127.0.0.1",
+                        "ports": "888",
+                        "protocol": "udp",
+                        "used": "0",
+                        "policies": []
+                },
+                {
+                        "name": "lonelyaddr",
+                        "family": "ipv4",
+                        "ip-addr": "127.0.0.1",
+                        "ports": "777",
+                        "protocol": "udp",
+                        "used": "0",
+                        "policies": [
+                                {
+                                        "name": "black001"
+                                }
+                        ]
+                }
+        ]
+}
