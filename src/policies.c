@@ -65,7 +65,7 @@ static int policy_delete(struct policy *p)
 {
 	list_del(&p->list);
 
-	if (p->name && strcmp(p->name, "") != 0)
+	if (p->name)
 		free(p->name);
 	if (p->logprefix && strcmp(p->logprefix, DEFAULT_POLICY_LOGPREFIX) != 0)
 		free(p->logprefix);
@@ -139,6 +139,41 @@ struct policy * policy_lookup_by_name(const char *name)
 	return NULL;
 }
 
+int policy_changed(struct config_pair *c)
+{
+	struct policy *p = obj_get_current_policy();
+
+	if (!p)
+		return -1;
+
+	syslog(LOG_DEBUG, "%s():%d: policy %s with param %d", __FUNCTION__, __LINE__, p->name, c->key);
+
+	switch (c->key) {
+	case KEY_NAME:
+		return 1;
+		break;
+	case KEY_TYPE:
+		return !obj_equ_attribute_int(p->type, c->int_value);
+		break;
+	case KEY_FAMILY:
+		return !obj_equ_attribute_int(p->family, c->int_value);
+		break;
+	case KEY_TIMEOUT:
+		return !obj_equ_attribute_int(p->timeout, c->int_value);
+		break;
+	case KEY_PRIORITY:
+		return !obj_equ_attribute_int(p->priority, c->int_value);
+		break;
+	case KEY_LOGPREFIX:
+		return !obj_equ_attribute_string(p->logprefix, c->str_value);
+		break;
+	default:
+		break;
+	}
+
+	return 0;
+}
+
 int policy_set_attribute(struct config_pair *c)
 {
 	struct policy *p = obj_get_current_policy();
@@ -172,6 +207,8 @@ int policy_set_attribute(struct config_pair *c)
 		policy_set_action(p, c->int_value);
 		break;
 	case KEY_LOGPREFIX:
+		if (strcmp(p->logprefix, DEFAULT_POLICY_LOGPREFIX) != 0)
+			free(p->logprefix);
 		obj_set_attribute_string(c->str_value, &p->logprefix);
 		break;
 	case KEY_USED:

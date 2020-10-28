@@ -324,8 +324,11 @@ static int farm_set_port(struct farm *f, char *new_value)
 {
 	syslog(LOG_DEBUG, "%s():%d: farm %s old port %s new port %s", __FUNCTION__, __LINE__, f->name, f->virtports, new_value);
 
-	if (strcmp(new_value, "0") != 0)
+	if (strcmp(new_value, "0") != 0) {
+		if (strcmp(f->virtports, DEFAULT_VIRTPORTS) != 0)
+			free(f->virtports);
 		obj_set_attribute_string(new_value, &f->virtports);
+	}
 
 	if (strcmp(new_value, "") == 0)
 		f->protocol = VALUE_PROTO_ALL;
@@ -736,6 +739,8 @@ int farm_set_ifinfo(struct farm *f, int key)
 			return -1;
 		}
 
+		if (f->iface)
+			free(f->iface);
 		obj_set_attribute_string(if_str, &f->iface);
 		net_strim_netface(f->iface);
 
@@ -756,12 +761,16 @@ int farm_set_ifinfo(struct farm *f, int key)
 		 * the backends network configuration says a different thing */
 		if (f->ofidx == DEFAULT_IFIDX) {
 			f->ofidx = f->ifidx;
+			if (f->oface)
+				free(f->oface);
 			obj_set_attribute_string(f->iface, &f->oface);
 		}
 
 		sprintf(streth, "%02x:%02x:%02x:%02x:%02x:%02x", ether[0],
 			ether[1], ether[2], ether[3], ether[4], ether[5]);
 
+		if (f->iethaddr)
+			free(f->iethaddr);
 		obj_set_attribute_string(streth, ether_addr);
 		break;
 
@@ -793,6 +802,8 @@ int farm_set_ifinfo(struct farm *f, int key)
 			return -1;
 		}
 
+		if (f->oface)
+			free(f->oface);
 		obj_set_attribute_string(if_str, &f->oface);
 		net_strim_netface(f->oface);
 
@@ -800,6 +811,8 @@ int farm_set_ifinfo(struct farm *f, int key)
 		sprintf(streth, "%02x:%02x:%02x:%02x:%02x:%02x", ether[0],
 			ether[1], ether[2], ether[3], ether[4], ether[5]);
 
+		if (f->oethaddr)
+			free(f->oethaddr);
 		obj_set_attribute_string(streth, ether_addr);
 
 		break;
@@ -909,13 +922,19 @@ int farm_set_attribute(struct config_pair *c)
 		ret = PARSER_OK;
 		break;
 	case KEY_FQDN:
+		if (strcmp(f->fqdn, DEFAULT_FQDN) != 0)
+			free(f->fqdn);
 		ret = obj_set_attribute_string(c->str_value, &f->fqdn);
 		break;
 	case KEY_IFACE:
+		if (f->iface)
+			free(f->iface);
 		ret = obj_set_attribute_string(c->str_value, &f->iface);
 		net_strim_netface(f->iface);
 		break;
 	case KEY_OFACE:
+		if (f->oface)
+			free(f->oface);
 		ret = obj_set_attribute_string(c->str_value, &f->oface);
 		net_strim_netface(f->oface);
 		break;
@@ -924,10 +943,16 @@ int farm_set_attribute(struct config_pair *c)
 		ret = PARSER_OK;
 		break;
 	case KEY_ETHADDR:
+		if (f->iethaddr)
+			free(f->iethaddr);
+		if (f->oethaddr)
+			free(f->oethaddr);
 		ret = obj_set_attribute_string(c->str_value, &f->iethaddr) ||
 			obj_set_attribute_string(c->str_value, &f->oethaddr);
 		break;
 	case KEY_VIRTADDR:
+		if (strcmp(f->virtaddr, DEFAULT_VIRTADDR) != 0)
+			free(f->virtaddr);
 		ret = obj_set_attribute_string(c->str_value, &f->virtaddr);
 		farm_set_netinfo(f);
 		break;
@@ -935,6 +960,8 @@ int farm_set_attribute(struct config_pair *c)
 		ret = farm_set_port(f, c->str_value);
 		break;
 	case KEY_SRCADDR:
+		if (f->srcaddr)
+			free(f->srcaddr);
 		ret = obj_set_attribute_string(c->str_value, &f->srcaddr);
 		break;
 	case KEY_MODE:
@@ -1017,18 +1044,28 @@ int farm_set_attribute(struct config_pair *c)
 		ret = PARSER_OK;
 		break;
 	case KEY_LOGPREFIX:
+		if (strcmp(f->logprefix, DEFAULT_LOG_LOGPREFIX) != 0)
+			free(f->logprefix);
 		ret = obj_set_attribute_string(c->str_value, &f->logprefix);
 		break;
 	case KEY_NEWRTLIMIT_LOGPREFIX:
+		if (strcmp(f->newrtlimit_logprefix, DEFAULT_LOGPREFIX) != 0)
+			free(f->newrtlimit_logprefix);
 		ret = obj_set_attribute_string(c->str_value, &f->newrtlimit_logprefix);
 		break;
 	case KEY_RSTRTLIMIT_LOGPREFIX:
+		if (strcmp(f->rstrtlimit_logprefix, DEFAULT_LOGPREFIX) != 0)
+			free(f->rstrtlimit_logprefix);
 		ret = obj_set_attribute_string(c->str_value, &f->rstrtlimit_logprefix);
 		break;
 	case KEY_ESTCONNLIMIT_LOGPREFIX:
+		if (strcmp(f->estconnlimit_logprefix, DEFAULT_LOGPREFIX) != 0)
+			free(f->estconnlimit_logprefix);
 		ret = obj_set_attribute_string(c->str_value, &f->estconnlimit_logprefix);
 		break;
 	case KEY_TCPSTRICT_LOGPREFIX:
+		if (strcmp(f->tcpstrict_logprefix, DEFAULT_LOGPREFIX) != 0)
+			free(f->tcpstrict_logprefix);
 		ret = obj_set_attribute_string(c->str_value, &f->tcpstrict_logprefix);
 		break;
 	default:

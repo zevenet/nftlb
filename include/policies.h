@@ -46,6 +46,7 @@ struct policy {
 
 void policies_s_print(void);
 struct policy * policy_lookup_by_name(const char *name);
+int policy_changed(struct config_pair *c);
 int policy_set_attribute(struct config_pair *c);
 int policy_set_action(struct policy *p, int action);
 int policy_s_set_action(int action);

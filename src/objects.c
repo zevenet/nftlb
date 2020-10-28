@@ -511,6 +511,9 @@ int obj_set_attribute(struct config_pair *c, int actionable)
 			farmpolicy_pos_actionable(c);
 		break;
 	case LEVEL_POLICIES:
+		if (!policy_changed(c))
+			return PARSER_OK;
+
 		if (actionable)
 			policy_pre_actionable(c);
 
