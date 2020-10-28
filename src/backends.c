@@ -283,6 +283,8 @@ static int backend_set_ipaddr_from_ether(struct backend *b)
 
 		tools_printlog(LOG_DEBUG, "%s():%d: discovered ether address for %s is %s", __FUNCTION__, __LINE__, b->name, streth);
 
+		if (b->ethaddr)
+			free(b->ethaddr);
 		obj_set_attribute_string(streth, &b->ethaddr);
 	}
 
@@ -411,6 +413,8 @@ static int backend_set_port(struct backend *b, char *new_value)
 	tools_printlog(LOG_DEBUG, "%s():%d: current value is %s, but new value will be %s",
 				   __FUNCTION__, __LINE__, old_value, new_value);
 
+	if (strcmp(b->port, DEFAULT_PORT) != 0)
+		free(b->port);
 	obj_set_attribute_string(new_value, &b->port);
 
 	if (strcmp(b->port, DEFAULT_PORT) != 0)
@@ -428,6 +432,8 @@ static int backend_set_srcaddr(struct backend *b, char *new_value)
 	tools_printlog(LOG_DEBUG, "%s():%d: current value is %s, but new value will be %s",
 				   __FUNCTION__, __LINE__, old_value, new_value);
 
+	if (b->srcaddr)
+		free(b->srcaddr);
 	obj_set_attribute_string(new_value, &b->srcaddr);
 
 	if (b->srcaddr && strcmp(b->srcaddr, "") != 0)
@@ -489,6 +495,7 @@ static int backend_set_ifinfo(struct backend *b)
 	}
 
 	if (f->oface && strcmp(f->oface, if_str) != 0) {
+		free(b->oface);
 		obj_set_attribute_string(if_str, &b->oface);
 		net_strim_netface(b->oface);
 	}
@@ -503,6 +510,10 @@ static int backend_set_ipaddr(struct backend *b, char *new_value)
 	tools_printlog(LOG_DEBUG, "%s():%d: current value is %s, but new value will be %s",
 				   __FUNCTION__, __LINE__, old_value, new_value);
 
+	if (b->ipaddr)
+		free(b->ipaddr);
+	if (b->ethaddr)
+		free(b->ethaddr);
 	obj_set_attribute_string(new_value, &b->ipaddr);
 	obj_set_attribute_string("", &b->ethaddr);
 
@@ -735,15 +746,20 @@ int backend_set_attribute(struct config_pair *c)
 		obj_set_current_backend(b);
 		break;
 	case KEY_NEWNAME:
+		free(b->name);
 		obj_set_attribute_string(c->str_value, &b->name);
 		break;
 	case KEY_FQDN:
+		if (strcmp(b->fqdn, DEFAULT_FQDN) != 0)
+			free(b->fqdn);
 		obj_set_attribute_string(c->str_value, &b->fqdn);
 		break;
 	case KEY_IPADDR:
 		backend_set_ipaddr(b, c->str_value);
 		break;
 	case KEY_ETHADDR:
+		if (b->ethaddr)
+			free(b->ethaddr);
 		obj_set_attribute_string(c->str_value, &b->ethaddr);
 		break;
 	case KEY_PORT:
@@ -774,6 +790,8 @@ int backend_set_attribute(struct config_pair *c)
 		backend_set_action(b, c->int_value);
 		break;
 	case KEY_ESTCONNLIMIT_LOGPREFIX:
+		if (strcmp(b->estconnlimit_logprefix, DEFAULT_B_ESTCONNLIMIT_LOGPREFIX) != 0)
+			free(b->estconnlimit_logprefix);
 		obj_set_attribute_string(c->str_value, &b->estconnlimit_logprefix);
 		break;
 	default:
@@ -850,6 +868,8 @@ int backend_s_set_ether_by_ipaddr(struct farm *f, const char *ip_bck, char *ethe
 		tools_printlog(LOG_DEBUG, "%s():%d: backend with ip address %s found", __FUNCTION__, __LINE__, ip_bck);
 
 		if (!b->ethaddr || (b->ethaddr && strcmp(b->ethaddr, ether_bck) != 0)) {
+			if (b->ethaddr)
+				free(b->ethaddr);
 			obj_set_attribute_string(ether_bck, &b->ethaddr);
 			backend_set_state(b, VALUE_STATE_UP);
 			changed = 1;

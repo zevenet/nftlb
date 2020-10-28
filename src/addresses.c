@@ -101,8 +101,11 @@ int address_set_ports(struct address *a, char *new_value)
 {
 	tools_printlog(LOG_DEBUG, "%s():%d: address %s old port %s new port %s", __FUNCTION__, __LINE__, a->name, a->ports, new_value);
 
-	if (strcmp(new_value, "0") != 0)
+	if (strcmp(new_value, "0") != 0) {
+		if (strcmp(a->ports, DEFAULT_VIRTPORTS) != 0)
+			free(a->ports);
 		obj_set_attribute_string(new_value, &a->ports);
+	}
 
 	if (strcmp(new_value, "") == 0)
 		a->protocol = VALUE_PROTO_ALL;
@@ -167,6 +170,8 @@ static int address_set_iface_info(struct address *a)
 		return -1;
 	}
 
+	if (a->iface)
+		free(a->iface);
 	obj_set_attribute_string(if_str, &a->iface);
 	net_strim_netface(a->iface);
 
@@ -185,6 +190,8 @@ static int address_set_iface_info(struct address *a)
 	sprintf(streth, "%02x:%02x:%02x:%02x:%02x:%02x", ether[0],
 		ether[1], ether[2], ether[3], ether[4], ether[5]);
 
+	if (a->iethaddr)
+		free(a->iethaddr);
 	obj_set_attribute_string(streth, &a->iethaddr);
 
 	return 0;
@@ -306,9 +313,13 @@ int address_set_attribute(struct config_pair *c)
 		ret = PARSER_OK;
 		break;
 	case KEY_FQDN:
+		if (strcmp(a->fqdn, DEFAULT_FQDN) != 0)
+			free(a->fqdn);
 		ret = obj_set_attribute_string(c->str_value, &a->fqdn);
 		break;
 	case KEY_IFACE:
+		if (a->iface)
+			free(a->iface);
 		ret = obj_set_attribute_string(c->str_value, &a->iface);
 		net_strim_netface(a->iface);
 		break;
@@ -317,13 +328,19 @@ int address_set_attribute(struct config_pair *c)
 		ret = PARSER_OK;
 		break;
 	case KEY_ETHADDR:
+		if (a->iethaddr)
+			free(a->iethaddr);
 		ret = obj_set_attribute_string(c->str_value, &a->iethaddr);
 		break;
 	case KEY_IETHADDR:
+		if (a->iethaddr)
+			free(a->iethaddr);
 		ret = obj_set_attribute_string(c->str_value, &a->iethaddr);
 		farm_s_set_oface_info(a);
 		break;
 	case KEY_IPADDR:
+		if (strcmp(a->ipaddr, DEFAULT_VIRTADDR) != 0)
+			free(a->ipaddr);
 		ret = obj_set_attribute_string(c->str_value, &a->ipaddr);
 		address_set_netinfo(a);
 		break;

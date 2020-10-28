@@ -215,6 +215,8 @@ int element_set_attribute(struct config_pair *c, int apply_action)
 		obj_set_current_element(e);
 		break;
 	case KEY_TIME:
+		if (e->time)
+			free(e->time);
 		obj_set_attribute_string(c->str_value, &e->time);
 		break;
 	case KEY_ACTION:
