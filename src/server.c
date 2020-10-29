@@ -37,7 +37,7 @@
 #include "events.h"
 #include "sbuffer.h"
 
-#define SRV_MAX_BUF			40960
+#define SRV_MAX_BUF				1024
 #define SRV_MAX_HEADER			300
 #define SRV_MAX_IDENT			200
 #define SRV_KEY_LENGTH			16
@@ -216,6 +216,13 @@ static int init_http_state(struct nftlb_http_state *state)
 	return 0;
 }
 
+static int fin_http_state(struct nftlb_http_state *state)
+{
+	if (state->body_response)
+		free(state->body_response);
+	return 0;
+}
+
 static int send_get_response(struct nftlb_http_state *state)
 {
 	char firstlevel[SRV_MAX_IDENT] = {0};
@@ -225,9 +232,6 @@ static int send_get_response(struct nftlb_http_state *state)
 
 	sscanf(state->uri, "/%199[^/]/%199[^/]/%199[^/]/%199[^\n]",
 	       firstlevel, secondlevel, thirdlevel, fourthlevel);
-
-	if (init_http_state(state))
-		return -1;
 
 	if (strcmp(firstlevel, CONFIG_KEY_FARMS) == 0) {
 
@@ -272,9 +276,6 @@ static int send_delete_response(struct nftlb_http_state *state)
 
 	sscanf(state->uri, "/%199[^/]/%199[^/]/%199[^/]/%199[^\n]",
 	       firstlevel, secondlevel, thirdlevel, fourthlevel);
-
-	if (init_http_state(state))
-		return -1;
 
 	if (strcmp(firstlevel, CONFIG_KEY_FARMS) != 0 &&
 		strcmp(firstlevel, CONFIG_KEY_POLICIES) != 0) {
@@ -406,9 +407,6 @@ static int send_post_response(struct nftlb_http_state *state)
 	char firstlevel[SRV_MAX_IDENT] = {0};
 
 	sscanf(state->uri, "/%199[^\n]", firstlevel);
-
-	if (init_http_state(state))
-		return -1;
 
 	if ((strcmp(firstlevel, CONFIG_KEY_FARMS) != 0) &&
 		(strcmp(firstlevel, CONFIG_KEY_POLICIES) != 0)) {
@@ -545,7 +543,6 @@ static void nftlb_read_cb(struct ev_loop *loop, struct ev_io *io, int revents)
 	}
 	cli = container_of(io, struct nftlb_client, io);
 
-	state.body_response = NULL;
 	create_buf(&buf);
 	size = recv(io->fd, get_buf_data(&buf), DEFAULT_BUFFER_SIZE - 1, 0);
 	if (size < 0)
@@ -556,8 +553,11 @@ static void nftlb_read_cb(struct ev_loop *loop, struct ev_io *io, int revents)
 	if (size == 0) {
 		syslog(LOG_DEBUG, "connection closed by client %s\n",
 		       nftlb_client_address(&cli->addr, cli_address));
-		goto end;
+		goto end_no_state;
 	}
+
+	if (init_http_state(&state))
+		goto end_no_state;
 
 	if (get_request(io->fd, &buf, &state) < 0) {
 		nftlb_http_send_response(io, &state, 0);
@@ -575,8 +575,8 @@ static void nftlb_read_cb(struct ev_loop *loop, struct ev_io *io, int revents)
 	syslog(LOG_DEBUG, "connection closed by server %s\n",
 		       nftlb_client_address(&cli->addr, cli_address));
 end:
-	if (state.body_response)
-		free(state.body_response);
+	fin_http_state(&state);
+end_no_state:
 	clean_buf(&buf);
 
 	ev_timer_stop(loop, &cli->timer);
@@ -713,6 +713,7 @@ int server_init(void)
 
 void server_fini(void)
 {
+	events_delete_srv();
 	close(nftserver.sd);
 }
 
