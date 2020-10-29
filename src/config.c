@@ -1036,6 +1036,7 @@ int config_print_farms(char **buf, char *name)
 	jdata = json_object();
 	add_dump_list(jdata, CONFIG_KEY_FARMS, LEVEL_FARMS, farms, name);
 
+	free(*buf);
 	*buf = json_dumps(jdata, JSON_INDENT(8));
 	json_decref(jdata);
 
@@ -1063,6 +1064,7 @@ int config_print_farm_sessions(char **buf, char *name)
 	session_get_timed(f);
 	add_dump_list(jdata_cont, CONFIG_KEY_SESSIONS, LEVEL_SESSIONS, &f->timed_sessions, name);
 	continue_obj = 0;
+	free(*buf);
 	*buf = json_dumps(jdata, JSON_INDENT(8));
 
 	json_decref(jdata);
@@ -1081,6 +1083,7 @@ int config_print_policies(char **buf, char *name)
 
 	add_dump_list(jdata, CONFIG_KEY_POLICIES, LEVEL_POLICIES, policies, name);
 
+	free(*buf);
 	*buf = json_dumps(jdata, JSON_INDENT(8));
 	json_decref(jdata);
 
