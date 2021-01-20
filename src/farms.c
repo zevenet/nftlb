@@ -532,6 +532,19 @@ static int farm_set_queue(struct farm *f, int new_value)
 	return PARSER_OK;
 }
 
+static int farm_set_helper(struct farm *f, int new_value)
+{
+	int old_value = f->helper;
+
+	syslog(LOG_DEBUG, "%s():%d: farm %s old helper %d new helper %d", __FUNCTION__, __LINE__, f->name, old_value, new_value);
+
+	if (farmaddress_s_validate_helper(f, new_value))
+		return PARSER_FAILED;
+
+	f->helper = new_value;
+	return PARSER_OK;
+}
+
 int farm_changed(struct config_pair *c)
 {
 	struct farm *f = obj_get_current_farm();
@@ -953,8 +966,7 @@ int farm_set_attribute(struct config_pair *c)
 		farmaddress_create_default(c);
 		fa = obj_get_current_farmaddress();
 		a = fa->address;
-		a->protocol = c->int_value;
-		ret = PARSER_OK;
+		ret = address_set_protocol(a, c->int_value);
 		break;
 	case KEY_SCHED:
 		ret = farm_set_sched(f, c->int_value);
@@ -975,8 +987,7 @@ int farm_set_attribute(struct config_pair *c)
 		ret = PARSER_OK;
 		break;
 	case KEY_HELPER:
-		f->helper = c->int_value;
-		ret = PARSER_OK;
+		ret = farm_set_helper(f, c->int_value);
 		break;
 	case KEY_LOG:
 		f->log = c->int_value;
@@ -1226,4 +1237,36 @@ void farm_s_set_oface_info(struct address *a)
 			f->ofidx = a->ifidx;
 		}
 	}
+}
+
+int farm_s_validate_helper_proto(struct address *a, int new_value)
+{
+	struct list_head *farms = obj_get_farms();
+	struct farm *f, *next;
+	struct farmaddress *fa;
+
+	list_for_each_entry_safe(f, next, farms, list) {
+		fa = farmaddress_lookup_by_name(f, a->name);
+		if (fa) {
+			if (new_value == VALUE_PROTO_ALL) {
+				if ((f->helper != VALUE_HELPER_NONE && f->helper != VALUE_HELPER_SIP)){
+					return PARSER_FAILED; }
+				continue;
+			}
+
+			if (new_value == VALUE_PROTO_TCP) {
+				if ((f->helper != VALUE_HELPER_NONE && f->helper != VALUE_HELPER_FTP && f->helper != VALUE_HELPER_PPTP && f->helper != VALUE_HELPER_SIP)){
+					return PARSER_FAILED;}
+				continue;
+			}
+
+			if (new_value == VALUE_PROTO_UDP) {
+				if ((f->helper != VALUE_HELPER_NONE && f->helper != VALUE_HELPER_TFTP && f->helper != VALUE_HELPER_SNMP && f->helper != VALUE_HELPER_SIP)){
+					return PARSER_FAILED;}
+				continue;
+			}
+		}
+	}
+
+	return PARSER_OK;
 }

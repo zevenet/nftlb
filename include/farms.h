@@ -50,13 +50,8 @@ enum schedulers {
 
 enum helpers {
 	VALUE_HELPER_NONE,
-	VALUE_HELPER_AMANDA,
 	VALUE_HELPER_FTP,
-	VALUE_HELPER_H323,
-	VALUE_HELPER_IRC,
-	VALUE_HELPER_NETBIOSNS,
 	VALUE_HELPER_PPTP,
-	VALUE_HELPER_SANE,
 	VALUE_HELPER_SIP,
 	VALUE_HELPER_SNMP,
 	VALUE_HELPER_TFTP,
@@ -188,6 +183,7 @@ int farm_rulerize(struct farm *f);
 int farm_s_rulerize(void);
 int farm_get_mark(struct farm *f);
 void farm_s_set_oface_info(struct address *a);
+int farm_s_validate_helper_proto(struct address *a, int new_value);
 
 
 #endif /* _FARMS_H_ */

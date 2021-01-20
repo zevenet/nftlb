@@ -92,7 +92,7 @@ Where every farm object has the following attributes:
 	"sched-param": "<srcip | dstip | srcport | dstport | srcmac | dstmac | none>",	*Hash input parameters (none by default)*
 	"persistence": "<srcip | dstip | srcport | dstport | srcmac | dstmac | none>",	*Configured stickiness between client and backend (none by default)*
 	"persist-ttl": "<number>",	*Stickiness timeout in seconds (60 by default)*
-	"helper": "<none | amanda | ftp | h323 | irc | netbios-ns | pptp | sane | sip | snmp | tftp>",	*L7 helper to be used (none by default)*
+	"helper": "<none | ftp | pptp | sip | snmp | tftp>",	*L7 helper to be used (none by default)*
 	"log": "<none | input | forward | output>",	*Enable logging (none by default)*
 	"log-prefix": "<string|KNAME|TYPE|FNAME>",	*Farm log prefix (default "TYPE-FNAME")*
 	"mark": "<hexadecimal mark>",			*Set mark mask for the farm (none by default)*

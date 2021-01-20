@@ -275,6 +275,29 @@ int farmaddress_s_validate_iface(struct farm *f)
 	return anyvalid;
 }
 
+int farmaddress_s_validate_helper(struct farm *f, int new_value)
+{
+	struct farmaddress *fa;
+
+	tools_printlog(LOG_DEBUG, "%s():%d: validating input farm address proto for new helper of %s", __FUNCTION__, __LINE__, f->name);
+
+	if (new_value == VALUE_HELPER_NONE)
+		return PARSER_OK;
+
+	list_for_each_entry(fa, &f->addresses, list) {
+		if ((new_value == VALUE_HELPER_FTP || new_value == VALUE_HELPER_PPTP) && (fa->address->protocol != VALUE_PROTO_TCP))
+			return PARSER_FAILED;
+
+		if ((new_value == VALUE_HELPER_TFTP || new_value == VALUE_HELPER_SNMP) && (fa->address->protocol != VALUE_PROTO_UDP))
+			return PARSER_FAILED;
+
+		if (new_value == VALUE_HELPER_SIP && fa->address->protocol == VALUE_PROTO_SCTP)
+			return PARSER_FAILED;
+	}
+
+	return PARSER_OK;
+}
+
 int farmaddress_s_set_attribute(struct farm *f, struct config_pair *c)
 {
 	struct farmaddress *fa;

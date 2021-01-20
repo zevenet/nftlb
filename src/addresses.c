@@ -197,6 +197,19 @@ static int address_set_iface_info(struct address *a)
 	return 0;
 }
 
+int address_set_protocol(struct address *a, int new_value)
+{
+	int old_value = a->protocol;
+
+	syslog(LOG_DEBUG, "%s():%d: address %s old protocol %d new protocol %d", __FUNCTION__, __LINE__, a->name, old_value, new_value);
+
+	if (farm_s_validate_helper_proto(a, new_value))
+		return PARSER_FAILED;
+
+	a->protocol = new_value;
+	return PARSER_OK;
+}
+
 int address_set_netinfo(struct address *a)
 {
 	tools_printlog(LOG_DEBUG, "%s():%d: address %s", __FUNCTION__, __LINE__, a->name);
@@ -348,8 +361,7 @@ int address_set_attribute(struct config_pair *c)
 		ret = address_set_ports(a, c->str_value);
 		break;
 	case KEY_PROTO:
-		a->protocol = c->int_value;
-		ret = PARSER_OK;
+		ret = address_set_protocol(a, c->int_value);
 		break;
 	case KEY_ACTION:
 		ret = address_set_action(a, c->int_value);

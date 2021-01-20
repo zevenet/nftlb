@@ -63,6 +63,7 @@ int address_set_ports(struct address *a, char *new_value);
 int address_rulerize(struct address *a);
 int address_s_rulerize(void);
 int address_needs_policies(struct address *a);
+int address_set_protocol(struct address *a, int new_value);
 
 
 #endif /* _ADDRESSES_H_ */

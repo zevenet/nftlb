@@ -164,20 +164,10 @@ static int config_value_helper(const char *value)
 {
 	if (strcmp(value, CONFIG_VALUE_HELPER_NONE) == 0)
 		return VALUE_HELPER_NONE;
-	if (strcmp(value, CONFIG_VALUE_HELPER_AMANDA) == 0)
-		return VALUE_HELPER_AMANDA;
 	if (strcmp(value, CONFIG_VALUE_HELPER_FTP) == 0)
 		return VALUE_HELPER_FTP;
-	if (strcmp(value, CONFIG_VALUE_HELPER_H323) == 0)
-		return VALUE_HELPER_H323;
-	if (strcmp(value, CONFIG_VALUE_HELPER_IRC) == 0)
-		return VALUE_HELPER_IRC;
-	if (strcmp(value, CONFIG_VALUE_HELPER_NETBIOSNS) == 0)
-		return VALUE_HELPER_NETBIOSNS;
 	if (strcmp(value, CONFIG_VALUE_HELPER_PPTP) == 0)
 		return VALUE_HELPER_PPTP;
-	if (strcmp(value, CONFIG_VALUE_HELPER_SANE) == 0)
-		return VALUE_HELPER_SANE;
 	if (strcmp(value, CONFIG_VALUE_HELPER_SIP) == 0)
 		return VALUE_HELPER_SIP;
 	if (strcmp(value, CONFIG_VALUE_HELPER_SNMP) == 0)
