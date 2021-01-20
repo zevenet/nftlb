@@ -1,14 +1,14 @@
 table ip nftlb {
 	map filter-proto-services {
 		type inet_proto . ipv4_addr . inet_service : verdict
-		elements = { tcp . 192.168.105.189 . 80 : goto filter-newfarm,
-			     udp . 192.168.105.189 . 53 : goto filter-newfarm6 }
+		elements = { udp . 192.168.105.189 . 53 : goto filter-newfarm6,
+			     tcp . 192.168.105.189 . 80 : goto filter-newfarm }
 	}
 
 	map nat-proto-services {
 		type inet_proto . ipv4_addr . inet_service : verdict
-		elements = { tcp . 192.168.105.189 . 80 : goto nat-newfarm,
-			     udp . 192.168.105.189 . 53 : goto nat-newfarm6 }
+		elements = { udp . 192.168.105.189 . 53 : goto nat-newfarm6,
+			     tcp . 192.168.105.189 . 80 : goto nat-newfarm }
 	}
 
 	map proto-services-back-m {

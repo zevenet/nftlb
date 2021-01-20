@@ -1,24 +1,21 @@
 table ip nftlb {
+	ct helper sip-udp {
+		type "sip" protocol udp
+		l3proto ip
+	}
+
 	map filter-proto-services {
 		type inet_proto . ipv4_addr . inet_service : verdict
-		elements = { udp . 192.168.105.189 . 53 : goto filter-newfarm6,
-			     tcp . 192.168.105.189 . 80 : goto filter-newfarm }
+		elements = { udp . 192.168.56.154 . 5060 : goto filter-lb01 }
 	}
 
 	map nat-proto-services {
 		type inet_proto . ipv4_addr . inet_service : verdict
-		elements = { udp . 192.168.105.189 . 53 : goto nat-newfarm6,
-			     tcp . 192.168.105.189 . 80 : goto nat-newfarm }
+		elements = { udp . 192.168.56.154 . 5060 : goto nat-lb01 }
 	}
 
 	map proto-services-back-m {
 		type mark : ipv4_addr
-	}
-
-	set rst-rtlimit-newfarm6 {
-		type ipv4_addr
-		size 65535
-		flags dynamic
 	}
 
 	chain filter {
@@ -27,8 +24,9 @@ table ip nftlb {
 		ip protocol . ip daddr . th dport vmap @filter-proto-services
 	}
 
-	chain filter-newfarm {
-		tcp flags syn queue num 0 bypass
+	chain filter-lb01 {
+		ip protocol udp ct helper set "sip-udp"
+		ct state new ct mark 0x00000000 ct mark set numgen inc mod 10 map { 0-4 : 0x00000001, 5-9 : 0x00000002 }
 	}
 
 	chain prerouting {
@@ -42,15 +40,7 @@ table ip nftlb {
 		snat to ct mark map @proto-services-back-m
 	}
 
-	chain nat-newfarm {
-	}
-
-	chain filter-newfarm6 {
-		ct state invalid log prefix "tcp-strict-newfarm6 " drop
-		tcp flags rst add @rst-rtlimit-newfarm6 { ip saddr limit rate over 22/second } log prefix "rst-rtlimit-newfarm6 " drop
-		ct state new ct mark 0x00000000 ct mark set 0x80000000
-	}
-
-	chain nat-newfarm6 {
+	chain nat-lb01 {
+		dnat to ct mark map { 0x00000001 : 192.168.0.22, 0x00000002 : 192.168.0.23 }
 	}
 }
