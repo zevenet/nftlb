@@ -1,0 +1,11 @@
+{
+	"addresses" : [
+		{
+			"name" : "myaddr2",
+			"family" : "ipv4",
+			"ip-addr" : "200.2.2.2",
+			"ports" : "888",
+			"protocol" : "udp"
+		}
+	]
+}

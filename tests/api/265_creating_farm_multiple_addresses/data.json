@@ -1,0 +1,47 @@
+{
+	"farms" : [
+		{
+			"name" : "configure-external-ips--http",
+			"mode" : "snat",
+			"scheduler" : "rr",
+			"sched-param" : "none",
+			"helper" : "none",
+			"log" : "none",
+			"state" : "up",
+			"intra-connect" : "on",
+			"persistence" : "none",
+			"persist-ttl" : "60",
+			"est-connlimit" : "0",
+			"addresses" : [
+				{
+					"name" : "configure-external-ips--http-0",
+					"family" : "ipv4",
+					"ip-addr" : "10.106.180.207",
+					"ports" : "8080",
+					"protocol" : "tcp"
+				},
+				{
+					"name" : "configure-external-ips--http--externalIP-1",
+					"family" : "ipv4",
+					"ip-addr" : "192.168.10.89",
+					"ports" : "8080",
+					"protocol" : "tcp"
+				},
+				{
+					"name" : "configure-external-ips--http--externalIP-2",
+					"family" : "ipv4",
+					"ip-addr" : "192.168.10.90",
+					"ports" : "8080",
+					"protocol" : "tcp"
+				},
+				{
+					"name" : "configure-external-ips--http--externalIP-3",
+					"family" : "ipv4",
+					"ip-addr" : "192.168.10.91",
+					"ports" : "8080",
+					"protocol" : "tcp"
+				}
+			]
+		}
+	]
+}

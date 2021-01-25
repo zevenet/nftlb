@@ -1,0 +1,104 @@
+table ip nftlb {
+	map filter-proto-services {
+		type inet_proto . ipv4_addr . inet_service : verdict
+		elements = { tcp . 10.96.0.10 . 53 : goto filter-kube-dns--dns-tcp,
+			     udp . 10.96.0.10 . 53 : goto filter-kube-dns--dns,
+			     tcp . 192.168.10.89 . 8080 : goto filter-configure-external-ips--http,
+			     tcp . 192.168.10.90 . 8080 : goto filter-configure-external-ips--http,
+			     tcp . 192.168.10.91 . 8080 : goto filter-configure-external-ips--http,
+			     tcp . 10.106.180.207 . 8080 : goto filter-configure-external-ips--http,
+			     tcp . 10.96.0.10 . 9153 : goto filter-kube-dns--metrics }
+	}
+
+	map nat-proto-services {
+		type inet_proto . ipv4_addr . inet_service : verdict
+		elements = { tcp . 10.96.0.10 . 53 : goto nat-kube-dns--dns-tcp,
+			     udp . 10.96.0.10 . 53 : goto nat-kube-dns--dns,
+			     tcp . 192.168.10.89 . 8080 : goto nat-configure-external-ips--http,
+			     tcp . 192.168.10.90 . 8080 : goto nat-configure-external-ips--http,
+			     tcp . 192.168.10.91 . 8080 : goto nat-configure-external-ips--http,
+			     tcp . 10.106.180.207 . 8080 : goto nat-configure-external-ips--http,
+			     tcp . 10.96.0.10 . 9153 : goto nat-kube-dns--metrics }
+	}
+
+	map proto-services-back-m {
+		type mark : ipv4_addr
+	}
+
+	map output-filter-proto-services {
+		type inet_proto . ipv4_addr . inet_service : verdict
+		elements = { tcp . 10.96.0.10 . 53 : goto filter-kube-dns--dns-tcp,
+			     udp . 10.96.0.10 . 53 : goto filter-kube-dns--dns,
+			     tcp . 192.168.10.89 . 8080 : goto filter-configure-external-ips--http,
+			     tcp . 192.168.10.90 . 8080 : goto filter-configure-external-ips--http,
+			     tcp . 192.168.10.91 . 8080 : goto filter-configure-external-ips--http,
+			     tcp . 10.106.180.207 . 8080 : goto filter-configure-external-ips--http,
+			     tcp . 10.96.0.10 . 9153 : goto filter-kube-dns--metrics }
+	}
+
+	map output-nat-proto-services {
+		type inet_proto . ipv4_addr . inet_service : verdict
+		elements = { tcp . 10.96.0.10 . 53 : goto nat-kube-dns--dns-tcp,
+			     udp . 10.96.0.10 . 53 : goto nat-kube-dns--dns,
+			     tcp . 192.168.10.89 . 8080 : goto nat-configure-external-ips--http,
+			     tcp . 192.168.10.90 . 8080 : goto nat-configure-external-ips--http,
+			     tcp . 192.168.10.91 . 8080 : goto nat-configure-external-ips--http,
+			     tcp . 10.106.180.207 . 8080 : goto nat-configure-external-ips--http,
+			     tcp . 10.96.0.10 . 9153 : goto nat-kube-dns--metrics }
+	}
+
+	chain filter {
+		type filter hook prerouting priority mangle; policy accept;
+		meta mark set ct mark
+		ip protocol . ip daddr . th dport vmap @filter-proto-services
+	}
+
+	chain filter-configure-external-ips--http {
+		ct state new ct mark 0x00000000 ct mark set 0x80000000
+	}
+
+	chain prerouting {
+		type nat hook prerouting priority dstnat; policy accept;
+		ip protocol . ip daddr . th dport vmap @nat-proto-services
+	}
+
+	chain postrouting {
+		type nat hook postrouting priority srcnat; policy accept;
+		ct mark 0x80000000/1 masquerade
+		snat to ct mark map @proto-services-back-m
+	}
+
+	chain nat-configure-external-ips--http {
+	}
+
+	chain output-filter {
+		type filter hook output priority mangle; policy accept;
+		ip protocol . ip daddr . th dport vmap @output-filter-proto-services
+	}
+
+	chain output-nat {
+		type nat hook output priority -100; policy accept;
+		ip protocol . ip daddr . th dport vmap @output-nat-proto-services
+	}
+
+	chain filter-kube-dns--dns {
+		ct state new ct mark 0x00000000 ct mark set 0x80000000
+	}
+
+	chain nat-kube-dns--dns {
+	}
+
+	chain filter-kube-dns--dns-tcp {
+		ct state new ct mark 0x00000000 ct mark set 0x80000000
+	}
+
+	chain nat-kube-dns--dns-tcp {
+	}
+
+	chain filter-kube-dns--metrics {
+		ct state new ct mark 0x00000000 ct mark set 0x80000000
+	}
+
+	chain nat-kube-dns--metrics {
+	}
+}

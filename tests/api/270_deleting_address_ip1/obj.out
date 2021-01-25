@@ -1,0 +1,58 @@
+{
+        "addresses": [
+                {
+                        "name": "configure-external-ips--http-0",
+                        "family": "ipv4",
+                        "ip-addr": "10.106.180.207",
+                        "ports": "8080",
+                        "protocol": "tcp",
+                        "used": "0",
+                        "policies": []
+                },
+                {
+                        "name": "configure-external-ips--http--externalIP-2",
+                        "family": "ipv4",
+                        "ip-addr": "192.168.10.90",
+                        "ports": "8080",
+                        "protocol": "tcp",
+                        "used": "0",
+                        "policies": []
+                },
+                {
+                        "name": "configure-external-ips--http--externalIP-3",
+                        "family": "ipv4",
+                        "ip-addr": "192.168.10.91",
+                        "ports": "8080",
+                        "protocol": "tcp",
+                        "used": "0",
+                        "policies": []
+                },
+                {
+                        "name": "kube-dns--dns",
+                        "family": "ipv4",
+                        "ip-addr": "10.96.0.10",
+                        "ports": "53",
+                        "protocol": "udp",
+                        "used": "0",
+                        "policies": []
+                },
+                {
+                        "name": "kube-dns--dns-tcp",
+                        "family": "ipv4",
+                        "ip-addr": "10.96.0.10",
+                        "ports": "53",
+                        "protocol": "tcp",
+                        "used": "0",
+                        "policies": []
+                },
+                {
+                        "name": "kube-dns--metrics",
+                        "family": "ipv4",
+                        "ip-addr": "10.96.0.10",
+                        "ports": "9153",
+                        "protocol": "tcp",
+                        "used": "0",
+                        "policies": []
+                }
+        ]
+}

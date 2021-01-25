@@ -1,0 +1,3 @@
+FILE="data.json"
+VERB="DELETE"
+URI="addresses"

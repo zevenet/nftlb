@@ -1,0 +1,66 @@
+{
+        "farms": [
+                {
+                        "name": "configure-external-ips--http",
+                        "family": "ipv4",
+                        "virtual-addr": "10.106.180.207",
+                        "virtual-ports": "8080",
+                        "source-addr": "",
+                        "mode": "snat",
+                        "protocol": "tcp",
+                        "scheduler": "rr",
+                        "sched-param": "none",
+                        "persistence": "none",
+                        "persist-ttl": "60",
+                        "helper": "none",
+                        "log": "none",
+                        "mark": "0x0",
+                        "priority": "1",
+                        "state": "up",
+                        "new-rtlimit": "0",
+                        "new-rtlimit-burst": "0",
+                        "rst-rtlimit": "0",
+                        "rst-rtlimit-burst": "0",
+                        "est-connlimit": "0",
+                        "tcp-strict": "off",
+                        "queue": "-1",
+                        "intra-connect": "on",
+                        "addresses": [
+                                {
+                                        "name": "configure-external-ips--http-0",
+                                        "family": "ipv4",
+                                        "ip-addr": "10.106.180.207",
+                                        "ports": "8080",
+                                        "protocol": "tcp",
+                                        "used": "1"
+                                },
+                                {
+                                        "name": "configure-external-ips--http--externalIP-1",
+                                        "family": "ipv4",
+                                        "ip-addr": "192.168.10.89",
+                                        "ports": "8080",
+                                        "protocol": "tcp",
+                                        "used": "1"
+                                },
+                                {
+                                        "name": "configure-external-ips--http--externalIP-2",
+                                        "family": "ipv4",
+                                        "ip-addr": "192.168.10.90",
+                                        "ports": "8080",
+                                        "protocol": "tcp",
+                                        "used": "1"
+                                },
+                                {
+                                        "name": "configure-external-ips--http--externalIP-3",
+                                        "family": "ipv4",
+                                        "ip-addr": "192.168.10.91",
+                                        "ports": "8080",
+                                        "protocol": "tcp",
+                                        "used": "1"
+                                }
+                        ],
+                        "backends": [],
+                        "policies": []
+                }
+        ]
+}
