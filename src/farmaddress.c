@@ -205,8 +205,10 @@ int farmaddress_set_attribute(struct config_pair *c)
 	struct farm *f = obj_get_current_farm();
 	struct address *a;
 
-	if (!f)
+	if (!f) {
+		tools_printlog(LOG_INFO, "%s():%d: farm UNKNOWN", __FUNCTION__, __LINE__);
 		return PARSER_OBJ_UNKNOWN;
+	}
 
 	switch (c->key) {
 	case KEY_NAME:
@@ -215,8 +217,8 @@ int farmaddress_set_attribute(struct config_pair *c)
 			a = address_create(c->str_value);
 			if (!a)
 				return -1;
-			obj_set_current_address(a);
 		}
+		obj_set_current_address(a);
 		fa = farmaddress_lookup_by_name(f, c->str_value);
 		if (fa)
 			return 0;

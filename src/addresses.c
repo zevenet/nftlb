@@ -311,8 +311,10 @@ int address_set_attribute(struct config_pair *c)
 	struct address *a = obj_get_current_address();
 	int ret = PARSER_FAILED;
 
-	if (c->key != KEY_NAME && !a)
+	if (c->key != KEY_NAME && !a) {
+		tools_printlog(LOG_INFO, "%s():%d: address UNKNOWN", __FUNCTION__, __LINE__);
 		return PARSER_OBJ_UNKNOWN;
+	}
 
 	switch (c->key) {
 	case KEY_NAME:
@@ -365,6 +367,9 @@ int address_set_attribute(struct config_pair *c)
 		break;
 	case KEY_ACTION:
 		ret = address_set_action(a, c->int_value);
+		break;
+	case KEY_USED:
+		ret = PARSER_OK;
 		break;
 	default:
 		return PARSER_STRUCT_FAILED;

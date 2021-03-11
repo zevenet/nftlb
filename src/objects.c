@@ -579,6 +579,9 @@ int obj_set_attribute(struct config_pair *c, int actionable, int apply_action)
 			element_pos_actionable(c, apply_action);
 		break;
 	case LEVEL_ADDRESSES:
+		if (!address_changed(c))
+			return PARSER_OK;
+
 		if (actionable)
 			address_pre_actionable(c);
 
