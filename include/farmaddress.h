@@ -47,6 +47,6 @@ int farmaddress_s_set_attribute(struct farm *f, struct config_pair *c);
 int farmaddress_create_default(struct config_pair *c);
 struct farmaddress * farmaddress_get_first(struct farm *f);
 int farmaddress_s_validate_helper(struct farm *f, int new_value);
-
+int farmaddress_rename_default(struct config_pair *c);
 
 #endif /* _FARMADDRESS_H_ */

@@ -317,3 +317,30 @@ struct farmaddress * farmaddress_get_first(struct farm *f)
 
 	return list_first_entry(&f->addresses, struct farmaddress, list);
 }
+
+int farmaddress_rename_default(struct config_pair *c)
+{
+	char fa_name[300];
+
+	struct farm *f = obj_get_current_farm();
+	struct farmaddress *fa;
+	struct address *a;
+
+	if (!f)
+		return 1;
+
+	sprintf(fa_name, "%s-addr", f->name);
+	a = address_lookup_by_name(fa_name);
+	if (!a)
+		return 1;
+
+	fa = farmaddress_lookup_by_name(f, fa_name);
+	if (!fa)
+		return 1;
+
+	free(a->name);
+	sprintf(fa_name, "%s-addr", c->str_value);
+	obj_set_attribute_string(fa_name, &a->name);
+
+	return 0;
+}

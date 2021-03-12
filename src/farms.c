@@ -877,6 +877,7 @@ int farm_set_attribute(struct config_pair *c)
 	case KEY_NEWNAME:
 		nf = farm_lookup_by_name(c->str_value);
 		if (!nf) {
+			farmaddress_rename_default(c);
 			free(f->name);
 			obj_set_attribute_string(c->str_value, &f->name);
 		}

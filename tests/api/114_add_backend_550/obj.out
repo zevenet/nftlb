@@ -26,7 +26,7 @@
                         "queue": "-1",
                         "addresses": [
                                 {
-                                        "name": "lb01-addr",
+                                        "name": "lb012-addr",
                                         "family": "ipv4",
                                         "ip-addr": "2.2.2.2",
                                         "ports": "6595",
