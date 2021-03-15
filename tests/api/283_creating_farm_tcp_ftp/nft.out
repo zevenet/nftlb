@@ -1,0 +1,46 @@
+table ip nftlb {
+	ct helper ftp-tcp {
+		type "ftp" protocol tcp
+		l3proto ip
+	}
+
+	map filter-proto-services {
+		type inet_proto . ipv4_addr . inet_service : verdict
+		elements = { tcp . 200.1.1.1 . 8080 : goto filter-lb01 }
+	}
+
+	map nat-proto-services {
+		type inet_proto . ipv4_addr . inet_service : verdict
+		elements = { tcp . 200.1.1.1 . 8080 : goto nat-lb01 }
+	}
+
+	map proto-services-back-m {
+		type mark : ipv4_addr
+	}
+
+	chain filter {
+		type filter hook prerouting priority mangle; policy accept;
+		meta mark set ct mark
+		ip protocol . ip daddr . th dport vmap @filter-proto-services
+	}
+
+	chain filter-lb01 {
+		ip protocol tcp ct helper set "ftp-tcp"
+		ct state new ct mark 0x00000000 ct mark set numgen random mod 10 map { 0-4 : 0x80000001, 5-9 : 0x80000002 }
+	}
+
+	chain prerouting {
+		type nat hook prerouting priority dstnat; policy accept;
+		ip protocol . ip daddr . th dport vmap @nat-proto-services
+	}
+
+	chain postrouting {
+		type nat hook postrouting priority srcnat; policy accept;
+		ct mark 0x80000000/1 masquerade
+		snat to ct mark map @proto-services-back-m
+	}
+
+	chain nat-lb01 {
+		dnat ip addr . port to ct mark map { 0x80000001 : 172.16.138.202 . 80, 0x80000002 : 172.16.138.203 . 80 }
+	}
+}

@@ -156,9 +156,42 @@ static int farm_validate_oface(struct farm *f)
 	return 1;
 }
 
+static int farm_validate_helper_protocol(struct farm *f)
+{
+	struct farmaddress *fa, *next;
+
+	list_for_each_entry_safe(fa, next, &f->addresses, list) {
+		if (fa->address->protocol == VALUE_PROTO_ALL) {
+			if ((f->helper != VALUE_HELPER_NONE && f->helper != VALUE_HELPER_SIP))
+				return 0;
+			continue;
+		}
+
+		if (fa->address->protocol == VALUE_PROTO_TCP) {
+			if ((f->helper != VALUE_HELPER_NONE && f->helper != VALUE_HELPER_FTP && f->helper != VALUE_HELPER_PPTP && f->helper != VALUE_HELPER_SIP))
+				return 0;
+			continue;
+		}
+
+		if (fa->address->protocol == VALUE_PROTO_UDP) {
+			if ((f->helper != VALUE_HELPER_NONE && f->helper != VALUE_HELPER_TFTP && f->helper != VALUE_HELPER_SNMP && f->helper != VALUE_HELPER_SIP))
+				return 0;
+			continue;
+		}
+	}
+
+	return 1;
+}
+
 static int farm_validate(struct farm *f)
 {
 	tools_printlog(LOG_DEBUG, "%s():%d: validating farm %s", __FUNCTION__, __LINE__, f->name);
+
+	if (!farm_validate_helper_protocol(f)) {
+		tools_printlog(LOG_WARNING, "Farm %s doesn't validate helper protocol", f->name);
+		config_set_output(". Farm '%s' doesn't validate helper protocol", f->name);
+		return 0;
+	}
 
 	if (farm_needs_policies(f) && !farmaddress_s_validate_iface(f))
 		return 0;
@@ -1238,36 +1271,4 @@ void farm_s_set_oface_info(struct address *a)
 			f->ofidx = a->ifidx;
 		}
 	}
-}
-
-int farm_s_validate_helper_proto(struct address *a, int new_value)
-{
-	struct list_head *farms = obj_get_farms();
-	struct farm *f, *next;
-	struct farmaddress *fa;
-
-	list_for_each_entry_safe(f, next, farms, list) {
-		fa = farmaddress_lookup_by_name(f, a->name);
-		if (fa) {
-			if (new_value == VALUE_PROTO_ALL) {
-				if ((f->helper != VALUE_HELPER_NONE && f->helper != VALUE_HELPER_SIP)){
-					return PARSER_FAILED; }
-				continue;
-			}
-
-			if (new_value == VALUE_PROTO_TCP) {
-				if ((f->helper != VALUE_HELPER_NONE && f->helper != VALUE_HELPER_FTP && f->helper != VALUE_HELPER_PPTP && f->helper != VALUE_HELPER_SIP)){
-					return PARSER_FAILED;}
-				continue;
-			}
-
-			if (new_value == VALUE_PROTO_UDP) {
-				if ((f->helper != VALUE_HELPER_NONE && f->helper != VALUE_HELPER_TFTP && f->helper != VALUE_HELPER_SNMP && f->helper != VALUE_HELPER_SIP)){
-					return PARSER_FAILED;}
-				continue;
-			}
-		}
-	}
-
-	return PARSER_OK;
 }

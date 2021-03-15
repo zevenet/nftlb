@@ -203,9 +203,6 @@ int address_set_protocol(struct address *a, int new_value)
 
 	syslog(LOG_DEBUG, "%s():%d: address %s old protocol %d new protocol %d", __FUNCTION__, __LINE__, a->name, old_value, new_value);
 
-	if (farm_s_validate_helper_proto(a, new_value))
-		return PARSER_FAILED;
-
 	a->protocol = new_value;
 	return PARSER_OK;
 }
