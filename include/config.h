@@ -53,6 +53,7 @@
 #define CONFIG_KEY_WEIGHT		"weight"
 #define CONFIG_KEY_PRIORITY		"priority"
 #define CONFIG_KEY_ACTION		"action"
+#define CONFIG_KEY_LIMITSTTL	"limits-ttl"
 #define CONFIG_KEY_NEWRTLIMIT	"new-rtlimit"
 #define CONFIG_KEY_NEWRTLIMITBURST	"new-rtlimit-burst"
 #define CONFIG_KEY_NEWRTLIMIT_LOGPREFIX	"new-rtlimit-log-prefix"

@@ -78,6 +78,7 @@ static struct farm * farm_create(char *name)
 
 	pfarm->total_weight = 0;
 	pfarm->priority = DEFAULT_PRIORITY;
+	pfarm->limitsttl = DEFAULT_LIMITSTTL;
 	pfarm->newrtlimit = DEFAULT_NEWRTLIMIT;
 	pfarm->newrtlimitbst = DEFAULT_RTLIMITBURST;
 	pfarm->newrtlimit_logprefix = DEFAULT_LOGPREFIX;
@@ -432,6 +433,7 @@ static void farm_print(struct farm *f)
 	syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_STATE, obj_print_state(f->state));
 	syslog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_PRIORITY, f->priority);
 
+	syslog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_LIMITSTTL, f->limitsttl);
 	syslog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_NEWRTLIMIT, f->newrtlimit);
 	syslog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_NEWRTLIMITBURST, f->newrtlimitbst);
 	if (f->newrtlimit_logprefix)
@@ -475,6 +477,15 @@ static void farm_print(struct farm *f)
 		session_s_print(f);
 
 	farmpolicy_s_print(f);
+}
+
+static int farm_set_limitsttl(struct farm *f, int new_value)
+{
+	if (f->limitsttl == new_value)
+		return PARSER_OK;
+
+	f->limitsttl = new_value;
+	return PARSER_OK;
 }
 
 static int farm_set_newrtlimit(struct farm *f, int new_value)
@@ -619,6 +630,9 @@ int farm_changed(struct config_pair *c)
 		break;
 	case KEY_ACTION:
 		return !obj_equ_attribute_int(f->action, c->int_value);
+		break;
+	case KEY_LIMITSTTL:
+		return !obj_equ_attribute_int(f->limitsttl, c->int_value);
 		break;
 	case KEY_NEWRTLIMIT:
 		return !obj_equ_attribute_int(f->newrtlimit, c->int_value);
@@ -846,6 +860,7 @@ int farm_pre_actionable(struct config_pair *c)
 	case KEY_FLOWOFFLOAD:
 	case KEY_LOG:
 	case KEY_HELPER:
+	case KEY_LIMITSTTL:
 		if (farm_set_action(f, ACTION_STOP))
 			farm_rulerize(f);
 		break;
@@ -881,6 +896,7 @@ int farm_pos_actionable(struct config_pair *c)
 	case KEY_FLOWOFFLOAD:
 	case KEY_LOG:
 	case KEY_HELPER:
+	case KEY_LIMITSTTL:
 		farm_set_action(f, ACTION_START);
 		break;
 	case KEY_STATE:
@@ -1012,6 +1028,9 @@ int farm_set_attribute(struct config_pair *c)
 		break;
 	case KEY_ACTION:
 		ret = farm_set_action(f, c->int_value);
+		break;
+	case KEY_LIMITSTTL:
+		ret = farm_set_limitsttl(f, c->int_value);
 		break;
 	case KEY_NEWRTLIMIT:
 		ret = farm_set_newrtlimit(f, c->int_value);

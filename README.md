@@ -90,6 +90,7 @@ Where every farm object has the following attributes:
 	"log-prefix": "<string|KNAME|TYPE|FNAME>",	*Farm log prefix (default "TYPE-FNAME")*
 	"mark": "<hexadecimal mark>",			*Set mark mask for the farm (none by default)*
 	"priority": "<number>",				*Priority availability for backends > 0 (1 by default)*
+	"limits-ttl": "<number>",				*Timeout of banned client due to limit protections (120 seconds by default)*
 	"new-rtlimit": "<number>",				*Number of new connections per second per service (disabled by default)*
 	"new-rtlimit-burst": "<number>",			*Number of burst packets (disabled by default)*
 	"new-rtlimit-log-prefix": "<string|KNAME|TYPE|FNAME>",	*Farm new rtlimit log prefix (default "KNAME-TYPE-FNAME")*

@@ -133,6 +133,7 @@ struct farm {
 	int			mark;
 	int			state;
 	int			priority;
+	int			limitsttl;
 	int			newrtlimit;
 	int			newrtlimitbst;
 	char		*newrtlimit_logprefix;

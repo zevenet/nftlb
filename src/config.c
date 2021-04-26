@@ -320,6 +320,7 @@ static int config_value(const char *value)
 		break;
 	case KEY_RESPONSETTL:
 	case KEY_PERSISTTM:
+	case KEY_LIMITSTTL:
 	case KEY_NEWRTLIMIT:
 	case KEY_NEWRTLIMITBURST:
 	case KEY_RSTRTLIMIT:
@@ -458,6 +459,8 @@ static int config_key(const char *key)
 		return KEY_PRIORITY;
 	if (strcmp(key, CONFIG_KEY_ACTION) == 0)
 		return KEY_ACTION;
+	if (strcmp(key, CONFIG_KEY_LIMITSTTL) == 0)
+		return KEY_LIMITSTTL;
 	if (strcmp(key, CONFIG_KEY_NEWRTLIMIT) == 0)
 		return KEY_NEWRTLIMIT;
 	if (strcmp(key, CONFIG_KEY_NEWRTLIMITBURST) == 0)
@@ -786,6 +789,8 @@ static struct json_t *add_dump_list(json_t *obj, const char *objname, int object
 			add_dump_obj(item, CONFIG_KEY_PRIORITY, value);
 			add_dump_obj(item, CONFIG_KEY_STATE, obj_print_state(f->state));
 
+			config_dump_int(value, f->limitsttl);
+			add_dump_obj(item, CONFIG_KEY_LIMITSTTL, value);
 			config_dump_int(value, f->newrtlimit);
 			add_dump_obj(item, CONFIG_KEY_NEWRTLIMIT, value);
 			config_dump_int(value, f->newrtlimitbst);

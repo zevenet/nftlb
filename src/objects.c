@@ -231,6 +231,8 @@ char * obj_print_key(int key)
 		return CONFIG_KEY_PRIORITY;
 	case KEY_ACTION:
 		return CONFIG_KEY_ACTION;
+	case KEY_LIMITSTTL:
+		return CONFIG_KEY_LIMITSTTL;
 	case KEY_NEWRTLIMIT:
 		return CONFIG_KEY_NEWRTLIMIT;
 	case KEY_NEWRTLIMITBURST:

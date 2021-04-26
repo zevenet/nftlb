@@ -1451,11 +1451,17 @@ static int run_farm_rules_filter_persistence_update(struct sbuffer *buf, struct 
 	return 0;
 }
 
-static void run_farm_meter(struct sbuffer *buf, struct farm *f, int family, char *name, int action)
+static void run_farm_meter(struct sbuffer *buf, struct farm *f, int family, int type, char *name, int action)
 {
 	switch (action) {
 	case ACTION_START:
-		concat_exec_cmd(buf, " ; add set %s %s %s { type %s ; flags dynamic ; } ;", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, name, print_nft_family_type(family));
+		concat_buf(buf, " ; add set %s %s %s { type %s ; flags dynamic ; ", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, name, print_nft_family_type(family));
+
+		// ct count doesn't require timeout as it is implemented implicitly
+		if (type != KEY_ESTCONNLIMIT &&
+			f->limitsttl)
+			concat_buf(buf, "timeout %ds; ", f->limitsttl);
+		concat_exec_cmd(buf, "} ;");
 		break;
 	case ACTION_STOP:
 		concat_exec_cmd(buf, " ; delete set %s %s %s ; ", print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, name);
@@ -1480,9 +1486,9 @@ static int run_farm_rules_filter_policies(struct sbuffer *buf, struct farm *f, i
 	sprintf(meter_str, "%s-%s", CONFIG_KEY_NEWRTLIMIT, f->name);
 	print_log_format(logprefix_str, KEY_NEWRTLIMIT_LOGPREFIX, NFTLB_F_CHAIN_PRE_FILTER, f, NULL, NULL);
 	if ((action == ACTION_START && f->newrtlimit != DEFAULT_NEWRTLIMIT) || (f->reload_action & VALUE_RLD_NEWRTLIMIT_START))
-		run_farm_meter(buf, f, family, meter_str, ACTION_START);
+		run_farm_meter(buf, f, family, KEY_NEWRTLIMIT, meter_str, ACTION_START);
 	if (((action == ACTION_STOP || action == ACTION_DELETE) && f->newrtlimit != DEFAULT_NEWRTLIMIT) || (f->reload_action & VALUE_RLD_NEWRTLIMIT_STOP))
-		run_farm_meter(buf, f, family, meter_str, ACTION_STOP);
+		run_farm_meter(buf, f, family, KEY_NEWRTLIMIT, meter_str, ACTION_STOP);
 	if ((action == ACTION_START || action == ACTION_RELOAD) && f->newrtlimit != DEFAULT_NEWRTLIMIT) {
 		if (f->newrtlimitbst != DEFAULT_RTLIMITBURST)
 			sprintf(burst_str, "burst %d packets ", f->newrtlimitbst);
@@ -1493,9 +1499,9 @@ static int run_farm_rules_filter_policies(struct sbuffer *buf, struct farm *f, i
 	sprintf(meter_str, "%s-%s", CONFIG_KEY_RSTRTLIMIT, f->name);
 	print_log_format(logprefix_str, KEY_RSTRTLIMIT_LOGPREFIX, NFTLB_F_CHAIN_PRE_FILTER, f, NULL, NULL);
 	if ((action == ACTION_START && f->rstrtlimit != DEFAULT_RSTRTLIMIT) || (f->reload_action & VALUE_RLD_RSTRTLIMIT_START))
-		run_farm_meter(buf, f, family, meter_str, ACTION_START);
+		run_farm_meter(buf, f, family, KEY_RSTRTLIMIT, meter_str, ACTION_START);
 	if (((action == ACTION_STOP || action == ACTION_DELETE) && f->rstrtlimit != DEFAULT_RSTRTLIMIT) || (f->reload_action & VALUE_RLD_RSTRTLIMIT_STOP))
-		run_farm_meter(buf, f, family, meter_str, ACTION_STOP);
+		run_farm_meter(buf, f, family, KEY_RSTRTLIMIT, meter_str, ACTION_STOP);
 	if ((action == ACTION_START || action == ACTION_RELOAD) && f->rstrtlimit != DEFAULT_RSTRTLIMIT) {
 		if (f->rstrtlimitbst != DEFAULT_RTLIMITBURST)
 			sprintf(burst_str, "burst %d packets ", f->rstrtlimitbst);
@@ -1506,9 +1512,9 @@ static int run_farm_rules_filter_policies(struct sbuffer *buf, struct farm *f, i
 	sprintf(meter_str, "%s-%s", CONFIG_KEY_ESTCONNLIMIT, f->name);
 	print_log_format(logprefix_str, KEY_ESTCONNLIMIT_LOGPREFIX, NFTLB_F_CHAIN_PRE_FILTER, f, NULL, NULL);
 	if ((action == ACTION_START && f->estconnlimit != DEFAULT_ESTCONNLIMIT) || (f->reload_action & VALUE_RLD_ESTCONNLIMIT_START))
-		run_farm_meter(buf, f, family, meter_str, ACTION_START);
+		run_farm_meter(buf, f, family, KEY_ESTCONNLIMIT, meter_str, ACTION_START);
 	if (((action == ACTION_STOP || action == ACTION_DELETE) && f->estconnlimit != DEFAULT_ESTCONNLIMIT) || (f->reload_action & VALUE_RLD_ESTCONNLIMIT_STOP))
-		run_farm_meter(buf, f, family, meter_str, ACTION_STOP);
+		run_farm_meter(buf, f, family, KEY_ESTCONNLIMIT, meter_str, ACTION_STOP);
 	if ((action == ACTION_START || action == ACTION_RELOAD) && f->estconnlimit != DEFAULT_ESTCONNLIMIT)
 		concat_exec_cmd(buf, " ; add rule %s %s %s ct state new add @%s { ip saddr ct count over %d } log prefix \"%s\" drop",
 						print_nft_table_family(family, f->mode), NFTLB_TABLE_NAME, chain, meter_str, f->estconnlimit, logprefix_str);
