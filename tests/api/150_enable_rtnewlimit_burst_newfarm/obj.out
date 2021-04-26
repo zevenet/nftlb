@@ -17,6 +17,7 @@
                         "mark": "0x0",
                         "priority": "1",
                         "state": "up",
+                        "limits-ttl": "120",
                         "new-rtlimit": "22",
                         "new-rtlimit-burst": "2",
                         "rst-rtlimit": "0",

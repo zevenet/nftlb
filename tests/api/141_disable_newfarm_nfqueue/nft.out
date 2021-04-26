@@ -18,7 +18,8 @@ table ip nftlb {
 	set rst-rtlimit-newfarm6 {
 		type ipv4_addr
 		size 65535
-		flags dynamic
+		flags dynamic,timeout
+		timeout 2m
 	}
 
 	chain filter {
