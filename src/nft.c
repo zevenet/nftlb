@@ -39,6 +39,7 @@
 
 #define NFTLB_MAX_CMD				2048
 #define NFTLB_MAX_IFACES			100
+#define NFTLB_MAX_PORTS				65535
 
 #define NFTLB_TABLE_NAME			"nftlb"
 #define NFTLB_TABLE_PREROUTING		"prerouting"
@@ -424,12 +425,31 @@ static void get_range_ports(const char *ptr, int *first, int *last)
 	sscanf(ptr, "%d-%d[^,]", first, last);
 }
 
+static int search_array_port(int *port_list, int port)
+{
+	int idx = 0;
+
+	if (!port_list)
+		return 0;
+
+	while (idx < NFTLB_MAX_PORTS || port_list[idx] == 0) {
+		if (port_list[idx] == port)
+			return 1;
+		idx++;
+	}
+
+	return 0;
+}
+
 static int get_array_ports(int *port_list, struct farm *f)
 {
 	int index = 0;
 	char *ptr;
 	int i, new;
 	int last = 0;
+
+	if (!port_list)
+		return -1;
 
 	ptr = f->virtports;
 	while (ptr != NULL && *ptr != '\0') {
@@ -439,8 +459,10 @@ static int get_array_ports(int *port_list, struct farm *f)
 			last = new;
 		if (new > last)
 			goto next;
-		for (i = new; i <= last; i++, index++)
-			port_list[index] = i;
+		for (i = new; i <= last; i++)
+			if (!search_array_port(port_list, i))
+				port_list[index++] = i;
+
 next:
 		ptr = strchr(ptr, ',');
 		if (ptr != NULL)
@@ -872,7 +894,7 @@ static int run_farm_rules_gen_srv_data(char **buf, struct farm *f, struct backen
 
 static int run_farm_rules_gen_srv_map(struct sbuffer *buf, struct farm *f, char *nft_family, int type, int action, enum map_modes key_mode, enum map_modes data_mode)
 {
-	int port_list[65535] = { 0 };
+	int port_list[NFTLB_MAX_PORTS] = { 0 };
 	char action_str[255] = { 0 };
 	char key_str[255] = { 0 };
 	char *data_str = NULL;
