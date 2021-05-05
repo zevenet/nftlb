@@ -37,6 +37,7 @@ struct address {
 	char				*ports;
 	int					family;
 	int					protocol;
+	int					verdict;
 	struct list_head	policies;
 	int					policies_used;
 	int					policies_action;

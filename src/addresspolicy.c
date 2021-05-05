@@ -102,8 +102,9 @@ int addresspolicy_set_action(struct addresspolicy *ap, int action)
 		return 1;
 	}
 
-	if (ap->action != action) {
+	if (ap->action > action) {
 		ap->action = action;
+		ap->address->policies_action = ACTION_RELOAD;
 		return 1;
 	}
 

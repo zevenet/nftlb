@@ -97,11 +97,23 @@ static int policy_set_family(struct policy *p, int new_value)
 	return 0;
 }
 
+static int policy_set_type(struct policy *p, int new_value)
+{
+	int old_value = p->type;
+
+	tools_printlog(LOG_DEBUG, "%s():%d: policy %s old type %d new type %d", __FUNCTION__, __LINE__, p->name, old_value, new_value);
+
+	p->type = new_value;
+
+	return 0;
+}
+
 void policy_print(struct policy *p)
 {
 	tools_printlog(LOG_DEBUG," [policy] ");
 	tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_NAME, p->name);
 	tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_TYPE, obj_print_policy_type(p->type));
+
 	tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_ROUTE, obj_print_policy_route(p->route));
 	tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_FAMILY, obj_print_family(p->family));
 	tools_printlog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_TIMEOUT, p->timeout);
@@ -196,7 +208,7 @@ int policy_set_attribute(struct config_pair *c)
 		obj_set_current_policy(p);
 		break;
 	case KEY_TYPE:
-		p->type = c->int_value;
+		policy_set_type(p, c->int_value);
 		break;
 	case KEY_ROUTE:
 		p->route = c->int_value;
@@ -231,7 +243,7 @@ int policy_set_action(struct policy *p, int action)
 {
 	tools_printlog(LOG_DEBUG, "%s():%d: policy %s set action %d", __FUNCTION__, __LINE__, p->name, action);
 
-	if (p->action == action)
+	if (p->action == action || (p->action == ACTION_START && action == ACTION_RELOAD))
 		return 0;
 
 	if (action == ACTION_DELETE) {
@@ -240,12 +252,13 @@ int policy_set_action(struct policy *p, int action)
 		return 1;
 	}
 
-	if (action == ACTION_STOP) {
+	if (action == ACTION_STOP || action == ACTION_RELOAD) {
 		farm_s_lookup_policy_action(p->name, action);
 		address_s_lookup_policy_action(p->name, action);
 	}
 
 	p->action = action;
+
 	return 1;
 }
 
@@ -282,7 +295,6 @@ int policy_pre_actionable(struct config_pair *c)
 		break;
 	default:
 		policy_set_action(p, ACTION_RELOAD);
-		return 0;
 	}
 
 	return 0;
@@ -310,7 +322,6 @@ int policy_pos_actionable(struct config_pair *c)
 		break;
 	default:
 		policy_set_action(p, ACTION_RELOAD);
-		return 0;
 	}
 
 	return 0;

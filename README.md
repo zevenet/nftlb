@@ -108,6 +108,7 @@ Where every farm object has the following attributes:
 	"est-connlimit-log-prefix": "<string|KNAME|TYPE|FNAME>",	*Farm established connlimit log prefix (default "KNAME-TYPE-FNAME")*
 	"tcp-strict": "<on | off>",				*Option to avoid bogus TCP attacks (disabled by default)*
 	"tcp-strict-log-prefix": "<string|KNAME|TYPE|FNAME>",	*Farm TCP strict log prefix (default "KNAME-TYPE-FNAME")*
+	"verdict": "<log | drop | accept>",			*Verdict to apply when a limit or blacklist/whitelist matches (log and default verdict per list type by default)*
 	"flow-offload": "<on | off>",				*Option to enable flow offload (disabled by default)*
 	"intra-connect": "<on | off>",				*Option to enable connectivity from the local machine (disabled by default)*
 	"queue": "<number>",				*Number of the queue to send the packets to userspace (disabled by default)*
@@ -144,6 +145,7 @@ Where every address object has the following attributes:
 	"ip-addr": "<ip address>",			*IP address*
 	"ports": "<port list>",				*Port list separated by commas or ranges separated by a hyphen*
 	"protocol": "<tcp | udp | sctp | all>",		*Protocol to be used by the address (tcp by default)*
+	"verdict": "<log | drop | accept>",			*Verdict to apply when a limit or blacklist/whitelist matches (log and default verdict per list type by default)*
 }
 ```
 Where every backend object has the following attributes:

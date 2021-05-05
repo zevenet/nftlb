@@ -57,6 +57,7 @@ struct address * address_create(char *name)
 	paddress->family = DEFAULT_FAMILY;
 	paddress->protocol = DEFAULT_PROTO;
 	paddress->action = DEFAULT_ACTION;
+	paddress->verdict = DEFAULT_VERDICT;
 	paddress->policies_action = ACTION_NONE;
 
 	init_list_head(&paddress->policies);
@@ -115,6 +116,8 @@ int address_set_ports(struct address *a, char *new_value)
 
 void address_print(struct address *a)
 {
+	char buf[100] = {};
+
 	tools_printlog(LOG_DEBUG," [address] ");
 	tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_NAME, a->name);
 
@@ -137,6 +140,10 @@ void address_print(struct address *a)
 
 	tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_FAMILY, obj_print_family(a->family));
 	tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_PROTO, obj_print_proto(a->protocol));
+
+	obj_print_verdict(a->verdict, (char *)buf);
+	tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_VERDICT, buf);
+	buf[0] = '\0';
 
 	tools_printlog(LOG_DEBUG,"   *[used] %d", a->used);
 	tools_printlog(LOG_DEBUG,"   *[%s] %d", CONFIG_KEY_ACTION, a->action);
@@ -207,6 +214,20 @@ int address_set_protocol(struct address *a, int new_value)
 	return PARSER_OK;
 }
 
+static int address_set_verdict(struct address *a, int new_value)
+{
+	int old_value = a->verdict;
+
+	tools_printlog(LOG_DEBUG, "%s():%d: address %s old verdict %d new verdict %d", __FUNCTION__, __LINE__, a->name, old_value, new_value);
+
+	if (new_value == VALUE_VERDICT_NONE)
+		return 1;
+
+	a->verdict = new_value;
+
+	return 0;
+}
+
 int address_set_netinfo(struct address *a)
 {
 	tools_printlog(LOG_DEBUG, "%s():%d: address %s", __FUNCTION__, __LINE__, a->name);
@@ -250,6 +271,9 @@ int address_changed(struct config_pair *c)
 		break;
 	case KEY_PROTO:
 		return !obj_equ_attribute_int(a->protocol, c->int_value);
+		break;
+	case KEY_VERDICT:
+		return !obj_equ_attribute_int(a->verdict, c->int_value);
 		break;
 	case KEY_ACTION:
 		return !obj_equ_attribute_int(a->action, c->int_value);
@@ -361,6 +385,10 @@ int address_set_attribute(struct config_pair *c)
 		break;
 	case KEY_PROTO:
 		ret = address_set_protocol(a, c->int_value);
+		break;
+	case KEY_VERDICT:
+		if (!address_set_verdict(q, c->int_value))
+			return PARSER_OK;
 		break;
 	case KEY_ACTION:
 		ret = address_set_action(a, c->int_value);

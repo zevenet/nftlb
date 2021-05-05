@@ -127,6 +127,7 @@
 #define NFTLB_NFT_SADDR				"saddr"
 #define NFTLB_NFT_SPORT				"sport"
 
+#define NFTLB_NFT_VERDICT_NONE		""
 #define NFTLB_NFT_VERDICT_DROP		"drop"
 #define NFTLB_NFT_VERDICT_ACCEPT	"accept"
 #define NFTLB_NFT_PREFIX_POLICY_BL	"BL"
@@ -637,17 +638,19 @@ static char * print_nft_protocol(int protocol)
 	}
 }
 
-static char * print_nft_verdict(enum type type)
+static char * print_nft_verdict(int verdict, int type)
 {
-	if (type == VALUE_TYPE_WHITE)
+	if (type == VALUE_TYPE_ALLOW && verdict & VALUE_VERDICT_ACCEPT)
 		return NFTLB_NFT_VERDICT_ACCEPT;
 	else
-		return NFTLB_NFT_VERDICT_DROP;
+		if (type == VALUE_TYPE_DENY && verdict & VALUE_VERDICT_DROP)
+			return NFTLB_NFT_VERDICT_DROP;
+	return NFTLB_NFT_VERDICT_NONE;
 }
 
 static char * print_nft_prefix_policy(enum type type)
 {
-	if (type == VALUE_TYPE_WHITE)
+	if (type == VALUE_TYPE_ALLOW)
 		return NFTLB_NFT_PREFIX_POLICY_WL;
 	else
 		return NFTLB_NFT_PREFIX_POLICY_BL;
@@ -1074,8 +1077,6 @@ static void run_farm_map(struct sbuffer *buf, struct address *a, int family, uns
 static int run_base_table(struct sbuffer *buf, int type, int family, int action)
 {
 	char *chain_family = print_nft_table_family(family, type);
-
-	tools_printlog(LOG_DEBUG, "!!! %s():%d: pos %d - action %d", __FUNCTION__, __LINE__, get_chain_pos_counter(type), action);
 
 	if (action == ACTION_STOP || action == ACTION_DELETE) {
 		// delete ip and ip6 based nftlb tables
@@ -1983,13 +1984,16 @@ static int run_farm_rules_filter_policies(struct sbuffer *buf, struct farm *f, i
 	char burst_str[255] = { 0 };
 
 	if ((action == ACTION_START || action == ACTION_RELOAD) && f->tcpstrict == VALUE_SWITCH_ON) {
-		print_log_format(logprefix_str, KEY_TCPSTRICT_LOGPREFIX, NFTLB_F_CHAIN_PRE_FILTER, f, NULL, NULL);
-		concat_exec_cmd(buf, " ; add rule %s %s %s ct state invalid log prefix \"%s\" drop",
-						print_nft_table_family(family, NFTLB_F_CHAIN_PRE_FILTER), NFTLB_TABLE_NAME, chain, logprefix_str);
+		concat_buf(buf, " ; add rule %s %s %s ct state invalid",
+						print_nft_table_family(family, NFTLB_F_CHAIN_PRE_FILTER), NFTLB_TABLE_NAME, chain);
+		if (f->verdict & VALUE_VERDICT_LOG) {
+			print_log_format(logprefix_str, KEY_TCPSTRICT_LOGPREFIX, NFTLB_F_CHAIN_PRE_FILTER, f, NULL, NULL);
+			concat_buf(buf, " log prefix \"%s\"", logprefix_str);
+		}
+		concat_exec_cmd(buf, " %s", print_nft_verdict(f->verdict, VALUE_TYPE_DENY));
 	}
 
 	sprintf(meter_str, "%s-%s", CONFIG_KEY_NEWRTLIMIT, f->name);
-	print_log_format(logprefix_str, KEY_NEWRTLIMIT_LOGPREFIX, NFTLB_F_CHAIN_PRE_FILTER, f, NULL, NULL);
 	if ((action == ACTION_START && f->newrtlimit != DEFAULT_NEWRTLIMIT) || (action == ACTION_RELOAD && f->reload_action & VALUE_RLD_NEWRTLIMIT_START))
 		run_farm_meter(buf, f, family, KEY_NEWRTLIMIT, meter_str, ACTION_START);
 	if (((action == ACTION_STOP || action == ACTION_DELETE) && f->newrtlimit != DEFAULT_NEWRTLIMIT) || (action == ACTION_RELOAD && f->reload_action & VALUE_RLD_NEWRTLIMIT_STOP))
@@ -1997,12 +2001,16 @@ static int run_farm_rules_filter_policies(struct sbuffer *buf, struct farm *f, i
 	if ((action == ACTION_START || action == ACTION_RELOAD) && f->newrtlimit != DEFAULT_NEWRTLIMIT) {
 		if (f->newrtlimitbst != DEFAULT_RTLIMITBURST)
 			sprintf(burst_str, "burst %d packets ", f->newrtlimitbst);
-		concat_exec_cmd(buf, " ; add rule %s %s %s ct state new add @%s { ip saddr limit rate over %d/second %s} log prefix \"%s\" drop",
-						print_nft_table_family(family, NFTLB_F_CHAIN_PRE_FILTER), NFTLB_TABLE_NAME, chain, meter_str, f->newrtlimit, burst_str, logprefix_str);
+		concat_buf(buf, " ; add rule %s %s %s ct state new add @%s { ip saddr limit rate over %d/second %s}",
+						print_nft_table_family(family, NFTLB_F_CHAIN_PRE_FILTER), NFTLB_TABLE_NAME, chain, meter_str, f->newrtlimit, burst_str);
+		if (f->verdict & VALUE_VERDICT_LOG) {
+			print_log_format(logprefix_str, KEY_NEWRTLIMIT_LOGPREFIX, NFTLB_F_CHAIN_PRE_FILTER, f, NULL, NULL);
+			concat_buf(buf, " log prefix \"%s\"", logprefix_str);
+		}
+		concat_exec_cmd(buf, " %s", print_nft_verdict(f->verdict, VALUE_TYPE_DENY));
 	}
 
 	sprintf(meter_str, "%s-%s", CONFIG_KEY_RSTRTLIMIT, f->name);
-	print_log_format(logprefix_str, KEY_RSTRTLIMIT_LOGPREFIX, NFTLB_F_CHAIN_PRE_FILTER, f, NULL, NULL);
 	if ((action == ACTION_START && f->rstrtlimit != DEFAULT_RSTRTLIMIT) || (action == ACTION_RELOAD && f->reload_action & VALUE_RLD_RSTRTLIMIT_START))
 		run_farm_meter(buf, f, family, KEY_RSTRTLIMIT, meter_str, ACTION_START);
 	if (((action == ACTION_STOP || action == ACTION_DELETE) && f->rstrtlimit != DEFAULT_RSTRTLIMIT) || (action == ACTION_RELOAD && f->reload_action & VALUE_RLD_RSTRTLIMIT_STOP))
@@ -2010,19 +2018,29 @@ static int run_farm_rules_filter_policies(struct sbuffer *buf, struct farm *f, i
 	if ((action == ACTION_START || action == ACTION_RELOAD) && f->rstrtlimit != DEFAULT_RSTRTLIMIT) {
 		if (f->rstrtlimitbst != DEFAULT_RTLIMITBURST)
 			sprintf(burst_str, "burst %d packets ", f->rstrtlimitbst);
-		concat_exec_cmd(buf, " ; add rule %s %s %s tcp flags rst add @%s { ip saddr limit rate over %d/second %s} log prefix \"%s\" drop",
-						print_nft_table_family(family, NFTLB_F_CHAIN_PRE_FILTER), NFTLB_TABLE_NAME, chain, meter_str, f->rstrtlimit, burst_str, logprefix_str);
+		concat_buf(buf, " ; add rule %s %s %s tcp flags rst add @%s { ip saddr limit rate over %d/second %s}",
+						print_nft_table_family(family, NFTLB_F_CHAIN_PRE_FILTER), NFTLB_TABLE_NAME, chain, meter_str, f->rstrtlimit, burst_str);
+		if (f->verdict & VALUE_VERDICT_LOG) {
+			print_log_format(logprefix_str, KEY_RSTRTLIMIT_LOGPREFIX, NFTLB_F_CHAIN_PRE_FILTER, f, NULL, NULL);
+			concat_buf(buf, " log prefix \"%s\"", logprefix_str);
+		}
+		concat_exec_cmd(buf, " %s", print_nft_verdict(f->verdict, VALUE_TYPE_DENY));
 	}
 
 	sprintf(meter_str, "%s-%s", CONFIG_KEY_ESTCONNLIMIT, f->name);
-	print_log_format(logprefix_str, KEY_ESTCONNLIMIT_LOGPREFIX, NFTLB_F_CHAIN_PRE_FILTER, f, NULL, NULL);
 	if ((action == ACTION_START && f->estconnlimit != DEFAULT_ESTCONNLIMIT) || (action == ACTION_RELOAD && f->reload_action & VALUE_RLD_ESTCONNLIMIT_START))
 		run_farm_meter(buf, f, family, KEY_ESTCONNLIMIT, meter_str, ACTION_START);
 	if (((action == ACTION_STOP || action == ACTION_DELETE) && f->estconnlimit != DEFAULT_ESTCONNLIMIT) || (action == ACTION_RELOAD && f->reload_action & VALUE_RLD_ESTCONNLIMIT_STOP))
 		run_farm_meter(buf, f, family, KEY_ESTCONNLIMIT, meter_str, ACTION_STOP);
-	if ((action == ACTION_START || action == ACTION_RELOAD) && f->estconnlimit != DEFAULT_ESTCONNLIMIT)
-		concat_exec_cmd(buf, " ; add rule %s %s %s ct state new add @%s { ip saddr ct count over %d } log prefix \"%s\" drop",
-						print_nft_table_family(family, NFTLB_F_CHAIN_PRE_FILTER), NFTLB_TABLE_NAME, chain, meter_str, f->estconnlimit, logprefix_str);
+	if ((action == ACTION_START || action == ACTION_RELOAD) && f->estconnlimit != DEFAULT_ESTCONNLIMIT) {
+		concat_buf(buf, " ; add rule %s %s %s ct state new add @%s { ip saddr ct count over %d }",
+						print_nft_table_family(family, NFTLB_F_CHAIN_PRE_FILTER), NFTLB_TABLE_NAME, chain, meter_str, f->estconnlimit);
+		if (f->verdict & VALUE_VERDICT_LOG) {
+			print_log_format(logprefix_str, KEY_ESTCONNLIMIT_LOGPREFIX, NFTLB_F_CHAIN_PRE_FILTER, f, NULL, NULL);
+			concat_buf(buf, " log prefix \"%s\"", logprefix_str);
+		}
+		concat_exec_cmd(buf, " %s", print_nft_verdict(f->verdict, VALUE_TYPE_DENY));
+	}
 
 	if ((action == ACTION_START || action == ACTION_RELOAD) && f->queue != DEFAULT_QUEUE)
 		concat_exec_cmd(buf, " ; add rule %s %s %s tcp flags syn queue num %d bypass",
@@ -2039,13 +2057,16 @@ static int run_farm_rules_gen_limits_per_bck(struct sbuffer *buf, struct farm *f
 		if (b->estconnlimit == 0)
 			continue;
 
-		print_log_format(logprefix_str, KEY_ESTCONNLIMIT_LOGPREFIX, NFTLB_F_CHAIN_PRE_FILTER, f, b, NULL);
-
 		if ((b->action == ACTION_STOP && !backend_is_usable(b)) || (action == ACTION_STOP || action == ACTION_DELETE))
 			continue;
 
-		concat_exec_cmd(buf, " ; add rule %s %s %s ct mark 0x%x ct count over %d log prefix \"%s\" drop",
-						print_nft_table_family(family, NFTLB_F_CHAIN_PRE_FILTER), NFTLB_TABLE_NAME, chain, backend_get_mark(b), b->estconnlimit, logprefix_str);
+		concat_buf(buf, " ; add rule %s %s %s ct mark 0x%x ct count over %d",
+						print_nft_table_family(family, NFTLB_F_CHAIN_PRE_FILTER), NFTLB_TABLE_NAME, chain, backend_get_mark(b), b->estconnlimit);
+		if (f->verdict & VALUE_VERDICT_LOG) {
+			print_log_format(logprefix_str, KEY_ESTCONNLIMIT_LOGPREFIX, NFTLB_F_CHAIN_PRE_FILTER, f, b, NULL);
+			concat_buf(buf, " log prefix \"%s\"", logprefix_str);
+		}
+		concat_exec_cmd(buf, " %s", print_nft_verdict(f->verdict, VALUE_TYPE_DENY));
 	}
 
 	return 0;
@@ -2283,22 +2304,28 @@ static int run_farm_rules_ingress_policies(struct sbuffer *buf, struct farm *f, 
 		return 0;
 
 	list_for_each_entry(fp, &f->policies, list) {
-		if (fp->policy->type != VALUE_TYPE_WHITE)
+		if (fp->policy->type != VALUE_TYPE_ALLOW)
 			continue;
 
 		print_log_format(logprefix_str, KEY_LOGPREFIX, NFTLB_F_CHAIN_ING_FILTER, f, NULL, fp->policy);
-		concat_exec_cmd(buf, " ; add rule %s %s %s %s saddr @%s log prefix \"%s\" %s",
-						NFTLB_NETDEV_FAMILY_STR, NFTLB_TABLE_NAME, chain, print_nft_family(fp->policy->family), fp->policy->name, logprefix_str, print_nft_verdict(fp->policy->type));
+		concat_buf(buf, " ; add rule %s %s %s %s saddr @%s",
+						NFTLB_NETDEV_FAMILY_STR, NFTLB_TABLE_NAME, chain, print_nft_family(fp->policy->family), fp->policy->name);
+		if (f->verdict & VALUE_VERDICT_LOG)
+			concat_buf(buf, " log prefix \"%s\"", logprefix_str);
+		concat_exec_cmd(buf, " %s", print_nft_verdict(f->verdict, VALUE_TYPE_ALLOW));
 		fp->action = ACTION_NONE;
 	}
 
 	list_for_each_entry(fp, &f->policies, list) {
-		if (fp->policy->type != VALUE_TYPE_BLACK)
+		if (fp->policy->type != VALUE_TYPE_DENY)
 			continue;
 
 		print_log_format(logprefix_str, KEY_LOGPREFIX, NFTLB_F_CHAIN_ING_FILTER, f, NULL, fp->policy);
-		concat_exec_cmd(buf, " ; add rule %s %s %s %s saddr @%s log prefix \"%s\" %s",
-						NFTLB_NETDEV_FAMILY_STR, NFTLB_TABLE_NAME, chain, print_nft_family(fp->policy->family), fp->policy->name, logprefix_str, print_nft_verdict(fp->policy->type));
+		concat_buf(buf, " ; add rule %s %s %s %s saddr @%s",
+						NFTLB_NETDEV_FAMILY_STR, NFTLB_TABLE_NAME, chain, print_nft_family(fp->policy->family), fp->policy->name);
+		if (f->verdict & VALUE_VERDICT_LOG)
+			concat_buf(buf, " log prefix \"%s\"", logprefix_str);
+		concat_exec_cmd(buf, " %s", print_nft_verdict(f->verdict, VALUE_TYPE_DENY));
 		fp->action = ACTION_NONE;
 	}
 
@@ -2314,20 +2341,22 @@ static int run_nftst_rules_ingress_policies(struct sbuffer *buf, struct nftst *n
 		return 0;
 
 	list_for_each_entry(ap, &a->policies, list) {
-		if (ap->policy->type != VALUE_TYPE_WHITE)
+		if (ap->policy->type != VALUE_TYPE_ALLOW)
 			continue;
 
-		concat_exec_cmd(buf, " ; add rule %s %s %s %s saddr @%s %s",
-						NFTLB_NETDEV_FAMILY_STR, NFTLB_TABLE_NAME, chain, print_nft_family(ap->policy->family), ap->policy->name, print_nft_verdict(ap->policy->type));
+		concat_buf(buf, " ; add rule %s %s %s %s saddr @%s",
+						NFTLB_NETDEV_FAMILY_STR, NFTLB_TABLE_NAME, chain, print_nft_family(ap->policy->family), ap->policy->name);
+		concat_exec_cmd(buf, " %s", print_nft_verdict(a->verdict, VALUE_TYPE_ALLOW));
 		ap->action = ACTION_NONE;
 	}
 
 	list_for_each_entry(ap, &a->policies, list) {
-		if (ap->policy->type != VALUE_TYPE_BLACK)
+		if (ap->policy->type != VALUE_TYPE_DENY)
 			continue;
 
-		concat_exec_cmd(buf, " ; add rule %s %s %s %s saddr @%s %s",
-						NFTLB_NETDEV_FAMILY_STR, NFTLB_TABLE_NAME, chain, print_nft_family(ap->policy->family), ap->policy->name, print_nft_verdict(ap->policy->type));
+		concat_buf(buf, " ; add rule %s %s %s %s saddr @%s",
+						NFTLB_NETDEV_FAMILY_STR, NFTLB_TABLE_NAME, chain, print_nft_family(ap->policy->family), ap->policy->name);
+		concat_exec_cmd(buf, " %s", print_nft_verdict(a->verdict, VALUE_TYPE_DENY));
 		ap->action = ACTION_NONE;
 	}
 
@@ -2435,10 +2464,11 @@ static int run_nftst_ingress_policies(struct sbuffer *buf, struct nftst *n, int 
 		naction == ACTION_NONE)
 		return 0;
 
+	get_chain_name(chain, nftst_get_name(n), NFTLB_F_CHAIN_ING_FILTER);
+
 	switch (action) {
 	case ACTION_START:
 		if ((f && !farm_is_ingress_mode(f)) || a) {
-			get_chain_name(chain, nftst_get_name(n), NFTLB_F_CHAIN_ING_FILTER);
 			run_base_table(buf, NFTLB_F_CHAIN_ING_FILTER, family, ACTION_START);
 			run_base_chain(buf, n, NFTLB_F_CHAIN_ING_FILTER, family, get_rules_needed(a), ACTION_START);
 			run_nftst_rules_gen_vsrv(buf, n, NFTLB_F_CHAIN_ING_FILTER, VALUE_FAMILY_NETDEV, ACTION_START, ACTION_START);
@@ -2450,6 +2480,7 @@ static int run_nftst_ingress_policies(struct sbuffer *buf, struct nftst *n, int 
 			run_nftst_rules_ingress_policies(buf, n, chain);
 		break;
 	case ACTION_RELOAD:
+		run_nftst_rules_gen_vsrv(buf, n, NFTLB_F_CHAIN_ING_FILTER, VALUE_FAMILY_NETDEV, ACTION_RELOAD, ACTION_RELOAD); // LGL
 		if (f)
 			run_farm_rules_ingress_policies(buf, f, chain);
 		else if (a)

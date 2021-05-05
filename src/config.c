@@ -251,13 +251,33 @@ static int config_value_action(const char *value)
 static int config_value_type(const char *value)
 {
 	if (strcmp(value, CONFIG_VALUE_POLICIES_TYPE_BL) == 0)
-		return VALUE_TYPE_BLACK;
+		return VALUE_TYPE_DENY;
 	if (strcmp(value, CONFIG_VALUE_POLICIES_TYPE_WL) == 0)
-		return VALUE_TYPE_WHITE;
+		return VALUE_TYPE_ALLOW;
 
 	config_set_output(". Parsing unknown value '%s' in '%s', using default '%s'", value, CONFIG_KEY_TYPE, CONFIG_VALUE_POLICIES_TYPE_BL);
 	tools_printlog(LOG_ERR, "%s():%d: parsing unknown value '%s' in '%s', using default '%s'", __FUNCTION__, __LINE__, value, CONFIG_KEY_TYPE, CONFIG_VALUE_POLICIES_TYPE_BL);
-	return VALUE_TYPE_BLACK;
+	return VALUE_TYPE_DENY;
+}
+
+static int config_value_verdict(const char *value)
+{
+	int verdictmask = VALUE_VERDICT_NONE;
+
+	if (strstr(value, CONFIG_VALUE_VERDICT_LOG) != NULL)
+		verdictmask |= VALUE_VERDICT_LOG;
+	if (strstr(value, CONFIG_VALUE_VERDICT_DROP) != NULL)
+		verdictmask |= VALUE_VERDICT_DROP;
+	if (strstr(value, CONFIG_VALUE_VERDICT_ACCEPT) != NULL)
+		verdictmask |= VALUE_VERDICT_ACCEPT;
+
+	if (verdictmask == VALUE_VERDICT_NONE) {
+		config_set_output(". Parsing unknown value '%s' in '%s'", value, CONFIG_KEY_VERDICT);
+		tools_printlog(LOG_ERR, "%s():%d: parsing unknown value '%s' in '%s'", __FUNCTION__, __LINE__, value, CONFIG_KEY_VERDICT);
+		return VALUE_VERDICT_NONE;
+	}
+
+	return verdictmask;
 }
 
 static int config_value_route(const char *value)
@@ -366,6 +386,10 @@ static int config_value(const char *value)
 		break;
 	case KEY_TYPE:
 		c.int_value = config_value_type(value);
+		ret = PARSER_OK;
+		break;
+	case KEY_VERDICT:
+		c.int_value = config_value_verdict(value);
 		ret = PARSER_OK;
 		break;
 	case KEY_NAME:
@@ -507,6 +531,8 @@ static int config_key(const char *key)
 		return KEY_POLICIES;
 	if (strcmp(key, CONFIG_KEY_TYPE) == 0)
 		return KEY_TYPE;
+	if (strcmp(key, CONFIG_KEY_VERDICT) == 0)
+		return KEY_VERDICT;
 	if (strcmp(key, CONFIG_KEY_TIMEOUT) == 0)
 		return KEY_TIMEOUT;
 	if (strcmp(key, CONFIG_KEY_ELEMENTS) == 0)
@@ -858,6 +884,10 @@ static struct json_t *add_dump_list(json_t *obj, const char *objname, int object
 			config_dump_int(value, f->queue);
 			add_dump_obj(item, CONFIG_KEY_QUEUE, value);
 
+			obj_print_verdict(f->verdict, (char *)buf);
+			add_dump_obj(item, CONFIG_KEY_VERDICT, buf);
+			buf[0] = '\0';
+
 			if (f->flow_offload)
 				add_dump_obj(item, CONFIG_KEY_FLOWOFFLOAD, obj_print_switch(f->flow_offload));
 
@@ -914,6 +944,7 @@ static struct json_t *add_dump_list(json_t *obj, const char *objname, int object
 			add_dump_obj(item, CONFIG_KEY_NAME, p->name);
 			add_dump_obj(item, CONFIG_KEY_FAMILY, obj_print_family(p->family));
 			add_dump_obj(item, CONFIG_KEY_TYPE, obj_print_policy_type(p->type));
+
 			add_dump_obj(item, CONFIG_KEY_ROUTE, obj_print_policy_route(p->route));
 			config_dump_int(value, p->timeout);
 			add_dump_obj(item, CONFIG_KEY_TIMEOUT, value);
@@ -954,6 +985,10 @@ static struct json_t *add_dump_list(json_t *obj, const char *objname, int object
 			add_dump_obj(item, CONFIG_KEY_IPADDR, a->ipaddr);
 			add_dump_obj(item, CONFIG_KEY_PORTS, a->ports);
 			add_dump_obj(item, CONFIG_KEY_PROTO, obj_print_proto(a->protocol));
+
+			obj_print_verdict(a->verdict, (char *)buf);
+			add_dump_obj(item, CONFIG_KEY_VERDICT, buf);
+			buf[0] = '\0';
 
 			config_dump_int(value, a->used);
 			add_dump_obj(item, CONFIG_KEY_USED, value);
