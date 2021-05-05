@@ -58,6 +58,7 @@ struct address * address_create(char *name)
 	paddress->protocol = DEFAULT_PROTO;
 	paddress->action = DEFAULT_ACTION;
 	paddress->verdict = DEFAULT_VERDICT;
+	paddress->logprefix = DEFAULT_LOG_LOGPREFIX_ADDRESS;
 	paddress->policies_action = ACTION_NONE;
 
 	init_list_head(&paddress->policies);
@@ -91,6 +92,8 @@ static int address_delete(struct address *paddress)
 		free(paddress->ipaddr);
 	if (paddress->ports && strcmp(paddress->ports, "") != 0)
 		free(paddress->ports);
+	if (paddress->logprefix && strcmp(paddress->logprefix, DEFAULT_LOG_LOGPREFIX_ADDRESS) != 0)
+		free(paddress->logprefix);
 
 	free(paddress);
 	obj_set_total_addresses(obj_get_total_addresses() - 1);
@@ -143,6 +146,9 @@ void address_print(struct address *a)
 
 	obj_print_verdict(a->verdict, (char *)buf);
 	tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_VERDICT, buf);
+
+	if (a->logprefix)
+		tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_LOGPREFIX, a->logprefix);
 
 	tools_printlog(LOG_DEBUG,"   *[used] %d", a->used);
 	tools_printlog(LOG_DEBUG,"   *[%s] %d", CONFIG_KEY_ACTION, a->action);
@@ -274,6 +280,9 @@ int address_changed(struct config_pair *c)
 	case KEY_VERDICT:
 		return !obj_equ_attribute_int(a->verdict, c->int_value);
 		break;
+	case KEY_LOGPREFIX:
+		return !obj_equ_attribute_string(a->logprefix, c->str_value);
+		break;
 	case KEY_ACTION:
 		return !obj_equ_attribute_int(a->action, c->int_value);
 		break;
@@ -388,6 +397,11 @@ int address_set_attribute(struct config_pair *c)
 	case KEY_VERDICT:
 		if (!address_set_verdict(a, c->int_value))
 			return PARSER_OK;
+		break;
+	case KEY_LOGPREFIX:
+		if (strcmp(a->logprefix, DEFAULT_LOG_LOGPREFIX) != 0)
+			free(a->logprefix);
+		ret = obj_set_attribute_string(c->str_value, &a->logprefix);
 		break;
 	case KEY_ACTION:
 		ret = address_set_action(a, c->int_value);

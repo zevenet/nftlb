@@ -94,7 +94,7 @@ Where every farm object has the following attributes:
 	"persist-ttl": "<number>",	*Stickiness timeout in seconds (60 by default)*
 	"helper": "<none | ftp | pptp | sip | snmp | tftp>",	*L7 helper to be used (none by default)*
 	"log": "<none | input | forward | output>",	*Enable logging (none by default)*
-	"log-prefix": "<string|KNAME|TYPE|FNAME>",	*Farm log prefix (default "TYPE-FNAME")*
+	"log-prefix": "<string|KNAME|TYPE|FNAME|ANAME>",	*Farm log prefix (default "TYPE-FNAME")*
 	"mark": "<hexadecimal mark>",			*Set mark mask for the farm (none by default)*
 	"priority": "<number>",				*Priority availability for backends > 0 (1 by default)*
 	"limits-ttl": "<number>",				*Timeout of banned client due to limit protections (120 seconds by default)*
@@ -146,6 +146,7 @@ Where every address object has the following attributes:
 	"ports": "<port list>",				*Port list separated by commas or ranges separated by a hyphen*
 	"protocol": "<tcp | udp | sctp | all>",		*Protocol to be used by the address (tcp by default)*
 	"verdict": "<log | drop | accept>",			*Verdict to apply when a limit or blacklist/whitelist matches (log and default verdict per list type by default)*
+	"log-prefix": "<string|KNAME|TYPE|FNAME|ANAME>",	*Address log prefix (default "TYPE-FNAME")*
 }
 ```
 Where every backend object has the following attributes:

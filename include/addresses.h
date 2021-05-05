@@ -38,6 +38,7 @@ struct address {
 	int					family;
 	int					protocol;
 	int					verdict;
+	char				*logprefix;
 	struct list_head	policies;
 	int					policies_used;
 	int					policies_action;
