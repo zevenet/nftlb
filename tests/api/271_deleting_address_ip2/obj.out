@@ -6,6 +6,7 @@
                         "ip-addr": "10.106.180.207",
                         "ports": "8080",
                         "protocol": "tcp",
+                        "verdict": "log drop accept",
                         "used": "0",
                         "policies": []
                 },
@@ -15,6 +16,7 @@
                         "ip-addr": "192.168.10.91",
                         "ports": "8080",
                         "protocol": "tcp",
+                        "verdict": "log drop accept",
                         "used": "0",
                         "policies": []
                 },
@@ -24,6 +26,7 @@
                         "ip-addr": "10.96.0.10",
                         "ports": "53",
                         "protocol": "udp",
+                        "verdict": "log drop accept",
                         "used": "0",
                         "policies": []
                 },
@@ -33,6 +36,7 @@
                         "ip-addr": "10.96.0.10",
                         "ports": "53",
                         "protocol": "tcp",
+                        "verdict": "log drop accept",
                         "used": "0",
                         "policies": []
                 },
@@ -42,6 +46,7 @@
                         "ip-addr": "10.96.0.10",
                         "ports": "9153",
                         "protocol": "tcp",
+                        "verdict": "log drop accept",
                         "used": "0",
                         "policies": []
                 }

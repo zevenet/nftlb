@@ -25,6 +25,7 @@
                         "est-connlimit": "20",
                         "tcp-strict": "off",
                         "queue": "-1",
+                        "verdict": "log drop accept",
                         "addresses": [
                                 {
                                         "name": "newfarm-addr",

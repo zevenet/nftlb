@@ -6,6 +6,7 @@
                         "ip-addr": "127.0.0.1",
                         "ports": "8080",
                         "protocol": "tcp",
+                        "verdict": "log drop accept",
                         "used": "1",
                         "policies": []
                 },
@@ -15,6 +16,7 @@
                         "ip-addr": "127.0.0.1",
                         "ports": "888",
                         "protocol": "udp",
+                        "verdict": "log drop accept",
                         "used": "0",
                         "policies": []
                 },
@@ -24,6 +26,7 @@
                         "ip-addr": "127.0.0.1",
                         "ports": "777",
                         "protocol": "udp",
+                        "verdict": "log drop accept",
                         "used": "0",
                         "policies": [
                                 {

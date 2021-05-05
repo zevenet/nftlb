@@ -25,6 +25,7 @@
                         "est-connlimit": "0",
                         "tcp-strict": "off",
                         "queue": "-1",
+                        "verdict": "log drop accept",
                         "intra-connect": "on",
                         "addresses": [
                                 {
@@ -88,6 +89,7 @@
                         "est-connlimit": "0",
                         "tcp-strict": "off",
                         "queue": "-1",
+                        "verdict": "log drop accept",
                         "intra-connect": "on",
                         "addresses": [
                                 {
@@ -127,6 +129,7 @@
                         "est-connlimit": "0",
                         "tcp-strict": "off",
                         "queue": "-1",
+                        "verdict": "log drop accept",
                         "intra-connect": "on",
                         "addresses": [
                                 {
@@ -166,6 +169,7 @@
                         "est-connlimit": "0",
                         "tcp-strict": "off",
                         "queue": "-1",
+                        "verdict": "log drop accept",
                         "intra-connect": "on",
                         "addresses": [
                                 {

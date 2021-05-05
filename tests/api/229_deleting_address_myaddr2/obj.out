@@ -6,6 +6,7 @@
                         "ip-addr": "200.1.1.1",
                         "ports": "8080",
                         "protocol": "tcp",
+                        "verdict": "log drop accept",
                         "used": "1",
                         "policies": []
                 },
@@ -15,6 +16,7 @@
                         "ip-addr": "200.2.2.2",
                         "ports": "888",
                         "protocol": "udp",
+                        "verdict": "log drop accept",
                         "used": "1",
                         "policies": []
                 }

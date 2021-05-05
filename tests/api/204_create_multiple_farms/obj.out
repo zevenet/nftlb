@@ -25,6 +25,7 @@
                         "est-connlimit": "0",
                         "tcp-strict": "off",
                         "queue": "-1",
+                        "verdict": "log drop accept",
                         "addresses": [
                                 {
                                         "name": "lb02-addr",
@@ -84,6 +85,7 @@
                         "est-connlimit": "0",
                         "tcp-strict": "off",
                         "queue": "-1",
+                        "verdict": "log drop accept",
                         "addresses": [
                                 {
                                         "name": "lb04-addr",
@@ -143,6 +145,7 @@
                         "est-connlimit": "0",
                         "tcp-strict": "off",
                         "queue": "-1",
+                        "verdict": "log drop accept",
                         "addresses": [
                                 {
                                         "name": "lb05-addr",

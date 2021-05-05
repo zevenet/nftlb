@@ -25,6 +25,7 @@
                         "est-connlimit": "0",
                         "tcp-strict": "off",
                         "queue": "-1",
+                        "verdict": "log drop accept",
                         "addresses": [
                                 {
                                         "name": "myaddr3",

@@ -6,6 +6,7 @@
                         "ip-addr": "200.1.1.1",
                         "ports": "8080",
                         "protocol": "tcp",
+                        "verdict": "log drop accept",
                         "used": "0",
                         "policies": []
                 }
