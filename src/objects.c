@@ -406,6 +406,7 @@ char * obj_print_sched(int scheduler)
 
 void obj_print_meta(int param, char* buf)
 {
+	buf[0] = '\0';
 	if (param == 0) {
 		sprintf(buf, "%s", CONFIG_VALUE_META_NONE);
 		return;
@@ -466,6 +467,7 @@ char * obj_print_helper(int helper)
 
 void obj_print_log(int log, char* buf)
 {
+	buf[0] = '\0';
 	if (log == 0) {
 		sprintf(buf, "%s", CONFIG_VALUE_LOG_NONE);
 		return;
@@ -699,6 +701,7 @@ char * obj_print_policy_route(int route)
 
 void obj_print_verdict(int verdict, char* buf)
 {
+	buf[0] = '\0';
 	if (verdict == VALUE_VERDICT_NONE) {
 		strcat(buf, CONFIG_VALUE_VERDICT_NONE);
 		return;

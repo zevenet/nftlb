@@ -450,18 +450,15 @@ static void farm_print(struct farm *f)
 
 	obj_print_meta(f->schedparam, (char *)buf);
 	tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_SCHEDPARAM, buf);
-	buf[0] = '\0';
 
 	obj_print_meta(f->persistence, (char *)buf);
 	tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_PERSIST, buf);
-	buf[0] = '\0';
 	tools_printlog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_PERSISTTM, f->persistttl);
 
 	tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_HELPER, obj_print_helper(f->helper));
 
 	obj_print_log(f->log, (char *)buf);
 	tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_LOG, buf);
-	buf[0] = '\0';
 
 	if (f->logprefix)
 		tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_LOGPREFIX, f->logprefix);
@@ -493,7 +490,6 @@ static void farm_print(struct farm *f)
 
 	obj_print_verdict(f->verdict, (char *)buf);
 	tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_VERDICT, buf);
-	buf[0] = '\0';
 
 	tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_FLOWOFFLOAD, obj_print_switch(f->flow_offload));
 	tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_INTRACONNECT, obj_print_switch(f->intra_connect));

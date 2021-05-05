@@ -143,7 +143,6 @@ void address_print(struct address *a)
 
 	obj_print_verdict(a->verdict, (char *)buf);
 	tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_VERDICT, buf);
-	buf[0] = '\0';
 
 	tools_printlog(LOG_DEBUG,"   *[used] %d", a->used);
 	tools_printlog(LOG_DEBUG,"   *[%s] %d", CONFIG_KEY_ACTION, a->action);
@@ -387,7 +386,7 @@ int address_set_attribute(struct config_pair *c)
 		ret = address_set_protocol(a, c->int_value);
 		break;
 	case KEY_VERDICT:
-		if (!address_set_verdict(q, c->int_value))
+		if (!address_set_verdict(a, c->int_value))
 			return PARSER_OK;
 		break;
 	case KEY_ACTION:

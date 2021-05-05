@@ -833,11 +833,9 @@ static struct json_t *add_dump_list(json_t *obj, const char *objname, int object
 
 			obj_print_meta(f->schedparam, (char *)buf);
 			add_dump_obj(item, CONFIG_KEY_SCHEDPARAM, buf);
-			buf[0] = '\0';
 
 			obj_print_meta(f->persistence, (char *)buf);
 			add_dump_obj(item, CONFIG_KEY_PERSIST, buf);
-			buf[0] = '\0';
 
 			config_dump_int(value, f->persistttl);
 			add_dump_obj(item, CONFIG_KEY_PERSISTTM, value);
@@ -848,7 +846,6 @@ static struct json_t *add_dump_list(json_t *obj, const char *objname, int object
 			add_dump_obj(item, CONFIG_KEY_LOG, buf);
 			if (f->logprefix && strcmp(f->logprefix, DEFAULT_LOG_LOGPREFIX) != 0)
 				add_dump_obj(item, CONFIG_KEY_LOGPREFIX, f->logprefix);
-			buf[0] = '\0';
 
 			config_dump_hex(value, f->mark);
 			add_dump_obj(item, CONFIG_KEY_MARK, value);
@@ -886,7 +883,6 @@ static struct json_t *add_dump_list(json_t *obj, const char *objname, int object
 
 			obj_print_verdict(f->verdict, (char *)buf);
 			add_dump_obj(item, CONFIG_KEY_VERDICT, buf);
-			buf[0] = '\0';
 
 			if (f->flow_offload)
 				add_dump_obj(item, CONFIG_KEY_FLOWOFFLOAD, obj_print_switch(f->flow_offload));
@@ -988,7 +984,6 @@ static struct json_t *add_dump_list(json_t *obj, const char *objname, int object
 
 			obj_print_verdict(a->verdict, (char *)buf);
 			add_dump_obj(item, CONFIG_KEY_VERDICT, buf);
-			buf[0] = '\0';
 
 			config_dump_int(value, a->used);
 			add_dump_obj(item, CONFIG_KEY_USED, value);
