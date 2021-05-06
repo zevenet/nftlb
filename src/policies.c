@@ -224,7 +224,7 @@ int policy_set_action(struct policy *p, int action)
 {
 	syslog(LOG_DEBUG, "%s():%d: policy %s set action %d", __FUNCTION__, __LINE__, p->name, action);
 
-	if (p->action == action)
+	if (p->action == action || (p->action == ACTION_START && action == ACTION_RELOAD))
 		return 0;
 
 	if (action == ACTION_DELETE) {
@@ -233,7 +233,7 @@ int policy_set_action(struct policy *p, int action)
 		return 1;
 	}
 
-	if (action == ACTION_STOP)
+	if (action == ACTION_STOP || action == ACTION_RELOAD)
 		farm_s_lookup_policy_action(p->name, action);
 
 	if (p->action > action) {
@@ -276,7 +276,6 @@ int policy_pre_actionable(struct config_pair *c)
 		break;
 	default:
 		policy_set_action(p, ACTION_RELOAD);
-		return 0;
 	}
 
 	return 0;
@@ -303,7 +302,6 @@ int policy_pos_actionable(struct config_pair *c)
 		break;
 	default:
 		policy_set_action(p, ACTION_RELOAD);
-		return 0;
 	}
 
 	return 0;

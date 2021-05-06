@@ -90,6 +90,7 @@ static struct farm * farm_create(char *name)
 	pfarm->tcpstrict = DEFAULT_TCPSTRICT;
 	pfarm->tcpstrict_logprefix = DEFAULT_LOGPREFIX;
 	pfarm->queue = DEFAULT_QUEUE;
+	pfarm->verdict = DEFAULT_VERDICT;
 	pfarm->flow_offload = DEFAULT_FLOWOFFLOAD;
 
 	pfarm->total_bcks = 0;
@@ -369,6 +370,21 @@ static int farm_set_persistence(struct farm *f, int new_value)
 	return 0;
 }
 
+static int farm_set_verdict(struct farm *f, int new_value)
+{
+	int old_value = f->verdict;
+
+	syslog(LOG_DEBUG, "%s():%d: farm %s old verdict %d new verdict %d", __FUNCTION__, __LINE__, f->name, old_value, new_value);
+
+	if (new_value == VALUE_VERDICT_NONE)
+		return 1;
+
+	f->verdict = new_value;
+	farmpolicy_s_set_action(f, ACTION_RELOAD);
+
+	return 0;
+}
+
 static void farm_print(struct farm *f)
 {
 	char buf[100] = {};
@@ -426,6 +442,7 @@ static void farm_print(struct farm *f)
 
 	obj_print_log(f->log, (char *)buf);
 	syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_LOG, buf);
+	buf[0] = '\0';
 	if (f->logprefix)
 		syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_LOGPREFIX, f->logprefix);
 
@@ -453,6 +470,9 @@ static void farm_print(struct farm *f)
 		syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_TCPSTRICT_LOGPREFIX, f->tcpstrict_logprefix);
 
 	syslog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_QUEUE, f->queue);
+	obj_print_verdict(f->verdict, (char *)buf);
+	syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_VERDICT, buf);
+	buf[0] = '\0';
 	syslog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_FLOWOFFLOAD, obj_print_switch(f->flow_offload));
 
 	syslog(LOG_DEBUG,"    *[total_weight] %d", f->total_weight);
@@ -654,6 +674,9 @@ int farm_changed(struct config_pair *c)
 		break;
 	case KEY_QUEUE:
 		return !obj_equ_attribute_int(f->queue, c->int_value);
+		break;
+	case KEY_VERDICT:
+		return !obj_equ_attribute_int(f->verdict, c->int_value);
 		break;
 	case KEY_FLOWOFFLOAD:
 		return !obj_equ_attribute_int(f->flow_offload, c->int_value);
@@ -901,6 +924,7 @@ int farm_pos_actionable(struct config_pair *c)
 		break;
 	case KEY_STATE:
 		break;
+	case KEY_VERDICT:
 	default:
 		farm_set_action(f, ACTION_RELOAD);
 		return 0;
@@ -1056,6 +1080,10 @@ int farm_set_attribute(struct config_pair *c)
 	case KEY_QUEUE:
 		ret = farm_set_queue(f, c->int_value);
 		ret = PARSER_OK;
+		break;
+	case KEY_VERDICT:
+		if (!farm_set_verdict(f, c->int_value))
+			return PARSER_OK;
 		break;
 	case KEY_FLOWOFFLOAD:
 		f->flow_offload = c->int_value;

@@ -26,8 +26,8 @@
 #include "config.h"
 
 enum type {
-	VALUE_TYPE_BLACK,
-	VALUE_TYPE_WHITE,
+	VALUE_TYPE_DENY,
+	VALUE_TYPE_ALLOW,
 };
 
 struct policy {

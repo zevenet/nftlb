@@ -145,6 +145,7 @@ struct farm {
 	int			tcpstrict;
 	char		*tcpstrict_logprefix;
 	int			queue;
+	int			verdict;
 	int			flow_offload;
 	int			total_weight;
 	int			total_bcks;

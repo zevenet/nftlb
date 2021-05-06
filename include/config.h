@@ -78,6 +78,7 @@
 
 #define CONFIG_KEY_USED				"used"
 #define CONFIG_KEY_EXPIRATION			"expiration"
+#define CONFIG_KEY_VERDICT		"verdict"
 
 #define CONFIG_VALUE_FAMILY_IPV4	"ipv4"
 #define CONFIG_VALUE_FAMILY_IPV6	"ipv6"
@@ -130,6 +131,10 @@
 #define CONFIG_VALUE_SWITCH_OFF		"off"
 #define CONFIG_VALUE_POLICIES_TYPE_BL	"blacklist"
 #define CONFIG_VALUE_POLICIES_TYPE_WL	"whitelist"
+#define CONFIG_VALUE_VERDICT_NONE				"none"
+#define CONFIG_VALUE_VERDICT_LOG				"log"
+#define CONFIG_VALUE_VERDICT_DROP				"drop"
+#define CONFIG_VALUE_VERDICT_ACCEPT				"accept"
 
 enum config_parser_output {
 	PARSER_OK,

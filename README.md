@@ -101,6 +101,7 @@ Where every farm object has the following attributes:
 	"est-connlimit-log-prefix": "<string|KNAME|TYPE|FNAME>",	*Farm established connlimit log prefix (default "KNAME-TYPE-FNAME")*
 	"tcp-strict": "<on | off>",				*Option to avoid bogus TCP attacks (disabled by default)*
 	"tcp-strict-log-prefix": "<string|KNAME|TYPE|FNAME>",	*Farm TCP strict log prefix (default "KNAME-TYPE-FNAME")*
+	"verdict": "<log | drop | accept>",			*Verdict to apply when a limit or blacklist/whitelist matches (log and default verdict per list type by default)*
 	"flow-offload": "<on | off>",				*Option to enable flow offload (disabled by default)*
 	"queue": "<number>",				*Number of the queue to send the packets to userspace (disabled by default)*
 	"state": "<up | down | off>",			*Set the status of the virtual service (up by default)*

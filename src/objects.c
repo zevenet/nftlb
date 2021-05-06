@@ -593,11 +593,34 @@ int obj_rulerize(int mode)
 char * obj_print_policy_type(int type)
 {
 	switch (type) {
-	case VALUE_TYPE_BLACK:
+	case VALUE_TYPE_DENY:
 		return CONFIG_VALUE_POLICIES_TYPE_BL;
-	case VALUE_TYPE_WHITE:
+	case VALUE_TYPE_ALLOW:
 		return CONFIG_VALUE_POLICIES_TYPE_WL;
 	default:
 		return NULL;
 	}
+}
+
+void obj_print_verdict(int verdict, char* buf)
+{
+	if (verdict == VALUE_VERDICT_NONE) {
+		strcat(buf, CONFIG_VALUE_VERDICT_NONE);
+		return;
+	}
+
+	if (verdict & VALUE_VERDICT_LOG) {
+		strcat(buf, CONFIG_VALUE_VERDICT_LOG);
+		strcat(buf, " ");
+	}
+
+	if (verdict & VALUE_VERDICT_DROP) {
+		strcat(buf, CONFIG_VALUE_VERDICT_DROP);
+		strcat(buf, " ");
+	}
+
+	if (verdict & VALUE_VERDICT_ACCEPT)
+		strcat(buf, CONFIG_VALUE_VERDICT_ACCEPT);
+
+	return;
 }

@@ -60,8 +60,9 @@
 #define DEFAULT_QUEUE		-1
 #define DEFAULT_FLOWOFFLOAD		0
 
-#define DEFAULT_POLICY_TYPE	VALUE_TYPE_BLACK
 #define DEFAULT_POLICY_TIMEOUT	0
+#define DEFAULT_POLICY_TYPE				VALUE_TYPE_DENY
+#define DEFAULT_VERDICT					VALUE_VERDICT_LOG | VALUE_VERDICT_DROP | VALUE_VERDICT_ACCEPT
 #define DEFAULT_POLICY_PRIORITY	1
 #define DEFAULT_POLICY_LOGPREFIX	"KNAME-TYPE-PNAME-FNAME "
 #define DEFAULT_ELEMENT_TIME			NULL
@@ -147,6 +148,7 @@ enum keys {
 	KEY_CLIENT,
 	KEY_BACKEND,
 	KEY_USED,
+	KEY_VERDICT,
 };
 
 enum families {
@@ -155,6 +157,11 @@ enum families {
 	VALUE_FAMILY_INET,
 	VALUE_FAMILY_NETDEV,
 };
+
+#define VALUE_VERDICT_NONE			0
+#define VALUE_VERDICT_LOG			(1 << 0)
+#define VALUE_VERDICT_DROP			(1 << 1)
+#define VALUE_VERDICT_ACCEPT		(1 << 2)
 
 struct obj_config {
 	struct farm		*fptr;
@@ -204,6 +211,7 @@ void obj_set_attribute_int(int *src, int value);
 int obj_equ_attribute_int(int valuea, int valueb);
 void obj_print(void);
 int obj_rulerize(int mode);
+void obj_print_verdict(int verdict, char* buf);
 
 struct list_head * obj_get_policies(void);
 int obj_get_total_policies(void);
