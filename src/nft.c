@@ -2527,7 +2527,7 @@ static int run_nftst_ingress_policies(struct sbuffer *buf, struct nftst *n, int 
 			run_nftst_rules_ingress_policies(buf, n, chain);
 		break;
 	case ACTION_RELOAD:
-		run_nftst_rules_gen_vsrv(buf, n, NFTLB_F_CHAIN_ING_FILTER, VALUE_FAMILY_NETDEV, ACTION_RELOAD, ACTION_RELOAD); // LGL
+		run_nftst_rules_gen_vsrv(buf, n, NFTLB_F_CHAIN_ING_FILTER, VALUE_FAMILY_NETDEV, ACTION_RELOAD, ACTION_RELOAD);
 		if (f)
 			run_farm_rules_ingress_policies(buf, f, chain);
 		else if (a)
