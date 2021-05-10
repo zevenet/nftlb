@@ -66,6 +66,8 @@ int address_rulerize(struct address *a);
 int address_s_rulerize(void);
 int address_needs_policies(struct address *a);
 int address_set_protocol(struct address *a, int new_value);
+int address_not_used(struct address *a);
+int address_delete(struct address *paddress);
 
 
 #endif /* _ADDRESSES_H_ */

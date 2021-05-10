@@ -115,6 +115,9 @@ static struct farm * farm_create(char *name)
 
 static int farm_delete(struct farm *pfarm)
 {
+	if (!pfarm)
+		return 0;
+
 	tools_printlog(LOG_DEBUG, "%s():%d: deleting farm %s", __FUNCTION__, __LINE__, pfarm->name);
 
 	backend_s_delete(pfarm);
@@ -1245,11 +1248,12 @@ int farm_s_lookup_address_action(char *name, int action)
 {
 	struct list_head *farms = obj_get_farms();
 	struct farm *f, *next;
+	int ret = 0;
 
 	list_for_each_entry_safe(f, next, farms, list)
-		farmaddress_s_lookup_address_action(f, name, action);
+		ret |= farmaddress_s_lookup_address_action(f, name, action);
 
-	return 0;
+	return ret;
 }
 
 int farm_rulerize(struct farm *f)

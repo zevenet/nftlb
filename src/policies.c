@@ -63,6 +63,9 @@ static struct policy * policy_create(char *name)
 
 static int policy_delete(struct policy *p)
 {
+	if (!p)
+		return 0;
+
 	list_del(&p->list);
 
 	if (p->name)

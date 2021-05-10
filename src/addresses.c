@@ -73,8 +73,11 @@ struct address * address_create(char *name)
 	return paddress;
 }
 
-static int address_delete(struct address *paddress)
+int address_delete(struct address *paddress)
 {
+	if (!paddress)
+		return 0;
+
 	tools_printlog(LOG_DEBUG, "%s():%d: deleting address %s",
 				   __FUNCTION__, __LINE__, paddress->name);
 
@@ -416,6 +419,11 @@ int address_set_attribute(struct config_pair *c)
 	return ret;
 }
 
+int address_not_used(struct address *a)
+{
+	return (!a->policies_used && !a->used);
+}
+
 int address_set_action(struct address *a, int action)
 {
 	tools_printlog(LOG_DEBUG, "%s():%d: address %s action is %d - new action %d", __FUNCTION__, __LINE__, a->name, a->action, action);
@@ -424,8 +432,8 @@ int address_set_action(struct address *a, int action)
 		return 0;
 
 	if (action == ACTION_DELETE) {
-		farm_s_lookup_address_action(a->name, action);
-		address_delete(a);
+		if (!farm_s_lookup_address_action(a->name, action))
+			address_delete(a);
 		return 1;
 	}
 

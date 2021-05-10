@@ -55,6 +55,9 @@ static struct farmaddress * farmaddress_create(struct farm *f, struct address *a
 
 static int farmaddress_delete(struct farmaddress *fa)
 {
+	if (!fa)
+		return 0;
+
 	list_del(&fa->list);
 
 	if (fa->farm->addresses_used > 0)
@@ -115,10 +118,13 @@ struct farmaddress * farmaddress_lookup_by_name(struct farm *f, const char *name
 int farmaddress_set_action(struct farmaddress *fa, int action)
 {
 	struct farm *f = fa->farm;
+	struct address *a = fa->address;
 	tools_printlog(LOG_DEBUG, "%s():%d: farm %s address %s action %d", __FUNCTION__, __LINE__, fa->farm->name, fa->address->ipaddr, action);
 
 	if (action == ACTION_DELETE) {
 		farmaddress_delete(fa);
+		if (address_not_used(a))
+			address_delete(a);
 		return 1;
 	}
 
@@ -169,7 +175,7 @@ int farmaddress_s_lookup_address_action(struct farm *f, char *name, int action)
 	if (ret)
 		f->action = ACTION_RELOAD;
 
-	return 0;
+	return ret;
 }
 
 int farmaddress_create_default(struct config_pair *c)

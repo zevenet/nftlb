@@ -57,6 +57,9 @@ static struct addresspolicy * addresspolicy_create(struct address *a, struct pol
 
 static int addresspolicy_delete(struct addresspolicy *ap)
 {
+	if (!ap)
+		return 0;
+
 	list_del(&ap->list);
 
 	if (ap->address->policies_used > 0)

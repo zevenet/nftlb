@@ -66,6 +66,9 @@ static int element_delete_node(struct element *e)
 
 static int element_delete(struct element *e)
 {
+	if (!e)
+		return 0;
+
 	struct policy *p = e->policy;
 
 	p->total_elem--;

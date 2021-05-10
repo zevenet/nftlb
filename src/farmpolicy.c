@@ -57,6 +57,9 @@ static struct farmpolicy * farmpolicy_create(struct farm *f, struct policy *p)
 
 static int farmpolicy_delete(struct farmpolicy *fp)
 {
+	if (!fp)
+		return 0;
+
 	list_del(&fp->list);
 
 	if (fp->farm->policies_used > 0)

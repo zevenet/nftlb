@@ -132,6 +132,9 @@ static int backend_below_prio(struct backend *b)
 
 static int backend_delete(struct backend *b)
 {
+	if (!b)
+		return 0;
+
 	struct farm *f = b->parent;
 	backend_set_action(b, ACTION_STOP);
 
