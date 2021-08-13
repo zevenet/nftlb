@@ -104,9 +104,10 @@ int farmpolicy_set_action(struct farmpolicy *fp, int action)
 		return 1;
 	}
 
-	if (fp->action != action) {
+	if (fp->action > action) {
 		fp->action = action;
-		fp->farm->policies_action = action;
+		fp->policy->action = ACTION_RELOAD;
+		fp->farm->policies_action = ACTION_RELOAD;
 		return 1;
 	}
 
