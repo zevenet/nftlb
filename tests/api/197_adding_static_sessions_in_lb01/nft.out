@@ -23,6 +23,7 @@ table netdev nftlb {
 
 	chain lb01 {
 		ether daddr set ip saddr map @static-sessions-lb01 ether saddr set 0f:0f:0f:0f:0f:0f fwd to "lo"
+		ether daddr set ip saddr map @persist-lb01 ether saddr set 0f:0f:0f:0f:0f:0f update @persist-lb01 { ip saddr : ether daddr } fwd to "lo"
 		ether saddr set 0f:0f:0f:0f:0f:0f ether daddr set jhash ip saddr mod 1 map { 0 : 01:01:01:01:01:01 } update @persist-lb01 { ip saddr : ether daddr } fwd to "lo"
 	}
 }

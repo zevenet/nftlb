@@ -34,6 +34,7 @@ table netdev nftlb {
 
 	chain lb01 {
 		ether type ip ether daddr set ip saddr . tcp sport map @static-sessions-lb01 ether saddr set 01:01:01:01:01:01 fwd to "lo"
+		ether type ip ether daddr set ip saddr . tcp sport map @persist-lb01 ether saddr set 01:01:01:01:01:01 update @persist-lb01 { ip saddr . tcp sport : ether daddr } fwd to "lo"
 		ether saddr set 01:01:01:01:01:01 ether daddr set numgen random mod 10 map { 0-4 : 02:02:02:02:02:02, 5-9 : 03:03:03:03:03:03 } ether type ip update @persist-lb01 { ip saddr . tcp sport : ether daddr } fwd to "lo"
 	}
 
