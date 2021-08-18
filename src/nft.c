@@ -1967,6 +1967,13 @@ static int run_farm_rules_check_sessions(struct sbuffer *buf, struct nftst *n, i
 		concat_exec_cmd(buf, " map @%s ether daddr set %s daddr", map_str, print_nft_family(family));
 		run_farm_rules_gen_bck_map(buf, n, BCK_MAP_IPADDR, BCK_MAP_ETHADDR, NFTLB_CHECK_AVAIL);
 
+		if (f->bcks_have_port) {
+			concat_buf(buf, " th dport set ether daddr");
+			run_farm_rules_gen_bck_map(buf, n, BCK_MAP_ETHADDR, BCK_MAP_PORT, NFTLB_CHECK_AVAIL);
+		}
+
+		concat_buf(buf, " ether saddr set %s", f->oethaddr);
+
 		if (stype == SESSION_TYPE_TIMED)
 			run_farm_rules_update_sessions(buf, n, family, chain, action);
 
