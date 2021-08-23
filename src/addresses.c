@@ -66,6 +66,7 @@ struct address * address_create(char *name)
 	paddress->policies_used = 0;
 	paddress->used = 0;
 	paddress->nft_chains = 0;
+	paddress->nports = 0;
 
 	list_add_tail(&paddress->list, addresses);
 	obj_set_total_addresses(obj_get_total_addresses() + 1);
@@ -104,10 +105,59 @@ int address_delete(struct address *paddress)
 	return 0;
 }
 
+static void address_get_range_ports(const char *ptr, int *first, int *last)
+{
+	sscanf(ptr, "%d-%d[^,]", first, last);
+}
+
+int address_search_array_port(struct address *a, int port)
+{
+	if (a->port_list[port-1])
+		return 1;
+
+	return 0;
+}
+
+static void address_add_array_port(struct address *a, int port)
+{
+	if (!a->port_list[port-1]) {
+		a->nports++;
+		a->port_list[port-1] = 1;
+	}
+}
+
+static int address_get_array_ports(struct address *a)
+{
+	int index = 0;
+	char *ptr;
+	int iport, new;
+	int last = 0;
+
+	a->nports = 0;
+	memset(a->port_list, 0, NFTLB_MAX_PORTS * sizeof(int));
+	ptr = a->ports;
+	while (ptr != NULL && *ptr != '\0') {
+		last = new = 0;
+		address_get_range_ports(ptr, &new, &last);
+		if (last == 0)
+			last = new;
+		if (new > last)
+			goto next;
+
+		for (iport = new; iport <= last; iport++)
+			address_add_array_port(a, iport);
+
+next:
+		ptr = strchr(ptr, ',');
+		if (ptr != NULL)
+			ptr++;
+	}
+
+	return index;
+}
+
 int address_set_ports(struct address *a, char *new_value)
 {
-	tools_printlog(LOG_DEBUG, "%s():%d: address %s old port %s new port %s", __FUNCTION__, __LINE__, a->name, a->ports, new_value);
-
 	if (strcmp(new_value, "0") != 0) {
 		if (strcmp(a->ports, DEFAULT_VIRTPORTS) != 0)
 			free(a->ports);
@@ -116,6 +166,8 @@ int address_set_ports(struct address *a, char *new_value)
 
 	if (strcmp(new_value, "") == 0)
 		a->protocol = VALUE_PROTO_ALL;
+
+	address_get_array_ports(a);
 
 	return 0;
 }

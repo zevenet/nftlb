@@ -236,58 +236,6 @@ static int get_chain_pos_counter(int type)
 		return -1;
 }
 
-static void get_range_ports(const char *ptr, int *first, int *last)
-{
-	sscanf(ptr, "%d-%d[^,]", first, last);
-}
-
-static int search_array_port(int *port_list, int port)
-{
-	int idx = 0;
-
-	if (!port_list)
-		return 0;
-
-	while (idx < NFTLB_MAX_PORTS || port_list[idx] == 0) {
-		if (port_list[idx] == port)
-			return 1;
-		idx++;
-	}
-
-	return 0;
-}
-
-static int get_array_ports(int *port_list, struct address *a)
-{
-	int index = 0;
-	char *ptr;
-	int i, new;
-	int last = 0;
-
-	if (!port_list)
-		return -1;
-
-	ptr = a->ports;
-	while (ptr != NULL && *ptr != '\0') {
-		last = new = 0;
-		get_range_ports(ptr, &new, &last);
-		if (last == 0)
-			last = new;
-		if (new > last)
-			goto next;
-		for (i = new; i <= last; i++)
-			if (!search_array_port(port_list, i))
-				port_list[index++] = i;
-
-next:
-		ptr = strchr(ptr, ',');
-		if (ptr != NULL)
-			ptr++;
-	}
-
-	return index;
-}
-
 static unsigned int *get_service_counter(int type, unsigned int structure, int family)
 {
 	struct nft_chain_srv_family_counters *service_cnt;
@@ -1377,7 +1325,6 @@ static int run_nftst_rules_gen_srv_map(struct sbuffer *buf, struct nftst *n, int
 {
 	struct farm *f = nftst_get_farm(n);
 	struct address *a = nftst_get_address(n);
-	int port_list[NFTLB_MAX_PORTS] = { 0 };
 	char action_str[255] = { 0 };
 	char key_str[255] = { 0 };
 	char *data_str = NULL;
@@ -1386,10 +1333,11 @@ static int run_nftst_rules_gen_srv_map(struct sbuffer *buf, struct nftst *n, int
 	char protocol[10] = { 0 };
 	char *nft_family = print_nft_table_family(family, type);
 	struct backend *b;
-	int nports;
-	int i;
+	int nports = a->nports;
+	int iport = 1;
 	int bckmark;
 	int output = 0;
+	int first_port = 1;
 
 	data_str = calloc(1, 255);
 	if (!data_str) {
@@ -1428,47 +1376,82 @@ static int run_nftst_rules_gen_srv_map(struct sbuffer *buf, struct nftst *n, int
 		break;
 	case BCK_MAP_IPADDR_PORT:
 		run_nftst_rules_gen_srv_data((char **) &data_str, n, chain, data_mode);
-		nports = get_array_ports(port_list, a);
-		for (i = 0; i < nports; i++) {
-			if (i)
-				concat_buf(buf, ", %s . %d %s", a->ipaddr, port_list[i], data_str);
-			else
-				concat_buf(buf, " ; %s element %s %s %s { %s . %d %s", action_str, nft_family, NFTLB_TABLE_NAME, service, a->ipaddr, port_list[i], data_str);
+
+		if (nports == 0)
+			break;
+
+		concat_buf(buf, " ; %s element %s %s %s { ", action_str, nft_family, NFTLB_TABLE_NAME, service);
+
+		while (iport <= NFTLB_MAX_PORTS && nports > 0)
+		{
+			if (!address_search_array_port(a, iport)) { iport++; continue; }
+
+			concat_buf(buf, "%s . %d %s", a->ipaddr, iport, data_str);
+
+			if (nports != 1)
+				concat_buf(buf, ", ");
+
 			output++;
+			iport++;
+			nports--;
 		}
-		if (i)
-			concat_exec_cmd(buf, " }");
+		concat_exec_cmd(buf, " }");
 		break;
 	case BCK_MAP_PROTO_IPADDR_PORT:
 		run_nftst_rules_gen_srv_data((char **) &data_str, n, chain, data_mode);
-		nports = get_array_ports(port_list, a);
-		for (i = 0; i < nports; i++) {
-			if (i)
-				concat_buf(buf, ", %s . %s . %d %s", protocol, a->ipaddr, port_list[i], data_str);
-			else
-				concat_buf(buf, " ; %s element %s %s %s { %s . %s . %d %s", action_str, nft_family, NFTLB_TABLE_NAME, service, protocol, a->ipaddr, port_list[i], data_str);
+
+		if (nports == 0)
+			break;
+
+		concat_buf(buf, " ; %s element %s %s %s { ", action_str, nft_family, NFTLB_TABLE_NAME, service);
+
+		while (iport <= NFTLB_MAX_PORTS && nports > 0)
+		{
+			if (!address_search_array_port(a, iport)) { iport++; continue; }
+
+			concat_buf(buf, "%s . %s . %d %s", protocol, a->ipaddr, iport, data_str);
+
+			if (nports != 1)
+				concat_buf(buf, ", ");
+
 			output++;
+			iport++;
+			nports--;
 		}
-		if (i)
-			concat_exec_cmd(buf, " }");
+		concat_exec_cmd(buf, " }");
 		break;
 	case BCK_MAP_PROTO_PORT:
 		run_nftst_rules_gen_srv_data((char **) &data_str, n, chain, data_mode);
-		nports = get_array_ports(port_list, a);
-		for (i = 0; i < nports; i++) {
-			if (i)
-				concat_buf(buf, ", %s . %d %s", protocol, port_list[i], data_str);
-			else
-				concat_buf(buf, " ; %s element %s %s %s { %s . %d %s", action_str, nft_family, NFTLB_TABLE_NAME, service, protocol, port_list[i], data_str);
+
+		if (nports == 0)
+			break;
+
+		concat_buf(buf, " ; %s element %s %s %s { ", action_str, nft_family, NFTLB_TABLE_NAME, service);
+
+		while (iport <= NFTLB_MAX_PORTS && nports > 0)
+		{
+			if (!address_search_array_port(a, iport)) { iport++; continue; }
+
+			if (nports != 1)
+				concat_buf(buf, ", ");
+
+			concat_buf(buf, "%s . %d %s", protocol, iport, data_str);
 			output++;
+			iport++;
+			nports--;
 		}
-		if (i)
-			concat_exec_cmd(buf, " }");
+		concat_exec_cmd(buf, " }");
 		break;
 	default:
-		nports = (nftst_get_proto(n) == VALUE_PROTO_ALL) ? 1 : get_array_ports(port_list, a);
+		nports = (nftst_get_proto(n) == VALUE_PROTO_ALL) ? 1 : a->nports;
 
-		for (i = 0; i < nports; i++) {
+		if (nports == 0)
+			break;
+
+		while (iport <= NFTLB_MAX_PORTS && nports > 0)
+		{
+			if (!address_search_array_port(a, iport) && nftst_get_proto(n) != VALUE_PROTO_ALL) { iport++; continue; }
+
 			list_for_each_entry(b, &f->backends, list) {
 				if (!backend_validate(b))
 					continue;
@@ -1480,22 +1463,22 @@ static int run_nftst_rules_gen_srv_map(struct sbuffer *buf, struct nftst *n, int
 					continue;
 
 				if ((key_mode == BCK_MAP_BCK_ID || key_mode == BCK_MAP_BCK_MARK) && bckmark != DEFAULT_MARK) {
-					if (i > 0) continue;
+					if (!first_port) { continue; }
 					sprintf(key_str, "0x%x", bckmark);
 				} else if ((key_mode == BCK_MAP_BCK_ID || key_mode == BCK_MAP_BCK_PROTO_IPADDR_F_PORT) && backend_no_port(b)) {
-					sprintf(key_str, "%s . %s . %d", protocol, b->ipaddr, port_list[i]);
+					sprintf(key_str, "%s . %s . %d", protocol, b->ipaddr, iport);
 				} else if ((key_mode == BCK_MAP_BCK_ID || key_mode == BCK_MAP_BCK_PROTO_IPADDR_F_PORT) && !backend_no_port(b)) {
 					sprintf(key_str, "%s . %s . %s", protocol, b->ipaddr, b->port);
 				} else if ((key_mode == BCK_MAP_BCK_ID || key_mode == BCK_MAP_BCK_IPADDR_F_PORT) && backend_no_port(b)) {
-					sprintf(key_str, "%s . %d", b->ipaddr, port_list[i]);
+					sprintf(key_str, "%s . %d", b->ipaddr, iport);
 				} else if (key_mode == BCK_MAP_BCK_ID && !backend_no_port(b)) {
-					if (i > 0) continue;
+					if (!first_port) { continue; }
 					sprintf(key_str, "%s . %s", b->ipaddr, b->port);
 				} else if (key_mode == BCK_MAP_BCK_ID || key_mode == BCK_MAP_BCK_IPADDR) {
-					if (i > 0) continue;
+					if (!first_port) { continue; }
 					sprintf(key_str, "%s", b->ipaddr);
 				} else
-					continue;
+					if (!first_port) { continue; }
 
 				nftst_set_backend(n, b);
 				run_nftst_rules_gen_srv_data((char **) &data_str, n, chain, data_mode);
@@ -1504,7 +1487,6 @@ static int run_nftst_rules_gen_srv_map(struct sbuffer *buf, struct nftst *n, int
 					if (action == ACTION_START)
 						continue;
 					concat_exec_cmd(buf, " ; delete element %s %s %s { %s }", nft_family, NFTLB_TABLE_NAME, service, key_str);
-					output++;
 				}
 
 				if(!backend_is_usable(b))
@@ -1514,6 +1496,11 @@ static int run_nftst_rules_gen_srv_map(struct sbuffer *buf, struct nftst *n, int
 				output++;
 			}
 			nftst_set_backend(n, NULL);
+
+			iport++;
+			first_port = 0;
+			nports--;
+			continue;
 		}
 		break;
 	}

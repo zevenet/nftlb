@@ -22,6 +22,8 @@
 #ifndef _OBJECTS_H_
 #define _OBJECTS_H_
 
+#define NFTLB_MAX_PORTS				65535
+
 #define DEFAULT_NAME		""
 #define DEFAULT_FQDN		""
 #define DEFAULT_IFNAME		NULL

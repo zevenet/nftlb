@@ -44,6 +44,8 @@ struct address {
 	int					policies_action;
 	int					used;
 	int					nft_chains;
+	int					port_list[NFTLB_MAX_PORTS];
+	int					nports;
 };
 
 struct address * address_create(char *name);
@@ -69,5 +71,6 @@ int address_set_protocol(struct address *a, int new_value);
 int address_not_used(struct address *a);
 int address_delete(struct address *paddress);
 
+int address_search_array_port(struct address *a, int port);
 
 #endif /* _ADDRESSES_H_ */
