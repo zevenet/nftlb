@@ -103,6 +103,7 @@ static struct farm * farm_create(char *name)
 	pfarm->policies_used = 0;
 	pfarm->policies_action = ACTION_NONE;
 	pfarm->nft_chains = 0;
+	pfarm->nports = 0;
 
 	init_list_head(&pfarm->static_sessions);
 	pfarm->total_static_sessions = 0;
@@ -322,6 +323,59 @@ static int farm_set_mode(struct farm *f, int new_value)
 	return 0;
 }
 
+
+static void farm_get_range_ports(const char *ptr, int *first, int *last)
+{
+	sscanf(ptr, "%d-%d[^,]", first, last);
+}
+
+int farm_search_array_port(struct farm *f, int port)
+{
+	if (f->port_list[port-1])
+		return 1;
+
+	return 0;
+}
+
+static void farm_add_array_port(struct farm *f, int port)
+{
+
+	if (!f->port_list[port-1]) {
+		f->nports++;
+		f->port_list[port-1] = 1;
+	}
+}
+
+static int farm_get_array_ports(struct farm *f)
+{
+	int index = 0;
+	char *ptr;
+	int iport, new;
+	int last = 0;
+
+	f->nports = 0;
+	memset(f->port_list, 0, NFTLB_MAX_PORTS * sizeof(int));
+	ptr = f->virtports;
+	while (ptr != NULL && *ptr != '\0') {
+		last = new = 0;
+		farm_get_range_ports(ptr, &new, &last);
+		if (last == 0)
+			last = new;
+		if (new > last)
+			goto next;
+
+		for (iport = new; iport <= last; iport++)
+			farm_add_array_port(f, iport);
+
+next:
+		ptr = strchr(ptr, ',');
+		if (ptr != NULL)
+			ptr++;
+	}
+
+	return index;
+}
+
 static int farm_set_port(struct farm *f, char *new_value)
 {
 	syslog(LOG_DEBUG, "%s():%d: farm %s old port %s new port %s", __FUNCTION__, __LINE__, f->name, f->virtports, new_value);
@@ -335,6 +389,7 @@ static int farm_set_port(struct farm *f, char *new_value)
 	if (strcmp(new_value, "") == 0)
 		f->protocol = VALUE_PROTO_ALL;
 
+	farm_get_array_ports(f);
 	return 0;
 }
 

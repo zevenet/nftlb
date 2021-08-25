@@ -164,6 +164,8 @@ struct farm {
 	struct list_head	timed_sessions;
 	int					total_static_sessions;
 	struct list_head	static_sessions;
+	int					port_list[NFTLB_MAX_PORTS];
+	int					nports;
 };
 
 struct list_head * farm_s_get_head(void);
@@ -189,5 +191,7 @@ int farm_s_lookup_policy_action(char *name, int action);
 int farm_rulerize(struct farm *f);
 int farm_s_rulerize(void);
 int farm_get_mark(struct farm *f);
+
+int farm_search_array_port(struct farm *f, int port);
 
 #endif /* _FARMS_H_ */

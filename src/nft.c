@@ -39,7 +39,6 @@
 
 #define NFTLB_MAX_CMD				2048
 #define NFTLB_MAX_IFACES			100
-#define NFTLB_MAX_PORTS				65535
 
 #define NFTLB_TABLE_NAME			"nftlb"
 #define NFTLB_TABLE_PREROUTING		"prerouting"
@@ -421,58 +420,6 @@ static char * print_nft_prefix_policy(enum type type)
 		return NFTLB_NFT_PREFIX_POLICY_WL;
 	else
 		return NFTLB_NFT_PREFIX_POLICY_BL;
-}
-
-static void get_range_ports(const char *ptr, int *first, int *last)
-{
-	sscanf(ptr, "%d-%d[^,]", first, last);
-}
-
-static int search_array_port(int *port_list, int port)
-{
-	int idx = 0;
-
-	if (!port_list)
-		return 0;
-
-	while (idx < NFTLB_MAX_PORTS || port_list[idx] == 0) {
-		if (port_list[idx] == port)
-			return 1;
-		idx++;
-	}
-
-	return 0;
-}
-
-static int get_array_ports(int *port_list, struct farm *f)
-{
-	int index = 0;
-	char *ptr;
-	int i, new;
-	int last = 0;
-
-	if (!port_list)
-		return -1;
-
-	ptr = f->virtports;
-	while (ptr != NULL && *ptr != '\0') {
-		last = new = 0;
-		get_range_ports(ptr, &new, &last);
-		if (last == 0)
-			last = new;
-		if (new > last)
-			goto next;
-		for (i = new; i <= last; i++)
-			if (!search_array_port(port_list, i))
-				port_list[index++] = i;
-
-next:
-		ptr = strchr(ptr, ',');
-		if (ptr != NULL)
-			ptr++;
-	}
-
-	return index;
 }
 
 static unsigned int get_rules_needed(int family, int protocol)
@@ -897,16 +844,16 @@ static int run_farm_rules_gen_srv_data(char **buf, struct farm *f, struct backen
 
 static int run_farm_rules_gen_srv_map(struct sbuffer *buf, struct farm *f, char *nft_family, int type, int action, enum map_modes key_mode, enum map_modes data_mode)
 {
-	int port_list[NFTLB_MAX_PORTS] = { 0 };
 	char action_str[255] = { 0 };
 	char key_str[255] = { 0 };
 	char *data_str = NULL;
 	char chain[255] = { 0 };
 	char service[255] = { 0 };
 	struct backend *b;
-	int nports;
-	int i;
+	int nports = f->nports;
+	int iport = 1;
 	int bckmark;
+	int first_port = 1;
 
 	data_str = calloc(1, 255);
 	if (!data_str) {
@@ -942,23 +889,37 @@ static int run_farm_rules_gen_srv_map(struct sbuffer *buf, struct farm *f, char 
 		break;
 	case BCK_MAP_IPADDR_PORT:
 		run_farm_rules_gen_srv_data((char **) &data_str, f, NULL, chain, data_mode);
-		nports = get_array_ports(port_list, f);
-		for (i = 0; i < nports; i++) {
-			if (i)
-				concat_buf(buf, ", %s . %d %s", f->virtaddr, port_list[i], data_str);
-			else
-				concat_buf(buf, " ; %s element %s %s %s { %s . %d %s", action_str, nft_family, NFTLB_TABLE_NAME, service, f->virtaddr, port_list[i], data_str);
+
+		if (nports == 0)
+			break;
+
+		concat_buf(buf, " ; %s element %s %s %s { ", action_str, nft_family, NFTLB_TABLE_NAME, service);
+
+		while (iport <= NFTLB_MAX_PORTS && nports > 0)
+		{
+			if (!farm_search_array_port(f, iport)) { iport++; continue; }
+
+			concat_buf(buf, "%s . %d %s", f->virtaddr, iport, data_str);
+
+			if (nports != 1)
+				concat_buf(buf, ", ");
+
+			iport++;
+			nports--;
 		}
-		if (i)
-			concat_exec_cmd(buf, " }");
+
+		concat_exec_cmd(buf, " }");
 		break;
 	default:
-		if (f->protocol != VALUE_PROTO_ALL)
-			nports = get_array_ports(port_list, f);
-		else
-			nports = 1;
+		nports = (f->protocol == VALUE_PROTO_ALL) ? 1 : f->nports;
 
-		for (i = 0; i < nports; i++) {
+		if (nports == 0)
+			break;
+
+		while (iport <= NFTLB_MAX_PORTS && nports > 0)
+		{
+			if (!farm_search_array_port(f, iport) && f->protocol != VALUE_PROTO_ALL) { iport++; continue; }
+
 			list_for_each_entry(b, &f->backends, list) {
 				if (!backend_validate(b))
 					continue;
@@ -970,18 +931,18 @@ static int run_farm_rules_gen_srv_map(struct sbuffer *buf, struct farm *f, char 
 					continue;
 
 				if ((key_mode == BCK_MAP_BCK_ID || key_mode == BCK_MAP_BCK_MARK) && bckmark != DEFAULT_MARK) {
-					if (i > 0) continue;
+					if (!first_port) { continue; }
 					sprintf(key_str, "0x%x", bckmark);
 				} else if ((key_mode == BCK_MAP_BCK_ID || key_mode == BCK_MAP_BCK_IPADDR_F_PORT) && (b->port == NULL || strcmp(b->port, DEFAULT_PORT) == 0) && f->protocol != VALUE_PROTO_ALL) {
-					sprintf(key_str, "%s . %d", b->ipaddr, port_list[i]);
+					sprintf(key_str, "%s . %d", b->ipaddr, iport);
 				} else if (key_mode == BCK_MAP_BCK_ID && strcmp(b->port, DEFAULT_PORT) != 0 && f->protocol != VALUE_PROTO_ALL) {
-					if (i > 0) continue;
+					if (!first_port) { continue; }
 					sprintf(key_str, "%s . %s", b->ipaddr, b->port);
 				} else if (key_mode == BCK_MAP_BCK_ID || key_mode == BCK_MAP_BCK_IPADDR) {
-					if (i > 0) continue;
+					if (!first_port) { continue; }
 					sprintf(key_str, "%s", b->ipaddr);
 				} else
-					continue;
+					if (!first_port) { continue; }
 
 				run_farm_rules_gen_srv_data((char **) &data_str, f, b, chain, data_mode);
 
@@ -997,6 +958,11 @@ static int run_farm_rules_gen_srv_map(struct sbuffer *buf, struct farm *f, char 
 				run_farm_rules_gen_srv_data((char **) &data_str, f, b, chain, data_mode);
 				concat_exec_cmd(buf, " ; %s element %s %s %s { %s %s}", action_str, nft_family, NFTLB_TABLE_NAME, service, key_str, data_str);
 			}
+
+			iport++;
+			first_port = 0;
+			nports--;
+			continue;
 		}
 		break;
 	}
