@@ -347,7 +347,12 @@ static int send_delete_response(struct nftlb_http_state *state)
 			config_delete_elements(secondlevel);
 			goto delete_end;
 		}
-		config_set_policy_action(secondlevel, CONFIG_VALUE_ACTION_RELOAD);
+
+		if (strcmp(fourthlevel, "") != 0)
+			config_set_policy_action(secondlevel, CONFIG_VALUE_ACTION_RELOAD);
+		else
+			config_set_policy_action(secondlevel, CONFIG_VALUE_ACTION_FLUSH);
+
 		obj_rulerize(OBJ_START);
 		config_delete_elements(secondlevel);
 

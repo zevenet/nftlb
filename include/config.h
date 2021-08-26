@@ -127,6 +127,7 @@
 #define CONFIG_VALUE_ACTION_START	"start"
 #define CONFIG_VALUE_ACTION_RELOAD	"reload"
 #define CONFIG_VALUE_ACTION_NONE	"none"
+#define CONFIG_VALUE_ACTION_FLUSH	"flush"
 #define CONFIG_VALUE_SWITCH_ON		"on"
 #define CONFIG_VALUE_SWITCH_OFF		"off"
 #define CONFIG_VALUE_POLICIES_TYPE_BL	"blacklist"

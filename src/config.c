@@ -248,6 +248,8 @@ static int config_value_action(const char *value)
 		return ACTION_START;
 	if (strcmp(value, CONFIG_VALUE_ACTION_RELOAD) == 0)
 		return ACTION_RELOAD;
+	if (strcmp(value, CONFIG_VALUE_ACTION_FLUSH) == 0)
+		return ACTION_FLUSH;
 
 	return ACTION_NONE;
 }
