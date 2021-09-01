@@ -2330,13 +2330,13 @@ static int run_farm_rules_output(struct sbuffer *buf, struct nftst *n, int famil
 	return 0;
 }
 
-static int run_farm_rules_ingress_policies(struct sbuffer *buf, struct farm *f, char *chain)
+static int run_farm_rules_ingress_policies(struct sbuffer *buf, struct farm *f, char *chain, int action)
 {
 	struct farmpolicy *fp;
 	char logprefix_str[255] = { 0 };
 	struct nftst *n = nftst_create_from_farm(f);
 
-	if (f->policies_action != ACTION_START && f->policies_action != ACTION_RELOAD)
+	if (f->policies_action != ACTION_START && f->policies_action != ACTION_RELOAD && action != ACTION_RELOAD)
 		return 0;
 
 	list_for_each_entry(fp, &f->policies, list) {
@@ -2372,13 +2372,13 @@ static int run_farm_rules_ingress_policies(struct sbuffer *buf, struct farm *f, 
 	return 0;
 }
 
-static int run_nftst_rules_ingress_policies(struct sbuffer *buf, struct nftst *n, char *chain)
+static int run_nftst_rules_ingress_policies(struct sbuffer *buf, struct nftst *n, char *chain, int action)
 {
 	struct address *a = nftst_get_address(n);
 	struct addresspolicy *ap;
 	char logprefix_str[255] = { 0 };
 
-	if (a->policies_action != ACTION_START && a->policies_action != ACTION_RELOAD)
+	if (a->policies_action != ACTION_START && a->policies_action != ACTION_RELOAD && action != ACTION_RELOAD)
 		return 0;
 
 	list_for_each_entry(ap, &a->policies, list) {
@@ -2512,7 +2512,7 @@ static int run_nftst_ingress_policies(struct sbuffer *buf, struct nftst *n, int 
 
 	if ((f && !farm_needs_policies(f)) ||
 		(!f && a && !address_needs_policies(a)) ||
-		naction == ACTION_NONE)
+		(f && !farm_is_ingress_mode(f) && naction == ACTION_NONE))
 		return 0;
 
 	get_chain_name(chain, nftst_get_name(n), NFTLB_F_CHAIN_ING_FILTER);
@@ -2526,16 +2526,16 @@ static int run_nftst_ingress_policies(struct sbuffer *buf, struct nftst *n, int 
 		}
 
 		if (f)
-			run_farm_rules_ingress_policies(buf, f, chain);
+			run_farm_rules_ingress_policies(buf, f, chain, action);
 		else if (a)
-			run_nftst_rules_ingress_policies(buf, n, chain);
+			run_nftst_rules_ingress_policies(buf, n, chain, action);
 		break;
 	case ACTION_RELOAD:
 		run_nftst_rules_gen_vsrv(buf, n, NFTLB_F_CHAIN_ING_FILTER, VALUE_FAMILY_NETDEV, ACTION_RELOAD, ACTION_RELOAD);
 		if (f)
-			run_farm_rules_ingress_policies(buf, f, chain);
+			run_farm_rules_ingress_policies(buf, f, chain, action);
 		else if (a)
-			run_nftst_rules_ingress_policies(buf, n, chain);
+			run_nftst_rules_ingress_policies(buf, n, chain, action);
 		break;
 	case ACTION_DELETE:
 	case ACTION_STOP:
@@ -2561,10 +2561,10 @@ static int run_farm_dsr(struct sbuffer *buf, struct nftst *n, int family, int ac
 	switch (action) {
 	case ACTION_RELOAD:
 	case ACTION_START:
-		run_nftst_ingress_policies(buf, n, family, f->policies_action);
 		run_base_table(buf, NFTLB_F_CHAIN_ING_FILTER, family, action);
 		run_base_chain(buf, n, NFTLB_F_CHAIN_ING_FILTER, family, get_rules_needed(a), action);
 		run_nftst_rules_gen_vsrv(buf, n, NFTLB_F_CHAIN_ING_FILTER, family, naction, action);
+		run_nftst_ingress_policies(buf, n, family, ACTION_RELOAD);
 		run_farm_sessions_map(buf, n, SESSION_TYPE_STATIC, family, action);
 		run_farm_sessions_map(buf, n, SESSION_TYPE_TIMED, family, action);
 		run_farm_manage_sessions(buf, f, SESSION_TYPE_STATIC, family, action);
@@ -2613,6 +2613,7 @@ static int run_farm_stlsnat(struct sbuffer *buf, struct nftst *n, int family, in
 		run_base_table(buf, NFTLB_F_CHAIN_ING_FILTER, family, action);
 		run_base_chain(buf, n, NFTLB_F_CHAIN_ING_FILTER, family, get_rules_needed(a), action);
 		run_nftst_rules_gen_vsrv(buf, n, NFTLB_F_CHAIN_ING_FILTER, family, naction, action);
+		run_nftst_ingress_policies(buf, n, family, f->policies_action);
 		run_farm_sessions_map(buf, n, SESSION_TYPE_STATIC, family, action);
 		run_farm_sessions_map(buf, n, SESSION_TYPE_TIMED, family, action);
 		run_farm_manage_sessions(buf, f, SESSION_TYPE_STATIC, family, action);
