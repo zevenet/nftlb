@@ -1724,12 +1724,12 @@ static int run_farm_rules_forward(struct sbuffer *buf, struct farm *f, int famil
 	return 0;
 }
 
-static int run_farm_rules_ingress_policies(struct sbuffer *buf, struct farm *f, char *chain)
+static int run_farm_rules_ingress_policies(struct sbuffer *buf, struct farm *f, char *chain, int action)
 {
 	struct farmpolicy *fp;
 	char logprefix_str[255] = { 0 };
 
-	if (f->policies_action != ACTION_START && f->policies_action != ACTION_RELOAD)
+	if (f->policies_action != ACTION_START && f->policies_action != ACTION_RELOAD && action != ACTION_RELOAD)
 		return 0;
 
 	list_for_each_entry(fp, &f->policies, list) {
@@ -1775,13 +1775,13 @@ static int run_farm_ingress_policies(struct sbuffer *buf, struct farm *f, int fa
 			run_base_chain(buf, f, NFTLB_F_CHAIN_ING_FILTER, family);
 			run_farm_rules_gen_vsrv(buf, f, NFTLB_F_CHAIN_ING_FILTER, VALUE_FAMILY_NETDEV, f->policies_action);
 		}
-		run_farm_rules_ingress_policies(buf, f, chain);
+		run_farm_rules_ingress_policies(buf, f, chain, action);
 	} else if (f->policies_action == ACTION_STOP && !farm_is_ingress_mode(f)) {
 		run_farm_rules_gen_vsrv(buf, f, NFTLB_F_CHAIN_ING_FILTER, VALUE_FAMILY_NETDEV, f->policies_action);
-	} else if (f->policies_action == ACTION_RELOAD) {
+	} else if (f->policies_action == ACTION_RELOAD || action == ACTION_RELOAD) {
 		if (!farm_is_ingress_mode(f))
 			run_farm_rules_gen_vsrv(buf, f, NFTLB_F_CHAIN_ING_FILTER, VALUE_FAMILY_NETDEV, f->policies_action);
-		run_farm_rules_ingress_policies(buf, f, chain);
+		run_farm_rules_ingress_policies(buf, f, chain, action);
 	} else {
 	}
 
