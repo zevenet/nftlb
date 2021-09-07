@@ -15,6 +15,7 @@
                         "helper": "none",
                         "log": "none",
                         "log-prefix": "l4:newfarm ",
+                        "log-rtlimit": "0",
                         "mark": "0x0",
                         "priority": "1",
                         "state": "up",

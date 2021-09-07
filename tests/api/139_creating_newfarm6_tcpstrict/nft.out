@@ -40,7 +40,10 @@ table ip nftlb {
 	}
 
 	chain filter-newfarm6 {
-		ct state invalid log prefix "tcp-strict-newfarm6 " drop
+		ct state invalid jump {
+			log prefix "tcp-strict-newfarm6 "
+			drop
+		}
 		ct state new ct mark 0x00000000 ct mark set 0x80000000
 	}
 

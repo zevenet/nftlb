@@ -17,6 +17,9 @@ table netdev nftlb {
 	}
 
 	chain lb01 {
-		ip saddr @black001 log prefix "[BL,lb01,black001]" drop
+		ip saddr @black001 jump {
+			log prefix "[BL,lb01,black001]"
+			drop
+		}
 	}
 }

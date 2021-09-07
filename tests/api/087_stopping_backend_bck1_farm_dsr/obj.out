@@ -14,6 +14,7 @@
                         "persist-ttl": "50",
                         "helper": "none",
                         "log": "none",
+                        "log-rtlimit": "0",
                         "mark": "0x0",
                         "priority": "2",
                         "state": "up",

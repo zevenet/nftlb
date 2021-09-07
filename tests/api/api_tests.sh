@@ -56,6 +56,7 @@ for DIRTEST in `ls -d */`; do
 	if [ -f "$CHECK_OUTPUT" ] && [ -f "$CURL_OUTPUT" ]; then
 		if [ "`diff -Nru $CHECK_OUTPUT $CURL_OUTPUT`" != "" ]; then
 			echo -en "\e[31mFAILURE\e[0m) "
+			diff -Nru $CHECK_OUTPUT $CURL_OUTPUT
 		else
 			echo -en "\e[32mOK\e[0m) "
 			rm -f report-*-req.out
@@ -73,6 +74,7 @@ for DIRTEST in `ls -d */`; do
 	if [ -f "$CHECK_OUTPUT" ] && [ -f "$NFT_OUTPUT" ]; then
 		if [ "`diff -Nru $CHECK_OUTPUT $NFT_OUTPUT`" != "" ]; then
 			echo -en "\e[31mFAILURE\e[0m) "
+			diff -Nru $CHECK_OUTPUT $NFT_OUTPUT
 		else
 			echo -en "\e[32mOK\e[0m) "
 			rm -f report-*-nft.out
@@ -92,6 +94,7 @@ for DIRTEST in `ls -d */`; do
 	if [ -f "$CHECK_OUTPUT" ] && [ -f "$CURL_OUTPUT" ]; then
 		if [ "`diff -Nru $CHECK_OUTPUT $CURL_OUTPUT`" != "" ]; then
 			echo -en "\e[31mFAILURE\e[0m) "
+			diff -Nru $CHECK_OUTPUT $CURL_OUTPUT
 		else
 			echo -en "\e[32mOK\e[0m) "
 			rm -f report-*-obj.out
