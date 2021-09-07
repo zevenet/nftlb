@@ -39,6 +39,7 @@ struct address {
 	int					protocol;
 	int					verdict;
 	char				*logprefix;
+	int					logrtlimit;
 	struct list_head	policies;
 	int					policies_used;
 	int					policies_action;

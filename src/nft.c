@@ -2009,6 +2009,23 @@ static void run_farm_meter(struct sbuffer *buf, struct farm *f, int family, int 
 	}
 }
 
+static int run_farm_log_rate_limit(struct sbuffer *buf, struct nftst *n)
+{
+	struct farm *f = nftst_get_farm(n);
+	struct address *a = nftst_get_address(n);
+
+	if ((f && !f->logrtlimit) || (a && !a->logrtlimit))
+		return 0;
+
+	if (f)
+		concat_buf(buf, " limit rate %d/second", f->logrtlimit);
+
+	if (a)
+		concat_buf(buf, " limit rate %d/second", a->logrtlimit);
+
+	return 0;
+}
+
 static int run_farm_rules_filter_policies(struct sbuffer *buf, struct farm *f, int family, char *chain, int action)
 {
 	char logprefix_str[255] = { 0 };
@@ -2020,10 +2037,15 @@ static int run_farm_rules_filter_policies(struct sbuffer *buf, struct farm *f, i
 		concat_buf(buf, " ; add rule %s %s %s ct state invalid",
 						print_nft_table_family(family, NFTLB_F_CHAIN_PRE_FILTER), NFTLB_TABLE_NAME, chain);
 		if (f->verdict & VALUE_VERDICT_LOG) {
+			concat_buf(buf, " jump {");
+			run_farm_log_rate_limit(buf, n);
 			print_log_format(logprefix_str, KEY_TCPSTRICT_LOGPREFIX, NFTLB_F_CHAIN_PRE_FILTER, n);
-			concat_buf(buf, " log prefix \"%s\"", logprefix_str);
+			concat_buf(buf, " log prefix \"%s\";", logprefix_str);
 		}
-		concat_exec_cmd(buf, " %s", print_nft_verdict(f->verdict, VALUE_TYPE_DENY));
+		concat_buf(buf, " %s", print_nft_verdict(f->verdict, VALUE_TYPE_DENY));
+		if (f->verdict & VALUE_VERDICT_LOG)
+			concat_buf(buf, "; }");
+		concat_exec_cmd(buf, "");
 	}
 
 	sprintf(meter_str, "%s-%s", CONFIG_KEY_NEWRTLIMIT, f->name);
@@ -2037,10 +2059,15 @@ static int run_farm_rules_filter_policies(struct sbuffer *buf, struct farm *f, i
 		concat_buf(buf, " ; add rule %s %s %s ct state new add @%s { ip saddr limit rate over %d/second %s}",
 						print_nft_table_family(family, NFTLB_F_CHAIN_PRE_FILTER), NFTLB_TABLE_NAME, chain, meter_str, f->newrtlimit, burst_str);
 		if (f->verdict & VALUE_VERDICT_LOG) {
+			concat_buf(buf, " jump {");
+			run_farm_log_rate_limit(buf, n);
 			print_log_format(logprefix_str, KEY_NEWRTLIMIT_LOGPREFIX, NFTLB_F_CHAIN_PRE_FILTER, n);
-			concat_buf(buf, " log prefix \"%s\"", logprefix_str);
+			concat_buf(buf, " log prefix \"%s\";", logprefix_str);
 		}
-		concat_exec_cmd(buf, " %s", print_nft_verdict(f->verdict, VALUE_TYPE_DENY));
+		concat_buf(buf, " %s", print_nft_verdict(f->verdict, VALUE_TYPE_DENY));
+		if (f->verdict & VALUE_VERDICT_LOG)
+			concat_buf(buf, "; }");
+		concat_exec_cmd(buf, "");
 	}
 
 	sprintf(meter_str, "%s-%s", CONFIG_KEY_RSTRTLIMIT, f->name);
@@ -2054,10 +2081,15 @@ static int run_farm_rules_filter_policies(struct sbuffer *buf, struct farm *f, i
 		concat_buf(buf, " ; add rule %s %s %s tcp flags rst add @%s { ip saddr limit rate over %d/second %s}",
 						print_nft_table_family(family, NFTLB_F_CHAIN_PRE_FILTER), NFTLB_TABLE_NAME, chain, meter_str, f->rstrtlimit, burst_str);
 		if (f->verdict & VALUE_VERDICT_LOG) {
+			concat_buf(buf, " jump {");
+			run_farm_log_rate_limit(buf, n);
 			print_log_format(logprefix_str, KEY_RSTRTLIMIT_LOGPREFIX, NFTLB_F_CHAIN_PRE_FILTER, n);
-			concat_buf(buf, " log prefix \"%s\"", logprefix_str);
+			concat_buf(buf, " log prefix \"%s\";", logprefix_str);
 		}
-		concat_exec_cmd(buf, " %s", print_nft_verdict(f->verdict, VALUE_TYPE_DENY));
+		concat_buf(buf, " %s", print_nft_verdict(f->verdict, VALUE_TYPE_DENY));
+		if (f->verdict & VALUE_VERDICT_LOG)
+			concat_buf(buf, "; }");
+		concat_exec_cmd(buf, "");
 	}
 
 	sprintf(meter_str, "%s-%s", CONFIG_KEY_ESTCONNLIMIT, f->name);
@@ -2069,10 +2101,15 @@ static int run_farm_rules_filter_policies(struct sbuffer *buf, struct farm *f, i
 		concat_buf(buf, " ; add rule %s %s %s ct state new add @%s { ip saddr ct count over %d }",
 						print_nft_table_family(family, NFTLB_F_CHAIN_PRE_FILTER), NFTLB_TABLE_NAME, chain, meter_str, f->estconnlimit);
 		if (f->verdict & VALUE_VERDICT_LOG) {
+			concat_buf(buf, " jump {");
+			run_farm_log_rate_limit(buf, n);
 			print_log_format(logprefix_str, KEY_ESTCONNLIMIT_LOGPREFIX, NFTLB_F_CHAIN_PRE_FILTER, n);
-			concat_buf(buf, " log prefix \"%s\"", logprefix_str);
+			concat_buf(buf, " log prefix \"%s\";", logprefix_str);
 		}
-		concat_exec_cmd(buf, " %s", print_nft_verdict(f->verdict, VALUE_TYPE_DENY));
+		concat_buf(buf, " %s", print_nft_verdict(f->verdict, VALUE_TYPE_DENY));
+		if (f->verdict & VALUE_VERDICT_LOG)
+			concat_buf(buf, "; }");
+		concat_exec_cmd(buf, "");
 	}
 
 	if ((action == ACTION_START || action == ACTION_RELOAD) && f->queue != DEFAULT_QUEUE)
@@ -2097,11 +2134,16 @@ static int run_farm_rules_gen_limits_per_bck(struct sbuffer *buf, struct farm *f
 		concat_buf(buf, " ; add rule %s %s %s ct mark 0x%x ct count over %d",
 						print_nft_table_family(family, NFTLB_F_CHAIN_PRE_FILTER), NFTLB_TABLE_NAME, chain, backend_get_mark(b), b->estconnlimit);
 		if (f->verdict & VALUE_VERDICT_LOG) {
+			concat_buf(buf, " jump {");
 			nftst_set_backend(n, b);
+			run_farm_log_rate_limit(buf, n);
 			print_log_format(logprefix_str, KEY_ESTCONNLIMIT_LOGPREFIX, NFTLB_F_CHAIN_PRE_FILTER, n);
-			concat_buf(buf, " log prefix \"%s\"", logprefix_str);
+			concat_buf(buf, " log prefix \"%s\";", logprefix_str);
 		}
-		concat_exec_cmd(buf, " %s", print_nft_verdict(f->verdict, VALUE_TYPE_DENY));
+		concat_buf(buf, " %s", print_nft_verdict(f->verdict, VALUE_TYPE_DENY));
+		if (f->verdict & VALUE_VERDICT_LOG)
+			concat_buf(buf, "; }");
+		concat_exec_cmd(buf, "");
 	}
 
 	return 0;
@@ -2346,11 +2388,16 @@ static int run_farm_rules_ingress_policies(struct sbuffer *buf, struct farm *f, 
 		concat_buf(buf, " ; add rule %s %s %s %s saddr @%s",
 						NFTLB_NETDEV_FAMILY_STR, NFTLB_TABLE_NAME, chain, print_nft_family(fp->policy->family), fp->policy->name);
 		if (f->verdict & VALUE_VERDICT_LOG) {
+			concat_buf(buf, " jump {");
 			nftst_set_policy(n, fp->policy);
+			run_farm_log_rate_limit(buf, n);
 			print_log_format(logprefix_str, KEY_LOGPREFIX, NFTLB_F_CHAIN_ING_FILTER, n);
-			concat_buf(buf, " log prefix \"%s\"", logprefix_str);
+			concat_buf(buf, " log prefix \"%s\";", logprefix_str);
 		}
 		concat_exec_cmd(buf, " %s", print_nft_verdict(f->verdict, VALUE_TYPE_ALLOW));
+		if (f->verdict & VALUE_VERDICT_LOG)
+			concat_buf(buf, "; }");
+		concat_exec_cmd(buf, "");
 		fp->action = ACTION_NONE;
 	}
 
@@ -2361,11 +2408,16 @@ static int run_farm_rules_ingress_policies(struct sbuffer *buf, struct farm *f, 
 		concat_buf(buf, " ; add rule %s %s %s %s saddr @%s",
 						NFTLB_NETDEV_FAMILY_STR, NFTLB_TABLE_NAME, chain, print_nft_family(fp->policy->family), fp->policy->name);
 		if (f->verdict & VALUE_VERDICT_LOG) {
+			concat_buf(buf, " jump {");
 			nftst_set_policy(n, fp->policy);
+			run_farm_log_rate_limit(buf, n);
 			print_log_format(logprefix_str, KEY_LOGPREFIX, NFTLB_F_CHAIN_ING_FILTER, n);
-			concat_buf(buf, " log prefix \"%s\"", logprefix_str);
+			concat_buf(buf, " log prefix \"%s\";", logprefix_str);
 		}
-		concat_exec_cmd(buf, " %s", print_nft_verdict(f->verdict, VALUE_TYPE_DENY));
+		concat_buf(buf, " %s", print_nft_verdict(f->verdict, VALUE_TYPE_DENY));
+		if (f->verdict & VALUE_VERDICT_LOG)
+			concat_buf(buf, "; }");
+		concat_exec_cmd(buf, "");
 		fp->action = ACTION_NONE;
 	}
 
@@ -2388,10 +2440,15 @@ static int run_nftst_rules_ingress_policies(struct sbuffer *buf, struct nftst *n
 		concat_buf(buf, " ; add rule %s %s %s %s saddr @%s",
 						NFTLB_NETDEV_FAMILY_STR, NFTLB_TABLE_NAME, chain, print_nft_family(ap->policy->family), ap->policy->name);
 		if (a->verdict & VALUE_VERDICT_LOG) {
+			concat_buf(buf, " jump {");
+			run_farm_log_rate_limit(buf, n);
 			print_log_format(logprefix_str, KEY_LOGPREFIX, NFTLB_F_CHAIN_ING_FILTER, n);
-			concat_buf(buf, " log prefix \"%s\"", logprefix_str);
+			concat_buf(buf, " log prefix \"%s\";", logprefix_str);
 		}
 		concat_exec_cmd(buf, " %s", print_nft_verdict(a->verdict, VALUE_TYPE_ALLOW));
+		if (a->verdict & VALUE_VERDICT_LOG)
+			concat_buf(buf, "; }");
+		concat_exec_cmd(buf, "");
 		ap->action = ACTION_NONE;
 	}
 
@@ -2402,10 +2459,15 @@ static int run_nftst_rules_ingress_policies(struct sbuffer *buf, struct nftst *n
 		concat_buf(buf, " ; add rule %s %s %s %s saddr @%s",
 						NFTLB_NETDEV_FAMILY_STR, NFTLB_TABLE_NAME, chain, print_nft_family(ap->policy->family), ap->policy->name);
 		if (a->verdict & VALUE_VERDICT_LOG) {
+			concat_buf(buf, " jump {");
+			run_farm_log_rate_limit(buf, n);
 			print_log_format(logprefix_str, KEY_LOGPREFIX, NFTLB_F_CHAIN_ING_FILTER, n);
-			concat_buf(buf, " log prefix \"%s\"", logprefix_str);
+			concat_buf(buf, " log prefix \"%s\";", logprefix_str);
 		}
 		concat_exec_cmd(buf, " %s", print_nft_verdict(a->verdict, VALUE_TYPE_DENY));
+		if (a->verdict & VALUE_VERDICT_LOG)
+			concat_buf(buf, "; }");
+		concat_exec_cmd(buf, "");
 		ap->action = ACTION_NONE;
 	}
 
