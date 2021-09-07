@@ -47,6 +47,7 @@
 #define CONFIG_KEY_HELPER		"helper"
 #define CONFIG_KEY_LOG			"log"
 #define CONFIG_KEY_LOGPREFIX	"log-prefix"
+#define CONFIG_KEY_LOG_RTLIMIT	"log-rtlimit"
 #define CONFIG_KEY_MARK			"mark"
 #define CONFIG_KEY_STATE		"state"
 #define CONFIG_KEY_BCKS			"backends"

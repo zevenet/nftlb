@@ -40,6 +40,7 @@ struct policy {
 	int					total_elem;
 	int					used;
 	char				*logprefix;
+ 	int					logrtlimit;
 	int					action;
 	struct list_head	elements;
 };

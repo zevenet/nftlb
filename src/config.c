@@ -349,6 +349,7 @@ static int config_value(const char *value)
 	case KEY_RSTRTLIMITBURST:
 	case KEY_ESTCONNLIMIT:
 	case KEY_TIMEOUT:
+ 	case KEY_LOG_RTLIMIT:
 		new_int_value = atoi(value);
 		if (new_int_value >= 0) {
 			c.int_value = new_int_value;
@@ -473,6 +474,8 @@ static int config_key(const char *key)
 		return KEY_LOG;
 	if (strcmp(key, CONFIG_KEY_LOGPREFIX) == 0)
 		return KEY_LOGPREFIX;
+	if (strcmp(key, CONFIG_KEY_LOG_RTLIMIT) == 0)
+		return KEY_LOG_RTLIMIT;
 	if (strcmp(key, CONFIG_KEY_MARK) == 0)
 		return KEY_MARK;
 	if (strcmp(key, CONFIG_KEY_STATE) == 0)
@@ -810,6 +813,8 @@ static struct json_t *add_dump_list(json_t *obj, const char *objname, int object
 			add_dump_obj(item, CONFIG_KEY_LOG, buf);
 			if (f->logprefix && strcmp(f->logprefix, DEFAULT_LOG_LOGPREFIX) != 0)
 				add_dump_obj(item, CONFIG_KEY_LOGPREFIX, f->logprefix);
+			config_dump_int(value, f->logrtlimit);
+			add_dump_obj(item, CONFIG_KEY_LOG_RTLIMIT, value);
 
 			config_dump_hex(value, f->mark);
 			add_dump_obj(item, CONFIG_KEY_MARK, value);
@@ -906,7 +911,8 @@ static struct json_t *add_dump_list(json_t *obj, const char *objname, int object
 			add_dump_obj(item, CONFIG_KEY_PRIORITY, value);
 			if (p->logprefix && strcmp(p->logprefix, DEFAULT_POLICY_LOGPREFIX) != 0)
 				add_dump_obj(item, CONFIG_KEY_LOGPREFIX, p->logprefix);
-
+			config_dump_int(value, p->logrtlimit);
+			add_dump_obj(item, CONFIG_KEY_LOG_RTLIMIT, value);
 
 			config_dump_int(value, p->used);
 			add_dump_obj(item, CONFIG_KEY_USED, value);

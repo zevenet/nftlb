@@ -219,6 +219,8 @@ char * obj_print_key(int key)
 		return CONFIG_KEY_LOG;
 	case KEY_LOGPREFIX:
 		return CONFIG_KEY_LOGPREFIX;
+	case KEY_LOG_RTLIMIT:
+		return CONFIG_KEY_LOG_RTLIMIT;
 	case KEY_MARK:
 		return CONFIG_KEY_MARK;
 	case KEY_STATE:

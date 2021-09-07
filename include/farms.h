@@ -130,6 +130,7 @@ struct farm {
 	int			helper;
 	int			log;
 	char		*logprefix;
+	int			logrtlimit;
 	int			mark;
 	int			state;
 	int			priority;
