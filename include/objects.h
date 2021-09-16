@@ -47,6 +47,7 @@
 #define DEFAULT_LOG_LOGPREFIX	"TYPE-FNAME "
 #define DEFAULT_LOGPREFIX	"KNAME-FNAME "
 #define DEFAULT_LOG_RTLIMIT	0
+#define DEFAULT_LOG_RTLIMIT_UNIT	VALUE_UNIT_SECOND
 #define DEFAULT_MARK		0x0
 #define DEFAULT_WEIGHT		1
 #define DEFAULT_PRIORITY	1
@@ -162,6 +163,15 @@ enum families {
 	VALUE_FAMILY_NETDEV,
 };
 
+
+enum units {
+	VALUE_UNIT_SECOND,
+	VALUE_UNIT_MINUTE,
+	VALUE_UNIT_HOUR,
+	VALUE_UNIT_DAY,
+	VALUE_UNIT_WEEK,
+};
+
 #define VALUE_VERDICT_NONE			0
 #define VALUE_VERDICT_LOG			(1 << 0)
 #define VALUE_VERDICT_DROP			(1 << 1)
@@ -202,6 +212,7 @@ char * obj_print_key(int key);
 char * obj_print_family(int family);
 char * obj_print_mode(int mode);
 char * obj_print_proto(int protocol);
+int obj_print_rtlimit(char *buf, int value, int unit);
 char * obj_print_sched(int scheduler);
 void obj_print_meta(int param, char* buf);
 char * obj_print_helper(int helper);

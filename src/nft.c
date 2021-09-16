@@ -1465,10 +1465,12 @@ static void run_farm_meter(struct sbuffer *buf, struct farm *f, int family, int 
 
 static int run_farm_log_rate_limit(struct sbuffer *buf, struct farm *f)
 {
+	char rtlimit_str[255] = { 0 };
 	if (!f->logrtlimit)
 		return 0;
 
-	concat_buf(buf, " limit rate %d/second", f->logrtlimit);
+	obj_print_rtlimit(rtlimit_str, f->logrtlimit, f->logrtlimit_unit);
+	concat_buf(buf, " limit rate %s", rtlimit_str);
 
 	return 0;
 }

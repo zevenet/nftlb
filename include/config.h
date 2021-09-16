@@ -137,6 +137,11 @@
 #define CONFIG_VALUE_VERDICT_LOG				"log"
 #define CONFIG_VALUE_VERDICT_DROP				"drop"
 #define CONFIG_VALUE_VERDICT_ACCEPT				"accept"
+#define CONFIG_VALUE_UNIT_SECOND				"second"
+#define CONFIG_VALUE_UNIT_MINUTE				"minute"
+#define CONFIG_VALUE_UNIT_HOUR					"hour"
+#define CONFIG_VALUE_UNIT_DAY					"day"
+#define CONFIG_VALUE_UNIT_WEEK					"week"
 
 enum config_parser_output {
 	PARSER_OK,
@@ -156,6 +161,7 @@ struct config_pair {
 	enum levels	level;
 	enum keys	key;
 	char		*str_value;
+	int			int_value2;
 	int		int_value;
 };
 

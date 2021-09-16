@@ -88,6 +88,7 @@ Where every farm object has the following attributes:
 	"helper": "<none | amanda | ftp | h323 | irc | netbios-ns | pptp | sane | sip | snmp | tftp>",	*L7 helper to be used (none by default)*
 	"log": "<none | input | forward | output>",	*Enable logging (none by default)*
 	"log-prefix": "<string|KNAME|TYPE|FNAME>",	*Farm log prefix (default "TYPE-FNAME")*
+	"log-rtlimit": "<number>[/<second | minute | hour | day | week >]",			*Security logs rate limit per second (0/second by default)*
 	"mark": "<hexadecimal mark>",			*Set mark mask for the farm (none by default)*
 	"priority": "<number>",				*Priority availability for backends > 0 (1 by default)*
 	"limits-ttl": "<number>",				*Timeout of banned client due to limit protections (120 seconds by default)*

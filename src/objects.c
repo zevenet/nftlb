@@ -35,6 +35,9 @@
 #include <string.h>
 #include <syslog.h>
 
+#define MAX_OBJ_VALUE		50
+#define MAX_OBJ_UNIT		20
+
 struct obj_config	current_obj;
 
 struct list_head	farms;
@@ -328,6 +331,34 @@ char * obj_print_proto(int protocol)
 	default:
 		return NULL;
 	}
+}
+
+int obj_print_rtlimit(char *buf, int value, int unit)
+{
+	char *unit_str;
+
+	buf[0] = '\0';
+
+	switch (unit) {
+	case VALUE_UNIT_MINUTE:
+		unit_str = CONFIG_VALUE_UNIT_MINUTE;
+		break;
+	case VALUE_UNIT_HOUR:
+		unit_str = CONFIG_VALUE_UNIT_HOUR;
+		break;
+	case VALUE_UNIT_DAY:
+		unit_str = CONFIG_VALUE_UNIT_DAY;
+		break;
+	case VALUE_UNIT_WEEK:
+		unit_str = CONFIG_VALUE_UNIT_WEEK;
+		break;
+	case VALUE_UNIT_SECOND:
+	default:
+		unit_str = CONFIG_VALUE_UNIT_SECOND;
+	}
+
+	snprintf(buf, MAX_OBJ_VALUE, "%d/%s", value, unit_str);
+	return EXIT_SUCCESS;
 }
 
 char * obj_print_sched(int scheduler)
