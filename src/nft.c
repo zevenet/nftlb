@@ -2013,15 +2013,20 @@ static int run_farm_log_rate_limit(struct sbuffer *buf, struct nftst *n)
 {
 	struct farm *f = nftst_get_farm(n);
 	struct address *a = nftst_get_address(n);
+	char rtlimit_str[255] = { 0 };
 
 	if ((f && !f->logrtlimit) || (a && !a->logrtlimit))
 		return 0;
 
-	if (f)
-		concat_buf(buf, " limit rate %d/second", f->logrtlimit);
+	if (f) {
+		obj_print_rtlimit(rtlimit_str, f->logrtlimit, f->logrtlimit_unit);
+		concat_buf(buf, " limit rate %s", rtlimit_str);
+	}
 
-	if (a)
-		concat_buf(buf, " limit rate %d/second", a->logrtlimit);
+	if (a) {
+		obj_print_rtlimit(rtlimit_str, a->logrtlimit, a->logrtlimit_unit);
+		concat_buf(buf, " limit rate %s", rtlimit_str);
+	}
 
 	return 0;
 }

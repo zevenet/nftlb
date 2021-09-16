@@ -64,6 +64,7 @@ static struct farm * farm_create(char *name)
 	pfarm->log = DEFAULT_LOG;
 	pfarm->logprefix = DEFAULT_LOG_LOGPREFIX;
 	pfarm->logrtlimit = DEFAULT_LOG_RTLIMIT;
+	pfarm->logrtlimit_unit = DEFAULT_LOG_RTLIMIT_UNIT;
 	pfarm->mark = DEFAULT_MARK;
 	pfarm->state = DEFAULT_FARM_STATE;
 	pfarm->action = DEFAULT_ACTION;
@@ -466,7 +467,8 @@ static void farm_print(struct farm *f)
 
 	if (f->logprefix)
 		tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_LOGPREFIX, f->logprefix);
-	tools_printlog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_LOG_RTLIMIT, f->logrtlimit);
+	obj_print_rtlimit(buf, f->logrtlimit, f->logrtlimit_unit);
+	tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_LOG_RTLIMIT, buf);
 
 	tools_printlog(LOG_DEBUG,"    [%s] 0x%x", CONFIG_KEY_MARK, f->mark);
 	tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_STATE, obj_print_state(f->state));
@@ -679,7 +681,8 @@ int farm_changed(struct config_pair *c)
 		return !obj_equ_attribute_string(f->logprefix, c->str_value);
 		break;
 	case KEY_LOG_RTLIMIT:
-		return !obj_equ_attribute_int(f->logrtlimit, c->int_value);
+		return !obj_equ_attribute_int(f->logrtlimit, c->int_value) ||
+			   !obj_equ_attribute_int(f->logrtlimit_unit, c->int_value2);
 		break;
 	case KEY_MARK:
 		return !obj_equ_attribute_int(f->mark, c->int_value);
@@ -1132,6 +1135,7 @@ int farm_set_attribute(struct config_pair *c)
 		break;
 	case KEY_LOG_RTLIMIT:
 		f->logrtlimit = c->int_value;
+		f->logrtlimit_unit = c->int_value2;
 		ret = PARSER_OK;
 		break;
 	case KEY_NEWRTLIMIT_LOGPREFIX:

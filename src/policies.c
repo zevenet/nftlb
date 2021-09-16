@@ -49,7 +49,6 @@ static struct policy * policy_create(char *name)
 	p->priority = DEFAULT_POLICY_PRIORITY;
 	p->used = 0;
 	p->logprefix = DEFAULT_POLICY_LOGPREFIX;
-	p->logrtlimit = DEFAULT_LOG_RTLIMIT;
 	p->action = DEFAULT_ACTION;
 
 	init_list_head(&p->elements);
@@ -124,7 +123,6 @@ void policy_print(struct policy *p)
 	tools_printlog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_PRIORITY, p->priority);
 	if (p->logprefix)
 		tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_LOGPREFIX, p->logprefix);
-	tools_printlog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_LOG_RTLIMIT, p->logrtlimit);
 
 	tools_printlog(LOG_DEBUG,"    *[used] %d", p->used);
 	tools_printlog(LOG_DEBUG,"    *[total_elem] %d", p->total_elem);

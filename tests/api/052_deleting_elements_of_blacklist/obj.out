@@ -7,7 +7,6 @@
                         "route": "in",
                         "timeout": "0",
                         "priority": "1",
-                        "log-rtlimit": "0",
                         "used": "0",
                         "elements": []
                 }

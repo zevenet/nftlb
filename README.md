@@ -95,7 +95,7 @@ Where every farm object has the following attributes:
 	"helper": "<none | ftp | pptp | sip | snmp | tftp>",	*L7 helper to be used (none by default)*
 	"log": "<none | input | forward | output>",	*Enable logging (none by default)*
 	"log-prefix": "<string|KNAME|TYPE|FNAME|ANAME>",	*Farm log prefix (default "TYPE-FNAME")*
-	"log-rtlimit": "<number>",			*Security logs rate limit per second (0 by default)*
+	"log-rtlimit": "<number>[/<second | minute | hour | day | week >]",			*Security logs rate limit per second (0/second by default)*
 	"mark": "<hexadecimal mark>",			*Set mark mask for the farm (none by default)*
 	"priority": "<number>",				*Priority availability for backends > 0 (1 by default)*
 	"limits-ttl": "<number>",				*Timeout of banned client due to limit protections (120 seconds by default)*
@@ -148,7 +148,7 @@ Where every address object has the following attributes:
 	"protocol": "<tcp | udp | sctp | all>",		*Protocol to be used by the address (tcp by default)*
 	"verdict": "<log | drop | accept>",			*Verdict to apply when a limit or blacklist/whitelist matches (log and default verdict per list type by default)*
 	"log-prefix": "<string|KNAME|TYPE|FNAME|ANAME>",	*Address log prefix (default "TYPE-FNAME")*
-	"log-rtlimit": "<number>",			*Security logs rate limit per second (0 by default)*
+	"log-rtlimit": "<number>[/<second | minute | hour | day | week >]",			*Security logs rate limit per second (0/second by default)*
 }
 ```
 Where every backend object has the following attributes:
@@ -181,7 +181,6 @@ Where every policy object has the following attributes:
 	"type": "<blacklist | whitelist>",			*Policy type*
 	"family": "<ipv4 | ipv6>",			*Family of the policy (ipv4 by default)*
 	"log-prefix": "<string|KNAME|TYPE|FNAME|PNAME>",	*Policy established connections log prefix (default "KNAME-TYPE-PNAME-FNAME")*
-	"log-rtlimit": "<number>",			*Policy logs rate limit per second (0 by default)*
 	"elements" : [					*List of IPs or networks*
 		{
 			"data" : "<ip or network>"

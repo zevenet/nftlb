@@ -15,7 +15,7 @@
                         "helper": "none",
                         "log": "forward ",
                         "log-prefix": "l4:Internal-Web-Server-FARM-HTTP ",
-                        "log-rtlimit": "0",
+                        "log-rtlimit": "0/second",
                         "mark": "0x0",
                         "priority": "1",
                         "state": "up",

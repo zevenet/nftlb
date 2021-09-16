@@ -53,6 +53,7 @@ static void init_pair(struct config_pair *c)
 	c->key = -1;
 	c->str_value = NULL;
 	c->int_value = -1;
+	c->int_value2 = -1;
 	c->action = ACTION_START;
 }
 
@@ -292,6 +293,33 @@ static int config_value_route(const char *value)
 	return VALUE_ROUTE_IN;
 }
 
+static int config_value_ratelimit(int *int_value, int *int_unit, const char *value)
+{
+	char str_unit[100];
+
+	sscanf(value, "%d%*[/]%99[a-zA-Z]", int_value, str_unit);
+
+	if (strcmp(str_unit, "") == 0)
+		*int_unit = DEFAULT_LOG_RTLIMIT_UNIT;
+	else if (strcmp(str_unit, CONFIG_VALUE_UNIT_SECOND) == 0)
+		*int_unit = VALUE_UNIT_SECOND;
+	else if (strcmp(str_unit, CONFIG_VALUE_UNIT_MINUTE) == 0)
+		*int_unit = VALUE_UNIT_MINUTE;
+	else if (strcmp(str_unit, CONFIG_VALUE_UNIT_HOUR) == 0)
+		*int_unit = VALUE_UNIT_HOUR;
+	else if (strcmp(str_unit, CONFIG_VALUE_UNIT_DAY) == 0)
+		*int_unit = VALUE_UNIT_DAY;
+	else if (strcmp(str_unit, CONFIG_VALUE_UNIT_WEEK) == 0)
+		*int_unit = VALUE_UNIT_WEEK;
+	else {
+		config_set_output(". Parsing unknown value '%s' in '%s'", value, CONFIG_KEY_LOG_RTLIMIT);
+		tools_printlog(LOG_ERR, "%s():%d: parsing unknown value '%s' in '%s'", __FUNCTION__, __LINE__, value, CONFIG_KEY_LOG_RTLIMIT);
+		return PARSER_FAILED;
+	}
+
+	return PARSER_OK;
+}
+
 static int config_value(const char *value)
 {
 	int ret = PARSER_VALID_FAILED;
@@ -355,7 +383,6 @@ static int config_value(const char *value)
 	case KEY_RSTRTLIMITBURST:
 	case KEY_ESTCONNLIMIT:
 	case KEY_TIMEOUT:
-	case KEY_LOG_RTLIMIT:
 		new_int_value = atoi(value);
 		if (new_int_value >= 0) {
 			c.int_value = new_int_value;
@@ -364,6 +391,9 @@ static int config_value(const char *value)
 		}
 		config_set_output(". Invalid value of key '%s' must be >=0", obj_print_key(c.key));
 		tools_printlog(LOG_ERR, "%s():%d: invalid value of key '%s' must be >=0", __FUNCTION__, __LINE__, obj_print_key(c.key));
+		break;
+	case KEY_LOG_RTLIMIT:
+		ret = config_value_ratelimit(&c.int_value, &c.int_value2, (char *)value);
 		break;
 	case KEY_QUEUE:
 		new_int_value = atoi(value);
@@ -628,7 +658,7 @@ static int config_json_string(json_t *element, int level, int source, int apply_
 	if (ret != PARSER_OK)
 		return ret;
 
-	tools_printlog(LOG_DEBUG, "%s():%d: %d(level) %d(key) %s(value) %d(value) apply_action %d", __FUNCTION__, __LINE__, c.level, c.key, c.str_value, c.int_value, apply_action);
+	tools_printlog(LOG_DEBUG, "%s():%d: %d(level) %d(key) %s(value) %d(value) %d(value2) apply_action %d", __FUNCTION__, __LINE__, c.level, c.key, c.str_value, c.int_value, c.int_value2, apply_action);
 
 	ret = obj_set_attribute(&c, source, apply_action);
 	init_pair(&c);
@@ -849,8 +879,8 @@ static struct json_t *add_dump_list(json_t *obj, const char *objname, int object
 			add_dump_obj(item, CONFIG_KEY_LOG, buf);
 			if (f->logprefix && strcmp(f->logprefix, DEFAULT_LOG_LOGPREFIX) != 0)
 				add_dump_obj(item, CONFIG_KEY_LOGPREFIX, f->logprefix);
-			config_dump_int(value, f->logrtlimit);
-			add_dump_obj(item, CONFIG_KEY_LOG_RTLIMIT, value);
+			obj_print_rtlimit(buf, f->logrtlimit, f->logrtlimit_unit);
+			add_dump_obj(item, CONFIG_KEY_LOG_RTLIMIT, buf);
 
 			config_dump_hex(value, f->mark);
 			add_dump_obj(item, CONFIG_KEY_MARK, value);
@@ -953,8 +983,6 @@ static struct json_t *add_dump_list(json_t *obj, const char *objname, int object
 			add_dump_obj(item, CONFIG_KEY_PRIORITY, value);
 			if (p->logprefix && strcmp(p->logprefix, DEFAULT_POLICY_LOGPREFIX) != 0)
 				add_dump_obj(item, CONFIG_KEY_LOGPREFIX, p->logprefix);
-			config_dump_int(value, p->logrtlimit);
-			add_dump_obj(item, CONFIG_KEY_LOG_RTLIMIT, value);
 
 			config_dump_int(value, p->used);
 			add_dump_obj(item, CONFIG_KEY_USED, value);
@@ -991,6 +1019,11 @@ static struct json_t *add_dump_list(json_t *obj, const char *objname, int object
 
 			obj_print_verdict(a->verdict, (char *)buf);
 			add_dump_obj(item, CONFIG_KEY_VERDICT, buf);
+
+			if (a->logprefix && strcmp(a->logprefix, DEFAULT_LOG_LOGPREFIX_ADDRESS) != 0)
+				add_dump_obj(item, CONFIG_KEY_LOGPREFIX, a->logprefix);
+			obj_print_rtlimit(buf, a->logrtlimit, a->logrtlimit_unit);
+			add_dump_obj(item, CONFIG_KEY_LOG_RTLIMIT, buf);
 
 			config_dump_int(value, a->used);
 			add_dump_obj(item, CONFIG_KEY_USED, value);

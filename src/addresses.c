@@ -60,6 +60,7 @@ struct address * address_create(char *name)
 	paddress->verdict = DEFAULT_VERDICT;
 	paddress->logprefix = DEFAULT_LOG_LOGPREFIX_ADDRESS;
 	paddress->logrtlimit = DEFAULT_LOG_RTLIMIT;
+	paddress->logrtlimit_unit = DEFAULT_LOG_RTLIMIT_UNIT;
 	paddress->policies_action = ACTION_NONE;
 
 	init_list_head(&paddress->policies);
@@ -205,7 +206,8 @@ void address_print(struct address *a)
 
 	if (a->logprefix)
 		tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_LOGPREFIX, a->logprefix);
-	tools_printlog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_LOG_RTLIMIT, a->logrtlimit);
+	obj_print_rtlimit(buf, a->logrtlimit, a->logrtlimit_unit);
+	tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_LOG_RTLIMIT, buf);
 
 	tools_printlog(LOG_DEBUG,"   *[used] %d", a->used);
 	tools_printlog(LOG_DEBUG,"   *[%s] %d", CONFIG_KEY_ACTION, a->action);

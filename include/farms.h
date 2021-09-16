@@ -120,6 +120,7 @@ struct farm {
 	int			log;
 	char		*logprefix;
 	int			logrtlimit;
+	int			logrtlimit_unit;
 	int			mark;
 	int			state;
 	int			priority;

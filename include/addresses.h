@@ -40,6 +40,7 @@ struct address {
 	int					verdict;
 	char				*logprefix;
 	int					logrtlimit;
+	int					logrtlimit_unit;
 	struct list_head	policies;
 	int					policies_used;
 	int					policies_action;

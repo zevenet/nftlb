@@ -14,7 +14,7 @@
                         "persist-ttl": "60",
                         "helper": "tftp",
                         "log": "none",
-                        "log-rtlimit": "0",
+                        "log-rtlimit": "0/second",
                         "mark": "0x0",
                         "priority": "1",
                         "state": "up",
