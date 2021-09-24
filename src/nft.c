@@ -957,8 +957,10 @@ static int run_base_chain_filter_ctmark(struct sbuffer *buf, int type, char *cha
 
 static int run_base_chain_postrouting_masquerade(struct sbuffer *buf, int type, char *chain_family)
 {
-	if (type & NFTLB_F_CHAIN_POS_SNAT)
+	if (type & NFTLB_F_CHAIN_POS_SNAT) {
+		concat_exec_cmd(buf, " ; add rule %s %s %s ct mark 0x0 ct mark set meta mark", chain_family, NFTLB_TABLE_NAME, NFTLB_TABLE_POSTROUTING);
 		concat_exec_cmd(buf, " ; add rule %s %s %s ct mark and 0x%x == 0x%x masquerade", chain_family, NFTLB_TABLE_NAME, NFTLB_TABLE_POSTROUTING, masquerade_mark, masquerade_mark);
+	}
 
 	return 0;
 }
@@ -1095,6 +1097,17 @@ static int run_base_table(struct sbuffer *buf, int type, int family, int action)
 	return 0;
 }
 
+static int need_source_nat_rules(struct farm *f)
+{
+	if (f &&
+		(f->mode == VALUE_MODE_SNAT ||
+		 (f->mode == VALUE_MODE_SNAT && farm_has_source_address(f))) &&
+		!farm_get_masquerade(f)) {
+		return 1;
+	}
+	return 0;
+}
+
 static int run_base_chain(struct sbuffer *buf, struct nftst *n, int type, int family, unsigned int rules_needed, int action)
 {
 	char service[255] = { 0 };
@@ -1227,7 +1240,7 @@ static int run_base_chain(struct sbuffer *buf, struct nftst *n, int type, int fa
 
 		if ((rules_needed & NFTLB_PROTO_IP_PORT_ACTIVE) && !(*base_rules & NFTLB_PROTO_IP_PORT_ACTIVE)) {
 			if (type & NFTLB_F_CHAIN_POS_SNAT) {
-				if (f && f->mode == VALUE_MODE_SNAT && !farm_get_masquerade(f)) {
+				if (need_source_nat_rules(f)) {
 					concat_exec_cmd(buf, " ; add map %s %s %s { type %s . %s . %s : %s ;}", chain_family, NFTLB_TABLE_NAME, service, NFTLB_MAP_TYPE_PROTO, print_nft_family_type(family), NFTLB_MAP_TYPE_INETSRV, print_nft_family_type(family));
 					concat_exec_cmd(buf, " ; add rule %s %s %s snat to %s %s . %s daddr . th dport map @%s", chain_family, NFTLB_TABLE_NAME, NFTLB_TABLE_POSTROUTING, chain_family, print_nft_family_protocol(family), chain_family, service);
 					*base_rules |= NFTLB_PROTO_IP_PORT_ACTIVE;
@@ -1249,7 +1262,7 @@ static int run_base_chain(struct sbuffer *buf, struct nftst *n, int type, int fa
 
 		if ((rules_needed & NFTLB_PROTO_PORT_ACTIVE) && !(*base_rules & NFTLB_PROTO_PORT_ACTIVE)) {
 			if (type & NFTLB_F_CHAIN_POS_SNAT) {
-				if (f->mode == VALUE_MODE_SNAT && !farm_get_masquerade(f)) {
+				if (need_source_nat_rules(f)) {
 					concat_exec_cmd(buf, " ; add map %s %s %s { type %s . %s : %s ;}", chain_family, NFTLB_TABLE_NAME, service, NFTLB_MAP_TYPE_PROTO, NFTLB_MAP_TYPE_INETSRV, print_nft_family_type(family));
 					concat_exec_cmd(buf, " ; add rule %s %s %s snat to %s %s . th dport map @%s", chain_family, NFTLB_TABLE_NAME, NFTLB_TABLE_POSTROUTING, chain_family, print_nft_family_protocol(family), service);
 					*base_rules |= NFTLB_PROTO_PORT_ACTIVE;
@@ -1271,7 +1284,7 @@ static int run_base_chain(struct sbuffer *buf, struct nftst *n, int type, int fa
 
 		if ((rules_needed & NFTLB_PROTO_IP_ACTIVE) && !(*base_rules & NFTLB_PROTO_IP_ACTIVE)) {
 			if (type & NFTLB_F_CHAIN_POS_SNAT) {
-				if (f && f->mode == VALUE_MODE_SNAT && !farm_get_masquerade(f)) {
+				if (need_source_nat_rules(f)) {
 					concat_exec_cmd(buf, " ; add map %s %s %s { type %s . %s : %s ;}", chain_family, NFTLB_TABLE_NAME, service, NFTLB_MAP_TYPE_PROTO, print_nft_family_type(family), print_nft_family_type(family));
 					concat_exec_cmd(buf, " ; add rule %s %s %s snat to %s %s . %s daddr map @%s", chain_family, NFTLB_TABLE_NAME, NFTLB_TABLE_POSTROUTING, chain_family, print_nft_family_protocol(family), chain_family, service);
 					*base_rules |= NFTLB_PROTO_IP_ACTIVE;
@@ -1579,7 +1592,7 @@ static int run_farm_snat(struct sbuffer *buf, struct nftst *n, int family, int a
 {
 	struct farm *f = nftst_get_farm(n);
 
-	if (f->mode != VALUE_MODE_SNAT)
+	if (f->mode != VALUE_MODE_SNAT && f->mode != VALUE_MODE_LOCAL)
 		return 0;
 
 	switch (action) {
@@ -1762,7 +1775,7 @@ static int run_farm_rules_filter_helper(struct sbuffer *buf, struct nftst *n, in
 	struct address *a = nftst_get_address(n);
 	char protocol[255] = {0};
 
-	if (!(f->helper != DEFAULT_HELPER && (f->mode == VALUE_MODE_SNAT || f->mode == VALUE_MODE_DNAT)))
+	if (!(f->helper != DEFAULT_HELPER && (f->mode == VALUE_MODE_SNAT || f->mode == VALUE_MODE_LOCAL || f->mode == VALUE_MODE_DNAT)))
 		return 0;
 
 	if (a->protocol == VALUE_PROTO_TCP || a->protocol == VALUE_PROTO_ALL) {
@@ -2747,6 +2760,39 @@ static int run_farm_nat(struct sbuffer *buf, struct nftst *n, int family, int ac
 	return 0;
 }
 
+static int run_farm_local(struct sbuffer *buf, struct nftst *n, int family, int action)
+{
+	struct farm *f = nftst_get_farm(n);
+	struct address *a = nftst_get_address(n);
+
+	switch (action) {
+	case ACTION_RELOAD:
+	case ACTION_START:
+		run_farm_rules_filter(buf, n, family, action);
+		run_nftst_ingress_policies(buf, n, family, f->policies_action);
+		if (farm_has_source_address(f)) {
+			run_base_table(buf, NFTLB_F_CHAIN_PRE_DNAT, family, action);
+			run_base_chain(buf, n, NFTLB_F_CHAIN_POS_SNAT, family, get_rules_needed(a), action);
+			run_farm_snat(buf, n, family, action);
+		}
+		break;
+	case ACTION_DELETE:
+	case ACTION_STOP:
+		run_farm_rules_filter(buf, n, family, action);
+		if (farm_has_source_address(f)) {
+			run_farm_snat(buf, n, family, action);
+			run_base_chain(buf, n, NFTLB_F_CHAIN_POS_SNAT, family, get_rules_needed(a), action);
+			run_base_table(buf, NFTLB_F_CHAIN_PRE_DNAT, family, action);
+		}
+		run_nftst_ingress_policies(buf, n, family, f->policies_action);
+		break;
+	default:
+		break;
+	}
+
+	return 0;
+}
+
 static int run_farm_rules(struct sbuffer *buf, struct nftst *n, int family)
 {
 	struct farm *f = nftst_get_farm(n);
@@ -2763,8 +2809,7 @@ static int run_farm_rules(struct sbuffer *buf, struct nftst *n, int family)
 		run_farm_dsr(buf, n, family, action);
 		break;
 	case VALUE_MODE_LOCAL:
-		run_farm_rules_filter(buf, n, family, action);
-		run_nftst_ingress_policies(buf, n, family, f->policies_action);
+		run_farm_local(buf, n, family, action);
 		break;
 	default:
 		run_farm_nat(buf, n, family, action);

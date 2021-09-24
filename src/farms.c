@@ -254,6 +254,12 @@ static void farm_manage_eventd(void)
 	}
 }
 
+int farm_has_source_address(struct farm *f)
+{
+	return (f->srcaddr != DEFAULT_SRCADDR && !obj_equ_attribute_string(f->srcaddr, "")) ||
+			f->bcks_have_srcaddr;
+}
+
 int farm_needs_flowtable(struct farm *f)
 {
 	return f->flow_offload;
@@ -296,7 +302,7 @@ static int farm_set_mark(struct farm *f, int new_value)
 
 	tools_printlog(LOG_DEBUG, "%s():%d: farm %s old mark %d new mark %d", __FUNCTION__, __LINE__, f->name, old_value, new_value);
 
-	if (f->mode != VALUE_MODE_DNAT && f->mode != VALUE_MODE_SNAT) {
+	if (f->mode != VALUE_MODE_DNAT && f->mode != VALUE_MODE_SNAT && f->mode != VALUE_MODE_LOCAL) {
 		tools_printlog(LOG_INFO, "%s():%d: mark for farm %s not available for the current mode %d", __FUNCTION__, __LINE__, f->name, f->mode);
 		return 0;
 	}
@@ -1215,7 +1221,7 @@ int farm_s_set_action(int action)
 
 int farm_get_masquerade(struct farm *f)
 {
-	int masq = (f->mode == VALUE_MODE_SNAT && (f->srcaddr == DEFAULT_SRCADDR || strcmp(f->srcaddr, "") == 0));
+	int masq = ((f->mode == VALUE_MODE_SNAT || f->mode == VALUE_MODE_LOCAL) && (f->srcaddr == DEFAULT_SRCADDR || strcmp(f->srcaddr, "") == 0));
 
 	tools_printlog(LOG_DEBUG, "%s():%d: farm %s masquerade %d", __FUNCTION__, __LINE__, f->name, masq);
 

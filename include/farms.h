@@ -164,6 +164,7 @@ int farm_set_priority(struct farm *f, int new_value);
 void farm_s_print(void);
 int farm_is_ingress_mode(struct farm *f);
 int farm_needs_policies(struct farm *f);
+int farm_has_source_address(struct farm *f);
 int farm_needs_flowtable(struct farm *f);
 int farm_needs_intraconnect(struct farm *f);
 struct farm * farm_get_first(void);
