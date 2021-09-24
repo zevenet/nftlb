@@ -30,11 +30,12 @@ table ip nftlb {
 
 	chain postrouting {
 		type nat hook postrouting priority srcnat; policy accept;
+		ct mark 0x00000000 ct mark set meta mark
 		ct mark 0x80000000/1 masquerade
 		snat to ct mark map @proto-services-back-m
 	}
 
 	chain nat-test1 {
-		dnat ip addr . port to ct mark map { 0x00000200 : 127.0.0.2 . 80 }
+		dnat ip to ct mark map { 0x00000200 : 127.0.0.2 . 80 }
 	}
 }

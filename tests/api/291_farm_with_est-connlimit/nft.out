@@ -37,7 +37,7 @@ table ip nftlb {
 			log prefix "new-rtlimit-newfarm "
 			drop
 		}
-		ct state new add @est-connlimit-newfarm { ip saddr ct count over 20  } jump {
+		ct state new add @est-connlimit-newfarm { ip saddr ct count over 20 } jump {
 			log prefix "est-connlimit-newfarm "
 			drop
 		}
@@ -50,6 +50,7 @@ table ip nftlb {
 
 	chain postrouting {
 		type nat hook postrouting priority srcnat; policy accept;
+		ct mark 0x00000000 ct mark set meta mark
 		ct mark 0x80000000/1 masquerade
 		snat to ct mark map @proto-services-back-m
 	}

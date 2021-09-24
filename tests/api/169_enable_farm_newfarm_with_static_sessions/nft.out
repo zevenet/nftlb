@@ -49,12 +49,13 @@ table ip nftlb {
 
 	chain postrouting {
 		type nat hook postrouting priority srcnat; policy accept;
+		ct mark 0x00000000 ct mark set meta mark
 		ct mark 0x80000000/1 masquerade
 		snat to ct mark map @proto-services-back-m
 		snat to ip protocol . ip daddr . th dport map @proto-services-back
 	}
 
 	chain nat-newfarm {
-		dnat ip addr . port to ct mark map { 0x00000201 : 192.168.100.254 . 80, 0x00000202 : 192.168.101.254 . 32 }
+		dnat ip to ct mark map { 0x00000201 : 192.168.100.254 . 80, 0x00000202 : 192.168.101.254 . 32 }
 	}
 }

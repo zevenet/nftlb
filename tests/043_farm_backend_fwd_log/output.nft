@@ -26,11 +26,11 @@ table ip nftlb {
 
 	chain filter-lb01 {
 		ct state new ct mark 0x00000000 ct mark set numgen random mod 10 map { 0-4 : 0x80000001, 5-9 : 0x80000002 }
-		ct mark 0x80000001 ct count over 20  jump {
+		ct mark 0x80000001 ct count over 20 jump {
 			log prefix "[est-connlimit,bck,lb01,bck0]"
 			drop
 		}
-		ct mark 0x80000002 ct count over 20  jump {
+		ct mark 0x80000002 ct count over 20 jump {
 			log prefix "[est-connlimit,bck,lb01,bck1]"
 			drop
 		}
@@ -43,6 +43,7 @@ table ip nftlb {
 
 	chain postrouting {
 		type nat hook postrouting priority srcnat; policy accept;
+		ct mark 0x00000000 ct mark set meta mark
 		ct mark 0x80000000/1 masquerade
 		snat to ct mark map @proto-services-back-m
 	}
