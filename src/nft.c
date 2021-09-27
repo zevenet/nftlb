@@ -714,6 +714,7 @@ static int run_base_chain(struct sbuffer *buf, struct farm *f, int type, int fam
 		if (type & NFTLB_F_CHAIN_PRE_FILTER) {
 			concat_exec_cmd(buf, " ; add rule %s %s %s mark set ct mark", chain_family, NFTLB_TABLE_NAME, base_chain);
 		} else if (type & NFTLB_F_CHAIN_POS_SNAT) {
+			concat_exec_cmd(buf, " ; add rule %s %s %s ct mark 0x0 ct mark set meta mark", chain_family, NFTLB_TABLE_NAME, NFTLB_TABLE_POSTROUTING);
 			concat_exec_cmd(buf, " ; add rule %s %s %s ct mark and 0x%x == 0x%x masquerade", chain_family, NFTLB_TABLE_NAME, base_chain, NFTLB_POSTROUTING_MARK, NFTLB_POSTROUTING_MARK);
 		}
 		*base_rules |= NFTLB_IP_ACTIVE;
@@ -1116,7 +1117,7 @@ static void run_farm_map(struct sbuffer *buf, struct farm *f, int family, char *
 
 static int run_farm_snat(struct sbuffer *buf, struct farm *f, int family, int action)
 {
-	if (f->mode != VALUE_MODE_SNAT)
+	if (f->mode != VALUE_MODE_SNAT && f->mode != VALUE_MODE_LOCAL)
 		return 0;
 
 	run_farm_rules_gen_srv_map_by_type(buf, f, NFTLB_F_CHAIN_POS_SNAT, family, action);
@@ -1326,7 +1327,7 @@ static int run_farm_rules_filter_helper(struct sbuffer *buf, struct farm *f, int
 {
 	char protocol[255] = {0};
 
-	if (!(f->helper != DEFAULT_HELPER && (f->mode == VALUE_MODE_SNAT || f->mode == VALUE_MODE_DNAT)))
+	if (!(f->helper != DEFAULT_HELPER && (f->mode == VALUE_MODE_SNAT || f->mode == VALUE_MODE_LOCAL || f->mode == VALUE_MODE_DNAT)))
 		return 0;
 
 	if (f->protocol == VALUE_PROTO_TCP || f->protocol == VALUE_PROTO_ALL) {
@@ -2129,6 +2130,34 @@ static int run_farm_rules_gen_nat(struct sbuffer *buf, struct farm *f, int famil
 	return 0;
 }
 
+static int run_farm_local(struct sbuffer *buf, struct farm *f, int family, int action)
+{
+	switch (action) {
+	case ACTION_RELOAD:
+	case ACTION_START:
+		run_farm_rules_filter(buf, f, family, action);
+		run_farm_ingress_policies(buf, f, family, f->policies_action);
+		if (farm_has_source_address(f)) {
+			run_base_chain(buf, f, NFTLB_F_CHAIN_POS_SNAT, family);
+			run_farm_snat(buf, f, family, action);
+		}
+		break;
+	case ACTION_DELETE:
+	case ACTION_STOP:
+		run_farm_rules_filter(buf, f, family, action);
+		if (farm_has_source_address(f)) {
+			run_farm_snat(buf, f, family, action);
+			run_base_chain(buf, f, NFTLB_F_CHAIN_POS_SNAT, family);
+		}
+		run_farm_ingress_policies(buf, f, family, f->policies_action);
+		break;
+	default:
+		break;
+	}
+
+	return 0;
+}
+
 static int run_farm_rules(struct sbuffer *buf, struct farm *f, int family, int action)
 {
 	switch (f->mode) {
@@ -2155,8 +2184,7 @@ static int run_farm_rules(struct sbuffer *buf, struct farm *f, int family, int a
 		run_farm_rules_gen_nat(buf, f, family, NFTLB_F_CHAIN_ING_FILTER, action);
 		break;
 	case VALUE_MODE_LOCAL:
-		run_farm_rules_filter(buf, f, family, action);
-		run_farm_ingress_policies(buf, f, family, action);
+		run_farm_local(buf, f, family, action);
 		break;
 	default:
 		run_base_chain(buf, f, NFTLB_F_CHAIN_PRE_DNAT, family);
