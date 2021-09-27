@@ -17,10 +17,7 @@ table netdev nftlb {
 	}
 
 	chain lonelyaddr {
-		ip saddr @black001 jump {
-			log prefix "IN-lonelyaddr "
-			drop
-		}
+		ip saddr @black001 log prefix "IN-lonelyaddr " drop
 	}
 }
 table ip nftlb {

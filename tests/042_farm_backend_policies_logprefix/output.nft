@@ -17,10 +17,7 @@ table netdev nftlb {
 	}
 
 	chain lb01 {
-		ip saddr @black001 jump {
-			log prefix "[BL,lb01,black001]"
-			drop
-		}
+		ip saddr @black001 log prefix "[BL,lb01,black001]" drop
 	}
 }
 table ip nftlb {
@@ -46,14 +43,8 @@ table ip nftlb {
 
 	chain filter-lb01 {
 		ct state new ct mark 0x00000000 ct mark set numgen random mod 10 map { 0-4 : 0x80000001, 5-9 : 0x80000002 }
-		ct mark 0x80000001 ct count over 20 jump {
-			log prefix "[est-connlimit,bck,lb01,bck0]"
-			drop
-		}
-		ct mark 0x80000002 ct count over 20 jump {
-			log prefix "[est-connlimit,bck,lb01,bck1]"
-			drop
-		}
+		ct mark 0x80000001 ct count over 20 log prefix "[est-connlimit,bck,lb01,bck0]" drop
+		ct mark 0x80000002 ct count over 20 log prefix "[est-connlimit,bck,lb01,bck1]" drop
 	}
 
 	chain prerouting {

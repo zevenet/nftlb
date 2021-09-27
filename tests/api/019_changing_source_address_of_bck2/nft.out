@@ -17,10 +17,7 @@ table netdev nftlb {
 	}
 
 	chain lb01 {
-		ip saddr @mylist jump {
-			log prefix "policy-BL-mylist-lb01 "
-			drop
-		}
+		ip saddr @mylist log prefix "policy-BL-mylist-lb01 " drop
 	}
 }
 table ip nftlb {
