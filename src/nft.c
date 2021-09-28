@@ -2069,7 +2069,6 @@ static void run_farm_rules_log_and_verdict(struct sbuffer *buf, struct nftst *n,
 
 static int run_farm_rules_filter_policies(struct sbuffer *buf, struct farm *f, int family, char *chain, int action)
 {
-	char logprefix_str[255] = { 0 };
 	char meter_str[255] = { 0 };
 	char burst_str[255] = { 0 };
 	struct nftst *n = nftst_create_from_farm(f);
@@ -2127,7 +2126,6 @@ static int run_farm_rules_filter_policies(struct sbuffer *buf, struct farm *f, i
 static int run_farm_rules_gen_limits_per_bck(struct sbuffer *buf, struct farm *f, int family, char *chain, int action)
 {
 	struct backend *b;
-	char logprefix_str[255] = { 0 };
 	struct nftst *n = nftst_create_from_farm(f);
 
 	list_for_each_entry(b, &f->backends, list) {
@@ -2372,7 +2370,6 @@ static int run_farm_rules_output(struct sbuffer *buf, struct nftst *n, int famil
 static int run_farm_rules_ingress_policies(struct sbuffer *buf, struct farm *f, char *chain, int action)
 {
 	struct farmpolicy *fp;
-	char logprefix_str[255] = { 0 };
 	struct nftst *n = nftst_create_from_farm(f);
 
 	if (f->policies_action != ACTION_START && f->policies_action != ACTION_RELOAD && action != ACTION_RELOAD)
@@ -2407,7 +2404,6 @@ static int run_nftst_rules_ingress_policies(struct sbuffer *buf, struct nftst *n
 {
 	struct address *a = nftst_get_address(n);
 	struct addresspolicy *ap;
-	char logprefix_str[255] = { 0 };
 
 	if (a->policies_action != ACTION_START && a->policies_action != ACTION_RELOAD && action != ACTION_RELOAD)
 		return 0;
