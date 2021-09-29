@@ -1,7 +1,16 @@
 table ip nftlb {
+	map nat-proto-services {
+		type inet_proto . ipv4_addr . inet_service : verdict
+	}
+
 	map proto-services-back-m {
 		type mark : ipv4_addr
 		elements = { 0x00000200 : 127.0.0.1, 0x00000201 : 127.0.0.1 }
+	}
+
+	chain prerouting {
+		type nat hook prerouting priority dstnat; policy accept;
+		ip protocol . ip daddr . th dport vmap @nat-proto-services
 	}
 
 	chain postrouting {

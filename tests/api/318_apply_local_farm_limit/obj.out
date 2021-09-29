@@ -1,0 +1,56 @@
+{
+        "farms": [
+                {
+                        "name": "farm17",
+                        "family": "ipv4",
+                        "virtual-addr": "192.168.100.211",
+                        "virtual-ports": "10",
+                        "source-addr": "192.168.100.212",
+                        "mode": "local",
+                        "protocol": "tcp",
+                        "scheduler": "rr",
+                        "sched-param": "none",
+                        "persistence": "none",
+                        "persist-ttl": "60",
+                        "helper": "none",
+                        "log": "none",
+                        "log-rtlimit": "0/second",
+                        "mark": "0x0",
+                        "priority": "1",
+                        "state": "up",
+                        "limits-ttl": "120",
+                        "new-rtlimit": "10",
+                        "new-rtlimit-burst": "0",
+                        "rst-rtlimit": "0",
+                        "rst-rtlimit-burst": "0",
+                        "est-connlimit": "0",
+                        "tcp-strict": "off",
+                        "queue": "-1",
+                        "verdict": "log drop accept",
+                        "addresses": [
+                                {
+                                        "name": "farm17-addr",
+                                        "family": "ipv4",
+                                        "ip-addr": "192.168.100.211",
+                                        "ports": "10",
+                                        "protocol": "tcp",
+                                        "used": "1"
+                                }
+                        ],
+                        "backends": [
+                                {
+                                        "name": "bck0",
+                                        "ip-addr": "192.168.101.253",
+                                        "port": "80",
+                                        "source-addr": "192.168.100.212",
+                                        "weight": "1",
+                                        "priority": "1",
+                                        "mark": "0x203",
+                                        "est-connlimit": "0",
+                                        "state": "up"
+                                }
+                        ],
+                        "policies": []
+                }
+        ]
+}

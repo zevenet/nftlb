@@ -5,7 +5,6 @@ table ip nftlb {
 
 	map proto-services-back-m {
 		type mark : ipv4_addr
-		elements = { 0x00000200 : 127.0.0.2, 0x00000201 : 127.0.0.3 }
 	}
 
 	chain prerouting {

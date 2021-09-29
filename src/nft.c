@@ -2194,23 +2194,27 @@ static int run_farm_rules_filter(struct sbuffer *buf, struct nftst *n, int famil
 		run_base_chain(buf, n, NFTLB_F_CHAIN_PRE_FILTER, family, get_rules_needed(a), action);
 		run_nftst_rules_gen_vsrv(buf, n, NFTLB_F_CHAIN_PRE_FILTER, family, naction, action);
 		run_farm_rules_filter_policies(buf, f, family, chain, action);
-		run_farm_rules_filter_helper(buf, n, family, chain, action);
-		run_farm_sessions_map(buf, n, SESSION_TYPE_STATIC, family, action);
-		run_farm_sessions_map(buf, n, SESSION_TYPE_TIMED, family, action);
-		run_farm_manage_sessions(buf, f, SESSION_TYPE_STATIC, family, action);
-		run_farm_manage_sessions(buf, f, SESSION_TYPE_TIMED, family, action);
-		run_farm_rules_check_sessions(buf, n, SESSION_TYPE_STATIC, family, NFTLB_F_CHAIN_PRE_FILTER, action);
-		run_farm_rules_check_sessions(buf, n, SESSION_TYPE_TIMED, family, NFTLB_F_CHAIN_PRE_FILTER, action);
-		run_farm_rules_filter_marks(buf, n, family, chain, action);
-		run_farm_rules_update_sessions(buf, n, family, chain, action);
+		if (f->mode != VALUE_MODE_LOCAL) {
+			run_farm_rules_filter_helper(buf, n, family, chain, action);
+			run_farm_sessions_map(buf, n, SESSION_TYPE_STATIC, family, action);
+			run_farm_sessions_map(buf, n, SESSION_TYPE_TIMED, family, action);
+			run_farm_manage_sessions(buf, f, SESSION_TYPE_STATIC, family, action);
+			run_farm_manage_sessions(buf, f, SESSION_TYPE_TIMED, family, action);
+			run_farm_rules_check_sessions(buf, n, SESSION_TYPE_STATIC, family, NFTLB_F_CHAIN_PRE_FILTER, action);
+			run_farm_rules_check_sessions(buf, n, SESSION_TYPE_TIMED, family, NFTLB_F_CHAIN_PRE_FILTER, action);
+			run_farm_rules_filter_marks(buf, n, family, chain, action);
+			run_farm_rules_update_sessions(buf, n, family, chain, action);
+		}
 		break;
 	case ACTION_DELETE:
 	case ACTION_STOP:
 		run_nftst_rules_gen_vsrv(buf, n, NFTLB_F_CHAIN_PRE_FILTER, family, naction, action);
-		run_farm_sessions_map(buf, n, SESSION_TYPE_STATIC, family, action);
-		run_farm_sessions_map(buf, n, SESSION_TYPE_TIMED, family, action);
-		run_farm_rules_filter_marks(buf, n, family, chain, action);
-		run_farm_rules_filter_helper(buf, n, family, chain, action);
+		if (f->mode != VALUE_MODE_LOCAL) {
+			run_farm_sessions_map(buf, n, SESSION_TYPE_STATIC, family, action);
+			run_farm_sessions_map(buf, n, SESSION_TYPE_TIMED, family, action);
+			run_farm_rules_filter_marks(buf, n, family, chain, action);
+			run_farm_rules_filter_helper(buf, n, family, chain, action);
+		}
 		run_farm_rules_filter_policies(buf, f, family, chain, action);
 		run_base_chain(buf, n, NFTLB_F_CHAIN_PRE_FILTER, family, get_rules_needed(a), action);
 		run_base_table(buf, NFTLB_F_CHAIN_PRE_FILTER, family, action);
@@ -2707,19 +2711,25 @@ static int run_farm_local(struct sbuffer *buf, struct nftst *n, int family, int 
 	switch (action) {
 	case ACTION_RELOAD:
 	case ACTION_START:
-		run_farm_rules_filter(buf, n, family, action);
-		run_nftst_ingress_policies(buf, n, family, f->policies_action);
 		if (farm_has_source_address(f)) {
 			run_base_table(buf, NFTLB_F_CHAIN_PRE_DNAT, family, action);
+			run_base_chain(buf, n, NFTLB_F_CHAIN_PRE_DNAT, family, get_rules_needed(a), action);
 			run_base_chain(buf, n, NFTLB_F_CHAIN_POS_SNAT, family, get_rules_needed(a), action);
 			run_farm_snat(buf, n, family, action);
 		}
+		run_farm_rules_filter(buf, n, family, action);
+		run_nftst_ingress_policies(buf, n, family, f->policies_action);
+		run_farm_rules_forward(buf, n, family, action);
+		run_farm_rules_output(buf, n, family, action);
 		break;
 	case ACTION_DELETE:
 	case ACTION_STOP:
+		run_farm_rules_forward(buf, n, family, action);
+		run_farm_rules_output(buf, n, family, action);
 		run_farm_rules_filter(buf, n, family, action);
 		if (farm_has_source_address(f)) {
 			run_farm_snat(buf, n, family, action);
+			run_base_chain(buf, n, NFTLB_F_CHAIN_PRE_DNAT, family, get_rules_needed(a), action);
 			run_base_chain(buf, n, NFTLB_F_CHAIN_POS_SNAT, family, get_rules_needed(a), action);
 			run_base_table(buf, NFTLB_F_CHAIN_PRE_DNAT, family, action);
 		}
