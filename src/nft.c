@@ -1619,19 +1619,23 @@ static int run_farm_rules_filter(struct sbuffer *buf, struct farm *f, int family
 		run_base_chain(buf, f, NFTLB_F_CHAIN_PRE_FILTER, family);
 		run_farm_rules_gen_vsrv(buf, f, NFTLB_F_CHAIN_PRE_FILTER, family, action);
 		run_farm_rules_filter_policies(buf, f, family, chain, action);
-		run_farm_rules_filter_helper(buf, f, family, chain, action);
-		run_farm_rules_filter_static_sessions(buf, f, family, chain, action);
-		run_farm_rules_filter_persistence(buf, f, family, chain, action);
-		run_farm_rules_filter_marks(buf, f, family, chain, action);
-		run_farm_rules_filter_persistence_update(buf, f, family, chain, action);
+		if (f->mode != VALUE_MODE_LOCAL) {
+			run_farm_rules_filter_helper(buf, f, family, chain, action);
+			run_farm_rules_filter_static_sessions(buf, f, family, chain, action);
+			run_farm_rules_filter_persistence(buf, f, family, chain, action);
+			run_farm_rules_filter_marks(buf, f, family, chain, action);
+			run_farm_rules_filter_persistence_update(buf, f, family, chain, action);
+		}
 		break;
 	case ACTION_DELETE:
 	case ACTION_STOP:
 		run_farm_rules_gen_vsrv(buf, f, NFTLB_F_CHAIN_PRE_FILTER, family, action);
-		run_farm_rules_filter_persistence(buf, f, family, chain, action);
-		run_farm_rules_filter_static_sessions(buf, f, family, chain, action);
-		run_farm_rules_filter_marks(buf, f, family, chain, action);
-		run_farm_rules_filter_helper(buf, f, family, chain, action);
+		if (f->mode != VALUE_MODE_LOCAL) {
+			run_farm_rules_filter_persistence(buf, f, family, chain, action);
+			run_farm_rules_filter_static_sessions(buf, f, family, chain, action);
+			run_farm_rules_filter_marks(buf, f, family, chain, action);
+			run_farm_rules_filter_helper(buf, f, family, chain, action);
+		}
 		run_farm_rules_filter_policies(buf, f, family, chain, action);
 		break;
 	default:
@@ -2090,18 +2094,20 @@ static int run_farm_local(struct sbuffer *buf, struct farm *f, int family, int a
 	switch (action) {
 	case ACTION_RELOAD:
 	case ACTION_START:
-		run_farm_rules_filter(buf, f, family, action);
-		run_farm_ingress_policies(buf, f, family, f->policies_action);
 		if (farm_has_source_address(f)) {
+			run_base_chain(buf, f, NFTLB_F_CHAIN_PRE_DNAT, family);
 			run_base_chain(buf, f, NFTLB_F_CHAIN_POS_SNAT, family);
 			run_farm_snat(buf, f, family, action);
 		}
+		run_farm_rules_filter(buf, f, family, action);
+		run_farm_ingress_policies(buf, f, family, f->policies_action);
 		break;
 	case ACTION_DELETE:
 	case ACTION_STOP:
 		run_farm_rules_filter(buf, f, family, action);
 		if (farm_has_source_address(f)) {
 			run_farm_snat(buf, f, family, action);
+			run_base_chain(buf, f, NFTLB_F_CHAIN_PRE_DNAT, family);
 			run_base_chain(buf, f, NFTLB_F_CHAIN_POS_SNAT, family);
 		}
 		run_farm_ingress_policies(buf, f, family, f->policies_action);
