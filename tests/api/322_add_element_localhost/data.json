@@ -1,0 +1,12 @@
+{
+	"policies" : [
+		{
+			"name" : "black001",
+			"elements" : [
+				{
+					"data" : "127.0.0.1"
+				}
+			]
+		}
+	]
+}

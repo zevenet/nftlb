@@ -10,31 +10,49 @@
                         "used": "0",
                         "elements": [
                                 {
-                                        "data": "44.195.60.79"
+                                        "data": "44.195.60.79",
+                                        "counter-packets": "0",
+                                        "counter-bytes": "0"
                                 },
                                 {
-                                        "data": "55.195.60.80"
+                                        "data": "55.195.60.80",
+                                        "counter-packets": "0",
+                                        "counter-bytes": "0"
                                 },
                                 {
-                                        "data": "65.195.60.81"
+                                        "data": "65.195.60.81",
+                                        "counter-packets": "0",
+                                        "counter-bytes": "0"
                                 },
                                 {
-                                        "data": "75.195.60.82"
+                                        "data": "75.195.60.82",
+                                        "counter-packets": "0",
+                                        "counter-bytes": "0"
                                 },
                                 {
-                                        "data": "85.195.60.83"
+                                        "data": "85.195.60.83",
+                                        "counter-packets": "0",
+                                        "counter-bytes": "0"
                                 },
                                 {
-                                        "data": "95.195.60.84"
+                                        "data": "95.195.60.84",
+                                        "counter-packets": "0",
+                                        "counter-bytes": "0"
                                 },
                                 {
-                                        "data": "120.195.60.78"
+                                        "data": "120.195.60.78",
+                                        "counter-packets": "0",
+                                        "counter-bytes": "0"
                                 },
                                 {
-                                        "data": "135.195.60.76"
+                                        "data": "135.195.60.76",
+                                        "counter-packets": "0",
+                                        "counter-bytes": "0"
                                 },
                                 {
-                                        "data": "235.195.60.77"
+                                        "data": "235.195.60.77",
+                                        "counter-packets": "0",
+                                        "counter-bytes": "0"
                                 }
                         ]
                 }

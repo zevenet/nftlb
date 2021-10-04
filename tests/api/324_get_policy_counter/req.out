@@ -1,0 +1,35 @@
+{
+        "policies": [
+                {
+                        "name": "black001",
+                        "family": "ipv4",
+                        "type": "blacklist",
+                        "route": "in",
+                        "timeout": "0",
+                        "priority": "1",
+                        "used": "1",
+                        "elements": [
+                                {
+                                        "data": "35.195.60.76",
+                                        "counter-packets": "0",
+                                        "counter-bytes": "0"
+                                },
+                                {
+                                        "data": "35.195.60.77",
+                                        "counter-packets": "0",
+                                        "counter-bytes": "0"
+                                },
+                                {
+                                        "data": "35.195.60.78",
+                                        "counter-packets": "0",
+                                        "counter-bytes": "0"
+                                },
+                                {
+                                        "data": "127.0.0.1",
+                                        "counter-packets": "2",
+                                        "counter-bytes": "120"
+                                }
+                        ]
+                }
+        ]
+}

@@ -2907,7 +2907,7 @@ static int run_policy_set(struct sbuffer *buf, struct policy *p)
 	switch (p->action) {
 	case ACTION_START:
 		run_base_table(buf, NFTLB_F_CHAIN_ING_FILTER, VALUE_FAMILY_NETDEV, ACTION_START);
-		concat_exec_cmd(buf, " ; add set %s %s %s { type %s ; flags interval ; auto-merge ; }", NFTLB_NETDEV_FAMILY_STR, NFTLB_TABLE_NAME, p->name, print_nft_family_type(p->family));
+		concat_exec_cmd(buf, " ; add set %s %s %s { type %s ; flags interval ; auto-merge ; counter ; }", NFTLB_NETDEV_FAMILY_STR, NFTLB_TABLE_NAME, p->name, print_nft_family_type(p->family));
 		nft_base_rules.ndv_ingress_policies++;
 		run_set_elements(buf, p);
 		break;

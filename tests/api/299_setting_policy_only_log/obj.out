@@ -10,7 +10,9 @@
                         "used": "0",
                         "elements": [
                                 {
-                                        "data": "35.195.60.76"
+                                        "data": "35.195.60.76",
+                                        "counter-packets": "0",
+                                        "counter-bytes": "0"
                                 }
                         ]
                 }

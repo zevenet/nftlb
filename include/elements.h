@@ -31,6 +31,8 @@ struct element {
 	char				*data;
 	char				*time;
 	int					action;
+	char				*counter_pkts;
+	char				*counter_bytes;
 };
 
 void element_s_print(struct policy *p);

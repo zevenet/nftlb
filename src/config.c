@@ -452,6 +452,8 @@ static int config_value(const char *value)
 		ret = PARSER_OK;
 		break;
 	case KEY_USED:
+	case KEY_COUNTER_PACKETS:
+	case KEY_COUNTER_BYTES:
 		ret = PARSER_OK;
 		break;
 	case KEY_ROUTE:
@@ -590,6 +592,10 @@ static int config_key(const char *key)
 		return KEY_PORTS;
 	if (strcmp(key, CONFIG_KEY_ROUTE) == 0)
 		return KEY_ROUTE;
+	if (strcmp(key, CONFIG_KEY_COUNTER_PACKETS) == 0)
+		return KEY_COUNTER_PACKETS;
+	if (strcmp(key, CONFIG_KEY_COUNTER_BYTES) == 0)
+		return KEY_COUNTER_BYTES;
 
 	config_set_output(". Unknown key '%s'", key);
 	tools_printlog(LOG_ERR, "%s():%d: unknown key '%s'", __FUNCTION__, __LINE__, key);
@@ -1046,6 +1052,9 @@ static struct json_t *add_dump_list(json_t *obj, const char *objname, int object
 			add_dump_obj(item, CONFIG_KEY_DATA, e->data);
 			if (e->time)
 				add_dump_obj(item, CONFIG_KEY_TIME, e->time);
+
+			add_dump_obj(item, CONFIG_KEY_COUNTER_PACKETS, e->counter_pkts);
+			add_dump_obj(item, CONFIG_KEY_COUNTER_BYTES, e->counter_bytes);
 			json_array_append_new(jarray, item);
 		}
 		break;

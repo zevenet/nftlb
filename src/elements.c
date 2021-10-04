@@ -29,7 +29,7 @@
 #include "tools.h"
 #include "nft.h"
 
-static struct element * element_create(struct policy *p, char *data, char *time)
+static struct element * element_create(struct policy *p, char *data, char *time, char *counter_pkts, char *counter_bytes)
 {
 	struct element *e = (struct element *)malloc(sizeof(struct element));
 	if (!e) {
@@ -44,6 +44,8 @@ static struct element * element_create(struct policy *p, char *data, char *time)
 	e->time = DEFAULT_ELEMENT_TIME;
 	if (time && strcmp(time, "") != 0)
 		obj_set_attribute_string(time, &e->time);
+	obj_set_attribute_string(counter_pkts, &e->counter_pkts);
+	obj_set_attribute_string(counter_bytes, &e->counter_bytes);
 
 	list_add_tail(&e->list, &p->elements);
 	p->total_elem++;
@@ -58,6 +60,10 @@ static int element_delete_node(struct element *e)
 		free(e->data);
 	if (e->time)
 		free(e->time);
+	if (e->counter_pkts)
+		free(e->counter_pkts);
+	if (e->counter_bytes)
+		free(e->counter_bytes);
 
 	free(e);
 
@@ -86,6 +92,8 @@ static int nft_parse_elements(struct policy *p, const char *buf)
 	char element1[100] = {0};
 	char element2[100] = {0};
 	char element3[100] = {0};
+	char element4[100] = {0};
+	char element5[100] = {0};
 	int next = 0;
 
 	ini_ptr = strstr(buf, "elements = { ");
@@ -105,27 +113,36 @@ new_element:
 			return 0;
 	}
 
-	if ((fin_ptr = strstr(ini_ptr + strlen(element2), ",")) != NULL) {
+	if ((fin_ptr = strstr(ini_ptr + strlen(element2), " ")) != NULL)
 		next = 1;
-	} else {
-		if ((fin_ptr = strstr(ini_ptr, " ")) == NULL)
-			return 0;
-	}
 
 	tools_snprintf(element3, fin_ptr - ini_ptr, ini_ptr);
 	fin_ptr += 1;
 	ini_ptr = fin_ptr;
 
-	if (p->timeout)
-		element_create(p, element3, element2);
-	else
-		element_create(p, element3, NULL);
+	if ((fin_ptr = strstr(ini_ptr, " bytes ")) != NULL) {
+		ini_ptr += 16;
+		tools_snprintf(element4, fin_ptr - ini_ptr, ini_ptr);
+		ini_ptr += 8;
+		if ((fin_ptr = strstr(ini_ptr, ",")) != NULL || (fin_ptr = strstr(ini_ptr, " ")) != NULL) {
+			tools_snprintf(element5, fin_ptr - ini_ptr, ini_ptr);
+			ini_ptr = ++fin_ptr;
+		}
+	} else {
+		tools_snprintf(element4, 3, DEFAULT_COUNTER);
+		tools_snprintf(element5, 3, DEFAULT_COUNTER);
+	}
 
-	while (*fin_ptr == '\n' || *fin_ptr == '\t' || *fin_ptr == ' ') {
+	if (p->timeout)
+		element_create(p, element3, element2, element4, element5);
+	else
+		element_create(p, element3, NULL, element4, element5);
+
+	while (*fin_ptr == '\n' || *fin_ptr == '\t' || *fin_ptr == ' ' || *fin_ptr == ',') {
 		fin_ptr++;
 	}
 
-	if (next && (*fin_ptr != '}' || *fin_ptr != '\0')) {
+	if (next && *fin_ptr != '}' && *fin_ptr != '\0') {
 		ini_ptr = fin_ptr;
 		goto new_element;
 	}
@@ -139,9 +156,11 @@ void element_s_print(struct policy *p)
 
 	list_for_each_entry(e, &p->elements, list) {
 		tools_printlog(LOG_DEBUG,"    [element] ");
-		tools_printlog(LOG_DEBUG,"       [data] %s", e->data);
+		tools_printlog(LOG_DEBUG,"       [%s] %s", CONFIG_KEY_DATA, e->data);
 		if (p->timeout && e->time && strcmp(e->time, "") != 0)
-			tools_printlog(LOG_DEBUG,"       [time] %s", e->time);
+			tools_printlog(LOG_DEBUG,"       [%s] %s", CONFIG_KEY_TIME, e->time);
+		tools_printlog(LOG_DEBUG,"       [%s] %s", CONFIG_KEY_COUNTER_PACKETS, e->counter_pkts);
+		tools_printlog(LOG_DEBUG,"       [%s] %s", CONFIG_KEY_COUNTER_BYTES, e->counter_bytes);
 		tools_printlog(LOG_DEBUG,"       *[action] %d", e->action);
 	}
 }
@@ -212,7 +231,7 @@ int element_set_attribute(struct config_pair *c, int apply_action)
 
 	switch (c->key) {
 	case KEY_DATA:
-		e = element_create(p, c->str_value, NULL);
+		e = element_create(p, c->str_value, NULL, DEFAULT_COUNTER, DEFAULT_COUNTER);
 		if (!e)
 			return -1;
 		obj_set_current_element(e);

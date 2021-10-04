@@ -1,0 +1,13 @@
+{
+	"farms" : [ {
+		"name" : "farml7",
+		"virtual-addr" : "127.0.0.1",
+		"virtual-ports" : "80",
+		"policies" : [
+			{
+				"name" : "black001"
+			}
+		]
+		}
+	]
+}

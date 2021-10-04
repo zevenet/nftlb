@@ -85,6 +85,8 @@
 #define CONFIG_KEY_ADDRESSES		"addresses"
 #define CONFIG_KEY_ROUTE		"route"
 #define CONFIG_KEY_VERDICT		"verdict"
+#define CONFIG_KEY_COUNTER_PACKETS		"counter-packets"
+#define CONFIG_KEY_COUNTER_BYTES		"counter-bytes"
 
 #define CONFIG_VALUE_FAMILY_IPV4	"ipv4"
 #define CONFIG_VALUE_FAMILY_IPV6	"ipv6"
