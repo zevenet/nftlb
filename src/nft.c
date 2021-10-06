@@ -1505,6 +1505,9 @@ static int run_nftst_rules_gen_srv_map(struct sbuffer *buf, struct nftst *n, int
 				if(!backend_is_usable(b))
 					continue;
 
+				if (action == ACTION_RELOAD && b->action == ACTION_NONE)
+					continue;
+
 				concat_exec_cmd(buf, " ; %s element %s %s %s { %s %s}", action_str, nft_family, NFTLB_TABLE_NAME, service, key_str, data_str);
 				output++;
 			}
