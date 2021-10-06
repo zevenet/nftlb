@@ -941,8 +941,10 @@ int bck_pos_actionable(struct config_pair *c, int action)
 
 	switch (action) {
 	case ACTION_START:
-		if (backend_set_action(b, ACTION_START))
+		if (backend_set_action(b, ACTION_START)) {
 			farm_set_action(f, ACTION_RELOAD);
+			farm_rulerize(f);
+		}
 		break;
 	case ACTION_RELOAD:
 		farm_set_action(f, ACTION_RELOAD);

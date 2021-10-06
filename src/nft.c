@@ -956,6 +956,9 @@ static int run_farm_rules_gen_srv_map(struct sbuffer *buf, struct farm *f, char 
 				if(!backend_is_usable(b))
 					continue;
 
+				if (action == ACTION_RELOAD && b->action == ACTION_NONE)
+					continue;
+
 				run_farm_rules_gen_srv_data((char **) &data_str, f, b, chain, data_mode);
 				concat_exec_cmd(buf, " ; %s element %s %s %s { %s %s}", action_str, nft_family, NFTLB_TABLE_NAME, service, key_str, data_str);
 			}
