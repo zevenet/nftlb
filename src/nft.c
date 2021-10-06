@@ -780,7 +780,7 @@ static void print_log_format(char *buf, int key, int type, struct nftst *n)
 
 static int need_filter(struct farm *f)
 {
-	return (!farm_is_ingress_mode(f) && f->mode != VALUE_MODE_LOCAL);
+	return (!farm_is_ingress_mode(f));
 }
 
 static int need_forward(struct farm *f)
