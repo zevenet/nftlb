@@ -2231,6 +2231,15 @@ static int del_farm(struct sbuffer *buf, struct farm *f)
 		}
 	}
 
+	if (f->mode == VALUE_MODE_LOCAL) {
+		if ((f->family == VALUE_FAMILY_IPV4) || (f->family == VALUE_FAMILY_INET)) {
+			run_farm_local(buf, f, VALUE_FAMILY_IPV4, ACTION_DELETE);
+		}
+		if ((f->family == VALUE_FAMILY_IPV6) || (f->family == VALUE_FAMILY_INET)) {
+			run_farm_local(buf, f, VALUE_FAMILY_IPV6, ACTION_DELETE);
+		}
+	}
+
 	if (f->mode == VALUE_MODE_STLSDNAT) {
 		if ((f->family == VALUE_FAMILY_IPV4) || (f->family == VALUE_FAMILY_INET)) {
 			run_farm_stlsnat(buf, f, VALUE_FAMILY_IPV4, ACTION_DELETE);
