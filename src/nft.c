@@ -1793,8 +1793,8 @@ static int run_farm_ingress_policies(struct sbuffer *buf, struct farm *f, int fa
 		run_farm_rules_gen_vsrv(buf, f, NFTLB_F_CHAIN_ING_FILTER, VALUE_FAMILY_NETDEV, f->policies_action);
 	} else if (f->policies_action == ACTION_RELOAD || action == ACTION_RELOAD) {
 		if (!farm_is_ingress_mode(f))
-			run_farm_rules_gen_vsrv(buf, f, NFTLB_F_CHAIN_ING_FILTER, VALUE_FAMILY_NETDEV, f->policies_action);
-		run_farm_rules_ingress_policies(buf, f, chain, action);
+			run_farm_rules_gen_vsrv(buf, f, NFTLB_F_CHAIN_ING_FILTER, VALUE_FAMILY_NETDEV, ACTION_RELOAD);
+		run_farm_rules_ingress_policies(buf, f, chain, ACTION_RELOAD);
 	} else {
 	}
 
