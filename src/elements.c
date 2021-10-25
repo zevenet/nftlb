@@ -131,6 +131,7 @@ new_element:
 	} else {
 		tools_snprintf(element4, 3, DEFAULT_COUNTER);
 		tools_snprintf(element5, 3, DEFAULT_COUNTER);
+		fin_ptr = ini_ptr;
 	}
 
 	if (p->timeout)
