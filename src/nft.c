@@ -43,6 +43,9 @@
 #define NFTLB_MAX_CMD				2048
 #define NFTLB_MAX_IFACES			100
 #define NFTLB_MAX_PORTS				65535
+#define NFTLB_MAX_OBJ_NAME			256
+#define NFTLB_MAX_OBJ_DEVICE		16
+#define NFTLB_MAX_OBJ_PROTO			11
 
 #define NFTLB_TABLE_NAME			"nftlb"
 #define NFTLB_TABLE_PREROUTING		"prerouting"
@@ -673,7 +676,7 @@ static unsigned int * get_rules_applied(int type, int family, char *iface)
 
 static void logprefix_replace(char *buf, char *token, char *value)
 {
-	char tmp[255] = { 0 };
+	char tmp[NFTLB_MAX_OBJ_NAME] = { 0 };
 	char *ptr = buf;
 	char *tmpptr = tmp;
 
@@ -806,24 +809,24 @@ static unsigned int get_stage_by_farm_mode(struct farm *f)
 static void get_chain_name(char *chain, char *name, int type)
 {
 	if (type & NFTLB_F_CHAIN_ING_FILTER)
-		sprintf(chain, "%s", name);
+		snprintf(chain, NFTLB_MAX_OBJ_NAME, "%s", name);
 	else if (type & NFTLB_F_CHAIN_PRE_FILTER)
-		sprintf(chain, "%s-%s", NFTLB_TYPE_FILTER, name);
+		snprintf(chain, NFTLB_MAX_OBJ_NAME, "%s-%s", NFTLB_TYPE_FILTER, name);
 	else if (type & NFTLB_F_CHAIN_PRE_DNAT)
-		sprintf(chain, "%s-%s", NFTLB_TYPE_NAT, name);
+		snprintf(chain, NFTLB_MAX_OBJ_NAME, "%s-%s", NFTLB_TYPE_NAT, name);
 	else if (type & NFTLB_F_CHAIN_FWD_FILTER)
-		sprintf(chain, "%s-%s", NFTLB_TYPE_FWD, name);
+		snprintf(chain, NFTLB_MAX_OBJ_NAME, "%s-%s", NFTLB_TYPE_FWD, name);
 	else if (type & NFTLB_F_CHAIN_ING_DNAT)
-		sprintf(chain, "%s-back", name);
+		snprintf(chain, NFTLB_MAX_OBJ_NAME, "%s-back", name);
 	else if (type & NFTLB_F_CHAIN_OUT_FILTER)
-		sprintf(chain, "%s-%s", NFTLB_TYPE_FILTER, name);
+		snprintf(chain, NFTLB_MAX_OBJ_NAME, "%s-%s", NFTLB_TYPE_FILTER, name);
 	else if (type & NFTLB_F_CHAIN_OUT_DNAT)
-		sprintf(chain, "%s-%s", NFTLB_TYPE_NAT, name);
+		snprintf(chain, NFTLB_MAX_OBJ_NAME, "%s-%s", NFTLB_TYPE_NAT, name);
 }
 
 static void get_flowtable_name(char *name, struct farm *f)
 {
-	sprintf(name, "ft-%s", f->name);
+	snprintf(name, NFTLB_MAX_OBJ_NAME, "ft-%s", f->name);
 }
 
 static void get_address_service(char *name, struct address *a, int type, int family, int key_mode)
@@ -900,7 +903,7 @@ static int run_nftst_rules_gen_chain(struct sbuffer *buf, struct nftst *n, int f
 {
 	struct farm *f = nftst_get_farm(n);
 	struct address *a = nftst_get_address(n);
-	char chain[255] = { 0 };
+	char chain[NFTLB_MAX_OBJ_NAME] = { 0 };
 
 	get_chain_name(chain, nftst_get_name(n), type);
 
@@ -1110,10 +1113,10 @@ static int need_source_nat_rules(struct farm *f)
 
 static int run_base_chain(struct sbuffer *buf, struct nftst *n, int type, int family, unsigned int rules_needed, int action)
 {
-	char service[255] = { 0 };
-	char servicem[257] = { 0 };
-	char base_chain[265] = { 0 };
-	char chain_device[10] = { 0 };
+	char service[NFTLB_MAX_OBJ_NAME-2] = { 0 };
+	char servicem[NFTLB_MAX_OBJ_NAME] = { 0 };
+	char base_chain[NFTLB_MAX_OBJ_NAME] = { 0 };
+	char chain_device[NFTLB_MAX_OBJ_DEVICE] = { 0 };
 	char *chain_type;
 	char *chain_hook;
 	char *chain_family;
@@ -1135,8 +1138,8 @@ static int run_base_chain(struct sbuffer *buf, struct nftst *n, int type, int fa
 		chain_prio = NFTLB_INGRESS_PRIO;
 		chain_type = NFTLB_TYPE_FILTER;
 		chain_hook = NFTLB_HOOK_INGRESS;
-		sprintf(chain_device, "%s", a->iface);
-		sprintf(base_chain, "%s-%s", NFTLB_TABLE_INGRESS, chain_device);
+		snprintf(chain_device, NFTLB_MAX_OBJ_DEVICE, "%s", a->iface);
+		snprintf(base_chain, NFTLB_MAX_OBJ_NAME, "%s-%s", NFTLB_TABLE_INGRESS, a->iface);
 
 	} else if (type & NFTLB_F_CHAIN_ING_DNAT) {
 		if (!f)
@@ -1148,20 +1151,20 @@ static int run_base_chain(struct sbuffer *buf, struct nftst *n, int type, int fa
 		chain_prio = NFTLB_INGRESS_DNAT_PRIO;
 		chain_type = NFTLB_TYPE_FILTER;
 		chain_hook = NFTLB_HOOK_INGRESS;
-		sprintf(chain_device, "%s", f->oface);
-		sprintf(base_chain, "%s-dnat-%s", NFTLB_TABLE_INGRESS, chain_device);
+		snprintf(chain_device, NFTLB_MAX_OBJ_DEVICE, "%s", f->oface);
+		snprintf(base_chain, NFTLB_MAX_OBJ_NAME, "%s-dnat-%s", NFTLB_TABLE_INGRESS, chain_device);
 
 	} else if (type & NFTLB_F_CHAIN_PRE_FILTER) {
 		base_rules = get_rules_applied(type, family, "");
 		chain_prio = NFTLB_FILTER_PRIO;
-		sprintf(base_chain, "%s", NFTLB_TABLE_FILTER);
+		snprintf(base_chain, NFTLB_MAX_OBJ_NAME, "%s", NFTLB_TABLE_FILTER);
 		chain_type = NFTLB_TYPE_FILTER;
 		chain_hook = NFTLB_HOOK_PREROUTING;
 
 	} else if (type & NFTLB_F_CHAIN_PRE_DNAT) {
 		base_rules = get_rules_applied(type, family, "");
 		chain_prio = NFTLB_PREROUTING_PRIO;
-		sprintf(base_chain, "%s", NFTLB_TABLE_PREROUTING);
+		snprintf(base_chain, NFTLB_MAX_OBJ_NAME, "%s", NFTLB_TABLE_PREROUTING);
 		chain_type = NFTLB_TYPE_NAT;
 		chain_hook = NFTLB_HOOK_PREROUTING;
 		get_address_service(servicem, a, NFTLB_F_CHAIN_POS_SNAT, family, BCK_MAP_BCK_MARK);
@@ -1169,29 +1172,29 @@ static int run_base_chain(struct sbuffer *buf, struct nftst *n, int type, int fa
 	} else if (type & NFTLB_F_CHAIN_POS_SNAT) {
 		base_rules = get_rules_applied(type, family, "");
 		chain_prio = NFTLB_POSTROUTING_PRIO;
-		sprintf(base_chain, "%s", NFTLB_TABLE_POSTROUTING);
+		snprintf(base_chain, NFTLB_MAX_OBJ_NAME, "%s", NFTLB_TABLE_POSTROUTING);
 		chain_type = NFTLB_TYPE_NAT;
 		chain_hook = NFTLB_HOOK_POSTROUTING;
-		sprintf(servicem, "%s-m", service);
+		snprintf(servicem, NFTLB_MAX_OBJ_NAME, "%s-m", service);
 
 	} else if (type & NFTLB_F_CHAIN_FWD_FILTER) {
 		base_rules = get_rules_applied(type, family, "");
 		chain_prio = NFTLB_PREROUTING_PRIO;
-		sprintf(base_chain, "%s", NFTLB_TABLE_FORWARD);
+		snprintf(base_chain, NFTLB_MAX_OBJ_NAME, "%s", NFTLB_TABLE_FORWARD);
 		chain_type = NFTLB_TYPE_FILTER;
 		chain_hook = NFTLB_HOOK_FORWARD;
 
 	} else if (type & NFTLB_F_CHAIN_OUT_FILTER) {
 		base_rules = get_rules_applied(type, family, "");
 		chain_prio = NFTLB_FILTER_PRIO;
-		sprintf(base_chain, "%s", NFTLB_TABLE_OUT_FILTER);
+		snprintf(base_chain, NFTLB_MAX_OBJ_NAME, "%s", NFTLB_TABLE_OUT_FILTER);
 		chain_type = NFTLB_TYPE_FILTER;
 		chain_hook = NFTLB_HOOK_OUTPUT;
 
 	} else if (type & NFTLB_F_CHAIN_OUT_DNAT) {
 		base_rules = get_rules_applied(type, family, "");
 		chain_prio = NFTLB_PREROUTING_PRIO;
-		sprintf(base_chain, "%s", NFTLB_TABLE_OUT_NAT);
+		snprintf(base_chain, NFTLB_MAX_OBJ_NAME, "%s", NFTLB_TABLE_OUT_NAT);
 		chain_type = NFTLB_TYPE_NAT;
 		chain_hook = NFTLB_HOOK_OUTPUT;
 
@@ -1338,12 +1341,12 @@ static int run_nftst_rules_gen_srv_map(struct sbuffer *buf, struct nftst *n, int
 {
 	struct farm *f = nftst_get_farm(n);
 	struct address *a = nftst_get_address(n);
-	char action_str[255] = { 0 };
-	char key_str[255] = { 0 };
+	char action_str[NFTLB_MAX_OBJ_NAME] = { 0 };
+	char key_str[NFTLB_MAX_OBJ_NAME] = { 0 };
 	char *data_str = NULL;
-	char chain[255] = { 0 };
-	char service[255] = { 0 };
-	char protocol[10] = { 0 };
+	char chain[NFTLB_MAX_OBJ_NAME] = { 0 };
+	char service[NFTLB_MAX_OBJ_NAME] = { 0 };
+	char protocol[NFTLB_MAX_OBJ_PROTO] = { 0 };
 	char *nft_family = print_nft_table_family(family, type);
 	struct backend *b;
 	int nports = a->nports;
@@ -1374,7 +1377,7 @@ static int run_nftst_rules_gen_srv_map(struct sbuffer *buf, struct nftst *n, int
 
 	get_chain_name(chain, nftst_get_name(n), type);
 	get_address_service(service, nftst_get_address(n), type, nftst_get_family(n), BCK_MAP_NONE);
-	sprintf(protocol, "%s", print_nft_protocol(proto));
+	snprintf(protocol, NFTLB_MAX_OBJ_PROTO, "%s", print_nft_protocol(proto));
 
 	switch (key_mode) {
 	case BCK_MAP_IPADDR:
@@ -1477,19 +1480,19 @@ static int run_nftst_rules_gen_srv_map(struct sbuffer *buf, struct nftst *n, int
 
 				if ((key_mode == BCK_MAP_BCK_ID || key_mode == BCK_MAP_BCK_MARK) && bckmark != DEFAULT_MARK) {
 					if (!first_port) { continue; }
-					sprintf(key_str, "0x%x", bckmark);
+					snprintf(key_str, NFTLB_MAX_OBJ_NAME, "0x%x", bckmark);
 				} else if ((key_mode == BCK_MAP_BCK_ID || key_mode == BCK_MAP_BCK_PROTO_IPADDR_F_PORT) && backend_no_port(b)) {
-					sprintf(key_str, "%s . %s . %d", protocol, b->ipaddr, iport);
+					snprintf(key_str, NFTLB_MAX_OBJ_NAME, "%s . %s . %d", protocol, b->ipaddr, iport);
 				} else if ((key_mode == BCK_MAP_BCK_ID || key_mode == BCK_MAP_BCK_PROTO_IPADDR_F_PORT) && !backend_no_port(b)) {
-					sprintf(key_str, "%s . %s . %s", protocol, b->ipaddr, b->port);
+					snprintf(key_str, NFTLB_MAX_OBJ_NAME, "%s . %s . %s", protocol, b->ipaddr, b->port);
 				} else if ((key_mode == BCK_MAP_BCK_ID || key_mode == BCK_MAP_BCK_IPADDR_F_PORT) && backend_no_port(b)) {
-					sprintf(key_str, "%s . %d", b->ipaddr, iport);
+					snprintf(key_str, NFTLB_MAX_OBJ_NAME, "%s . %d", b->ipaddr, iport);
 				} else if (key_mode == BCK_MAP_BCK_ID && !backend_no_port(b)) {
 					if (!first_port) { continue; }
-					sprintf(key_str, "%s . %s", b->ipaddr, b->port);
+					snprintf(key_str, NFTLB_MAX_OBJ_NAME, "%s . %s", b->ipaddr, b->port);
 				} else if (key_mode == BCK_MAP_BCK_ID || key_mode == BCK_MAP_BCK_IPADDR) {
 					if (!first_port) { continue; }
-					sprintf(key_str, "%s", b->ipaddr);
+					snprintf(key_str, NFTLB_MAX_OBJ_NAME, "%s", b->ipaddr);
 				} else
 					if (!first_port) { continue; }
 
@@ -1743,7 +1746,7 @@ static void run_farm_helper(struct sbuffer *buf, struct farm *f, int family, int
 
 static int run_farm_log_prefix(struct sbuffer *buf, struct farm *f, int key, int type, int action)
 {
-	char logprefix_str[255] = { 0 };
+	char logprefix_str[NFTLB_MAX_OBJ_NAME] = { 0 };
 	struct nftst *n;
 
 	if (f->log == VALUE_LOG_NONE)
@@ -1776,7 +1779,7 @@ static int run_farm_rules_filter_helper(struct sbuffer *buf, struct nftst *n, in
 {
 	struct farm *f = nftst_get_farm(n);
 	struct address *a = nftst_get_address(n);
-	char protocol[255] = {0};
+	char protocol[NFTLB_MAX_OBJ_NAME] = {0};
 
 	if (!(f->helper != DEFAULT_HELPER && (f->mode == VALUE_MODE_SNAT || f->mode == VALUE_MODE_LOCAL || f->mode == VALUE_MODE_DNAT)))
 		return 0;
@@ -1802,16 +1805,16 @@ static int run_farm_sessions_map(struct sbuffer *buf, struct nftst *n, int stype
 {
 	struct farm *f = nftst_get_farm(n);
 	struct address *a = nftst_get_address(n);
-	char map_str[255] = { 0 };
+	char map_str[NFTLB_MAX_OBJ_NAME] = { 0 };
 	int ttl = 0;
 
 	if (f->persistence == VALUE_META_NONE)
 		return 0;
 
 	if (stype == SESSION_TYPE_STATIC)
-		sprintf(map_str, "static-sessions-%s", f->name);
+		snprintf(map_str, NFTLB_MAX_OBJ_NAME, "static-sessions-%s", f->name);
 	else {
-		sprintf(map_str, "persist-%s", f->name);
+		snprintf(map_str, NFTLB_MAX_OBJ_NAME, "persist-%s", f->name);
 		ttl = f->persistttl;
 	}
 
@@ -1827,8 +1830,8 @@ static int run_farm_sessions_map(struct sbuffer *buf, struct nftst *n, int stype
 
 static int run_farm_manage_sessions(struct sbuffer *buf, struct farm *f, int stype, int family, int action)
 {
-	char chain[255] = { 0 };
-	char map_str[255] = { 0 };
+	char chain[NFTLB_MAX_OBJ_NAME] = { 0 };
+	char map_str[NFTLB_MAX_OBJ_NAME] = { 0 };
 	char *client;
 	struct session *s;
 	struct list_head *sessions;
@@ -1848,10 +1851,10 @@ static int run_farm_manage_sessions(struct sbuffer *buf, struct farm *f, int sty
 	get_chain_name(chain, f->name, NFTLB_F_CHAIN_ING_FILTER);
 
 	if (stype == SESSION_TYPE_STATIC) {
-		sprintf(map_str, "static-sessions-%s", f->name);
+		snprintf(map_str, NFTLB_MAX_OBJ_NAME, "static-sessions-%s", f->name);
 		sessions = &f->static_sessions;
 	} else {
-		sprintf(map_str, "persist-%s", f->name);
+		snprintf(map_str, NFTLB_MAX_OBJ_NAME, "persist-%s", f->name);
 		sessions = &f->timed_sessions;
 	}
 
@@ -1889,12 +1892,12 @@ static int run_farm_rules_update_sessions(struct sbuffer *buf, struct nftst *n, 
 {
 	struct farm *f = nftst_get_farm(n);
 	struct address *a = nftst_get_address(n);
-	char map_str[255] = { 0 };
+	char map_str[NFTLB_MAX_OBJ_NAME] = { 0 };
 
 	if (f->persistence == VALUE_META_NONE || f->total_bcks == 0)
 		return 0;
 
-	sprintf(map_str, "persist-%s", f->name);
+	snprintf(map_str, NFTLB_MAX_OBJ_NAME, "persist-%s", f->name);
 
 	if (action != ACTION_START && action != ACTION_RELOAD)
 		return 0;
@@ -1928,8 +1931,8 @@ static int run_farm_rules_check_sessions(struct sbuffer *buf, struct nftst *n, i
 {
 	struct farm *f = nftst_get_farm(n);
 	struct address *a = nftst_get_address(n);
-	char map_str[255] = { 0 };
-	char chain[255] = { 0 };
+	char map_str[NFTLB_MAX_OBJ_NAME] = { 0 };
+	char chain[NFTLB_MAX_OBJ_NAME] = { 0 };
 
 	if (f->persistence == VALUE_META_NONE || f->total_bcks == 0)
 		return 0;
@@ -1938,9 +1941,9 @@ static int run_farm_rules_check_sessions(struct sbuffer *buf, struct nftst *n, i
 		return 0;
 
 	if (stype == SESSION_TYPE_STATIC)
-		sprintf(map_str, "static-sessions-%s", f->name);
+		snprintf(map_str, NFTLB_MAX_OBJ_NAME, "static-sessions-%s", f->name);
 	else
-		sprintf(map_str, "persist-%s", f->name);
+		snprintf(map_str, NFTLB_MAX_OBJ_NAME, "persist-%s", f->name);
 
 	get_chain_name(chain, f->name, type);
 
@@ -2029,7 +2032,7 @@ static int run_farm_log_rate_limit(struct sbuffer *buf, struct nftst *n)
 {
 	struct farm *f = nftst_get_farm(n);
 	struct address *a = nftst_get_address(n);
-	char rtlimit_str[255] = { 0 };
+	char rtlimit_str[NFTLB_MAX_OBJ_NAME] = { 0 };
 
 	if ((f && !f->logrtlimit) || (a && !a->logrtlimit))
 		return 0;
@@ -2049,7 +2052,7 @@ static int run_farm_log_rate_limit(struct sbuffer *buf, struct nftst *n)
 
 static void run_farm_rules_log_and_verdict(struct sbuffer *buf, struct nftst *n, int logrt, int flags, int verdict, int key, int chain)
 {
-	char logprefix_str[255] = { 0 };
+	char logprefix_str[NFTLB_MAX_OBJ_NAME] = { 0 };
 
 	if (flags & VALUE_VERDICT_LOG) {
 		if (logrt) {
@@ -2072,8 +2075,8 @@ static void run_farm_rules_log_and_verdict(struct sbuffer *buf, struct nftst *n,
 
 static int run_farm_rules_filter_policies(struct sbuffer *buf, struct farm *f, int family, char *chain, int action)
 {
-	char meter_str[255] = { 0 };
-	char burst_str[255] = { 0 };
+	char meter_str[NFTLB_MAX_OBJ_NAME] = { 0 };
+	char burst_str[NFTLB_MAX_OBJ_NAME] = { 0 };
 	struct nftst *n = nftst_create_from_farm(f);
 
 	if ((action == ACTION_START || action == ACTION_RELOAD) && f->tcpstrict == VALUE_SWITCH_ON) {
@@ -2082,34 +2085,34 @@ static int run_farm_rules_filter_policies(struct sbuffer *buf, struct farm *f, i
 		run_farm_rules_log_and_verdict(buf, n, f->logrtlimit, f->verdict, VALUE_TYPE_DENY, KEY_TCPSTRICT_LOGPREFIX, NFTLB_F_CHAIN_PRE_FILTER);
 	}
 
-	sprintf(meter_str, "%s-%s", CONFIG_KEY_NEWRTLIMIT, f->name);
+	snprintf(meter_str, NFTLB_MAX_OBJ_NAME, "%s-%s", CONFIG_KEY_NEWRTLIMIT, f->name);
 	if ((action == ACTION_START && f->newrtlimit != DEFAULT_NEWRTLIMIT) || (action == ACTION_RELOAD && f->reload_action & VALUE_RLD_NEWRTLIMIT_START))
 		run_farm_meter(buf, f, family, KEY_NEWRTLIMIT, meter_str, ACTION_START);
 	if (((action == ACTION_STOP || action == ACTION_DELETE) && f->newrtlimit != DEFAULT_NEWRTLIMIT) || (action == ACTION_RELOAD && f->reload_action & VALUE_RLD_NEWRTLIMIT_STOP))
 		run_farm_meter(buf, f, family, KEY_NEWRTLIMIT, meter_str, ACTION_STOP);
 	if ((action == ACTION_START || action == ACTION_RELOAD) && f->newrtlimit != DEFAULT_NEWRTLIMIT) {
 		if (f->newrtlimitbst != DEFAULT_RTLIMITBURST)
-			sprintf(burst_str, "burst %d packets ", f->newrtlimitbst);
+			snprintf(burst_str, NFTLB_MAX_OBJ_NAME, "burst %d packets ", f->newrtlimitbst);
 		concat_buf(buf, " ; add rule %s %s %s ct state new add @%s { ip saddr limit rate over %d/second %s}",
 						print_nft_table_family(family, NFTLB_F_CHAIN_PRE_FILTER), NFTLB_TABLE_NAME, chain, meter_str, f->newrtlimit, burst_str);
 
 		run_farm_rules_log_and_verdict(buf, n, f->logrtlimit, f->verdict, VALUE_TYPE_DENY, KEY_NEWRTLIMIT_LOGPREFIX, NFTLB_F_CHAIN_PRE_FILTER);
 	}
 
-	sprintf(meter_str, "%s-%s", CONFIG_KEY_RSTRTLIMIT, f->name);
+	snprintf(meter_str, NFTLB_MAX_OBJ_NAME, "%s-%s", CONFIG_KEY_RSTRTLIMIT, f->name);
 	if ((action == ACTION_START && f->rstrtlimit != DEFAULT_RSTRTLIMIT) || (action == ACTION_RELOAD && f->reload_action & VALUE_RLD_RSTRTLIMIT_START))
 		run_farm_meter(buf, f, family, KEY_RSTRTLIMIT, meter_str, ACTION_START);
 	if (((action == ACTION_STOP || action == ACTION_DELETE) && f->rstrtlimit != DEFAULT_RSTRTLIMIT) || (action == ACTION_RELOAD && f->reload_action & VALUE_RLD_RSTRTLIMIT_STOP))
 		run_farm_meter(buf, f, family, KEY_RSTRTLIMIT, meter_str, ACTION_STOP);
 	if ((action == ACTION_START || action == ACTION_RELOAD) && f->rstrtlimit != DEFAULT_RSTRTLIMIT) {
 		if (f->rstrtlimitbst != DEFAULT_RTLIMITBURST)
-			sprintf(burst_str, "burst %d packets ", f->rstrtlimitbst);
+			snprintf(burst_str, NFTLB_MAX_OBJ_NAME, "burst %d packets ", f->rstrtlimitbst);
 		concat_buf(buf, " ; add rule %s %s %s tcp flags rst add @%s { ip saddr limit rate over %d/second %s}",
 						print_nft_table_family(family, NFTLB_F_CHAIN_PRE_FILTER), NFTLB_TABLE_NAME, chain, meter_str, f->rstrtlimit, burst_str);
 		run_farm_rules_log_and_verdict(buf, n, f->logrtlimit, f->verdict, VALUE_TYPE_DENY, KEY_RSTRTLIMIT_LOGPREFIX, NFTLB_F_CHAIN_PRE_FILTER);
 	}
 
-	sprintf(meter_str, "%s-%s", CONFIG_KEY_ESTCONNLIMIT, f->name);
+	snprintf(meter_str, NFTLB_MAX_OBJ_NAME, "%s-%s", CONFIG_KEY_ESTCONNLIMIT, f->name);
 	if ((action == ACTION_START && f->estconnlimit != DEFAULT_ESTCONNLIMIT) || (action == ACTION_RELOAD && f->reload_action & VALUE_RLD_ESTCONNLIMIT_START))
 		run_farm_meter(buf, f, family, KEY_ESTCONNLIMIT, meter_str, ACTION_START);
 	if (((action == ACTION_STOP || action == ACTION_DELETE) && f->estconnlimit != DEFAULT_ESTCONNLIMIT) || (action == ACTION_RELOAD && f->reload_action & VALUE_RLD_ESTCONNLIMIT_STOP))
@@ -2175,7 +2178,7 @@ static int run_farm_rules_filter(struct sbuffer *buf, struct nftst *n, int famil
 {
 	struct farm *f = nftst_get_farm(n);
 	struct address *a = nftst_get_address(n);
-	char chain[255] = { 0 };
+	char chain[NFTLB_MAX_OBJ_NAME] = { 0 };
 	int need = need_filter(f);
 	int naction = nftst_get_action(n);
 
@@ -2263,7 +2266,7 @@ static int get_farm_interfaces(struct nftst *n, char *list)
 
 static void run_farm_flowtable(struct sbuffer *buf, struct nftst *n, int family, char *name, int action)
 {
-	char interfaces[255] = { 0 };
+	char interfaces[NFTLB_MAX_OBJ_NAME] = { 0 };
 	struct farm *f = nftst_get_farm(n);
 
 	if (!farm_needs_flowtable(f) || !get_farm_interfaces(n, interfaces))
@@ -2301,8 +2304,8 @@ static int run_farm_rules_forward(struct sbuffer *buf, struct nftst *n, int fami
 	struct farm *f = nftst_get_farm(n);
 	struct address *a = nftst_get_address(n);
 	int naction = nftst_get_action(n);
-	char chain[255] = { 0 };
-	char flowtable[255] = { 0 };
+	char chain[NFTLB_MAX_OBJ_NAME] = { 0 };
+	char flowtable[NFTLB_MAX_OBJ_NAME] = { 0 };
 
 	if (!need_forward(f))
 		return 0;
@@ -2447,8 +2450,8 @@ static void get_farm_rules_nat_params(struct sbuffer *buf, struct farm *f, int f
 static int run_farm_rules_gen_nat(struct sbuffer *buf, struct nftst *n, int family, int type, int action)
 {
 	struct farm *f = nftst_get_farm(n);
-	char chain[255] = { 0 };
-	char map_str[255] = { 0 };
+	char chain[NFTLB_MAX_OBJ_NAME] = { 0 };
+	char map_str[NFTLB_MAX_OBJ_NAME] = { 0 };
 	int bck_map_data = BCK_MAP_IPADDR;
 
 	if (f->bcks_usable == 0)
@@ -2477,7 +2480,7 @@ static int run_farm_rules_gen_nat(struct sbuffer *buf, struct nftst *n, int fami
 		concat_exec_cmd(buf, "");
 		break;
 	case VALUE_MODE_STLSDNAT:
-		sprintf(map_str, "map-%s-back", f->name);
+		snprintf(map_str, NFTLB_MAX_OBJ_NAME, "map-%s-back", f->name);
 		concat_exec_cmd(buf, " ; add rule %s %s %s update @%s { %s saddr : ether saddr }", print_nft_table_family(family, NFTLB_F_CHAIN_ING_FILTER), NFTLB_TABLE_NAME, chain, map_str, print_nft_family(family));
 
 		run_farm_rules_check_sessions(buf, n, SESSION_TYPE_STATIC, family, NFTLB_F_CHAIN_ING_FILTER, action);
@@ -2534,7 +2537,7 @@ static int run_nftst_ingress_policies(struct sbuffer *buf, struct nftst *n, int 
 	struct farm *f = nftst_get_farm(n);
 	struct address *a = nftst_get_address(n);
 	int naction = nftst_get_action(n);
-	char chain[255] = { 0 };
+	char chain[NFTLB_MAX_OBJ_NAME] = { 0 };
 
 	if ((f && !farm_needs_policies(f)) ||
 		(!f && a && !address_needs_policies(a)) ||
@@ -2620,10 +2623,10 @@ static int run_farm_stlsnat(struct sbuffer *buf, struct nftst *n, int family, in
 	struct farm *f = nftst_get_farm(n);
 	struct address *a = nftst_get_address(n);
 	int naction = nftst_get_action(n);
-	char chain[255] = { 0 };
-	char map_str[255] = { 0 };
+	char chain[NFTLB_MAX_OBJ_NAME] = { 0 };
+	char map_str[NFTLB_MAX_OBJ_NAME] = { 0 };
 
-	sprintf(map_str, "map-%s-back", f->name);
+	snprintf(map_str, NFTLB_MAX_OBJ_NAME, "map-%s-back", f->name);
 
 	get_chain_name(chain, f->name, NFTLB_F_CHAIN_ING_DNAT);
 
@@ -2807,20 +2810,20 @@ int nft_reset(void)
 
 int nft_check_tables(void)
 {
-	char cmd[255] = { 0 };
+	char cmd[NFTLB_MAX_OBJ_NAME] = { 0 };
 	const char *buf;
 
-	sprintf(cmd, "list table %s %s", NFTLB_IPV4_FAMILY_STR, NFTLB_TABLE_NAME);
+	snprintf(cmd, NFTLB_MAX_OBJ_NAME, "list table %s %s", NFTLB_IPV4_FAMILY_STR, NFTLB_TABLE_NAME);
 	if (exec_cmd_open(cmd, &buf, 0) == 0)
 		nft_base_rules.dnat_rules_v4 = 1;
 	exec_cmd_close(buf);
 
-	sprintf(cmd, "list table %s %s", NFTLB_IPV6_FAMILY_STR, NFTLB_TABLE_NAME);
+	snprintf(cmd, NFTLB_MAX_OBJ_NAME, "list table %s %s", NFTLB_IPV6_FAMILY_STR, NFTLB_TABLE_NAME);
 	if (exec_cmd_open(cmd, &buf, 0) == 0)
 		nft_base_rules.dnat_rules_v6 = 1;
 	exec_cmd_close(buf);
 
-	sprintf(cmd, "list table %s %s", NFTLB_NETDEV_FAMILY_STR, NFTLB_TABLE_NAME);
+	snprintf(cmd, NFTLB_MAX_OBJ_NAME, "list table %s %s", NFTLB_NETDEV_FAMILY_STR, NFTLB_TABLE_NAME);
 	if (exec_cmd_open(cmd, &buf, 0) == 0)
 		nft_base_rules.ndv_ingress_rules.n_interfaces = 1;
 	exec_cmd_close(buf);
@@ -2959,19 +2962,19 @@ int nft_get_rules_buffer(const char **buf, int key, struct nftst *n)
 	struct address *a = nftst_get_address(n);
 	struct policy *p = nftst_get_policy(n);
 
-	char cmd[255] = { 0 };
+	char cmd[NFTLB_MAX_OBJ_NAME] = { 0 };
 	int error = 0;
 
 	switch (key) {
 	case KEY_SESSIONS:
 		if (!f || !a)
 			return error;
-		sprintf(cmd, "list map %s nftlb persist-%s", print_nft_table_family(a->family, get_stage_by_farm_mode(f)), f->name);
+		snprintf(cmd, NFTLB_MAX_OBJ_NAME, "list map %s nftlb persist-%s", print_nft_table_family(a->family, get_stage_by_farm_mode(f)), f->name);
 		break;
 	case KEY_POLICIES:
 		if (!p)
 			return error;
-		sprintf(cmd, "list set netdev nftlb %s", p->name);
+		snprintf(cmd, NFTLB_MAX_OBJ_NAME, "list set netdev nftlb %s", p->name);
 		break;
 	default:
 		return 0;
