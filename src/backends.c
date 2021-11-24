@@ -137,6 +137,7 @@ static int backend_delete(struct backend *b)
 
 	struct farm *f = b->parent;
 	backend_set_action(b, ACTION_STOP);
+	session_backend_action(f, b, ACTION_STOP);
 
 	if (backend_below_prio(b)) {
 		backend_s_gen_priority(f);
