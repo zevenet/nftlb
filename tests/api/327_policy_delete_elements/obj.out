@@ -1,0 +1,14 @@
+{
+        "policies": [
+                {
+                        "name": "black001",
+                        "family": "ipv4",
+                        "type": "blacklist",
+                        "route": "in",
+                        "timeout": "0",
+                        "priority": "1",
+                        "used": "1",
+                        "elements": []
+                }
+        ]
+}

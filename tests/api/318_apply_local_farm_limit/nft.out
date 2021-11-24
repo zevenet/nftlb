@@ -10,10 +10,10 @@ table ip nftlb {
 
 	map filter-proto-services {
 		type inet_proto . ipv4_addr . inet_service : verdict
-		elements = { tcp . 192.168.100.211 . 10 : goto filter-farm17 }
+		elements = { tcp . 192.168.100.211 . 10 : goto filter-farml7 }
 	}
 
-	set new-rtlimit-farm17 {
+	set new-rtlimit-farml7 {
 		type ipv4_addr
 		size 65535
 		flags dynamic,timeout
@@ -38,7 +38,7 @@ table ip nftlb {
 		ip protocol . ip daddr . th dport vmap @filter-proto-services
 	}
 
-	chain filter-farm17 {
-		ct state new add @new-rtlimit-farm17 { ip saddr limit rate over 10/second } log prefix "new-rtlimit-farm17 " drop
+	chain filter-farml7 {
+		ct state new add @new-rtlimit-farml7 { ip saddr limit rate over 10/second counter } log prefix "new-rtlimit-farml7 " drop
 	}
 }

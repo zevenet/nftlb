@@ -1,7 +1,7 @@
 {
         "farms": [
                 {
-                        "name": "farm17",
+                        "name": "farml7",
                         "family": "ipv4",
                         "virtual-addr": "192.168.100.212",
                         "virtual-ports": "80",
@@ -29,7 +29,7 @@
                         "verdict": "log drop accept",
                         "addresses": [
                                 {
-                                        "name": "farm17-addr",
+                                        "name": "farml7-addr",
                                         "family": "ipv4",
                                         "ip-addr": "192.168.100.212",
                                         "ports": "80",
@@ -38,6 +38,17 @@
                                 }
                         ],
                         "backends": [
+                                {
+                                        "name": "bck0",
+                                        "ip-addr": "192.168.101.253",
+                                        "port": "80",
+                                        "source-addr": "192.168.100.212",
+                                        "weight": "1",
+                                        "priority": "1",
+                                        "mark": "0x203",
+                                        "est-connlimit": "0",
+                                        "state": "up"
+                                },
                                 {
                                         "name": "bck512",
                                         "ip-addr": "192.168.100.254",
@@ -60,11 +71,7 @@
                                         "state": "up"
                                 }
                         ],
-                        "policies": [
-                                {
-                                        "name": "TOR_nodes"
-                                }
-                        ]
+                        "policies": []
                 }
         ]
 }
