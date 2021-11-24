@@ -335,7 +335,7 @@ static int send_delete_response(struct nftlb_http_state *state)
 			ret = config_set_farmaddress_action(secondlevel, fourthlevel, CONFIG_VALUE_ACTION_STOP);
 			ret = 1;
 			if (ret < 0) {
-				config_print_response(&state->body_response, "%s%s", "error deleting session",
+				config_print_response(&state->body_response, "%s%s", "error deleting farm address",
 										config_get_output());
 				config_delete_output();
 				state->status_code = WS_HTTP_500;
@@ -346,17 +346,11 @@ static int send_delete_response(struct nftlb_http_state *state)
 
 		} else if (strcmp(firstlevel, CONFIG_KEY_FARMS) == 0 &&
 				   strcmp(thirdlevel, CONFIG_KEY_POLICIES) == 0) {
-			ret = config_set_farm_action(secondlevel, CONFIG_VALUE_ACTION_RELOAD);
+			config_set_farm_action(secondlevel, CONFIG_VALUE_ACTION_RELOAD);
+			ret = config_set_fpolicy_action(secondlevel, fourthlevel, CONFIG_VALUE_ACTION_STOP);
+			ret = 1;
 			if (ret < 0) {
-				config_print_response(&state->body_response, "%s%s", "error reloading farm",
-										config_get_output());
-				config_delete_output();
-				state->status_code = WS_HTTP_500;
-				goto delete_end;
-			}
-			ret = config_set_fpolicy_action(secondlevel, fourthlevel, CONFIG_VALUE_ACTION_DELETE);
-			if (ret != 0) {
-				config_print_response(&state->body_response, "%s%s", "error stopping farm policy",
+				config_print_response(&state->body_response, "%s%s", "error deleting farm policy",
 										config_get_output());
 				config_delete_output();
 				state->status_code = WS_HTTP_500;
@@ -364,6 +358,8 @@ static int send_delete_response(struct nftlb_http_state *state)
 			}
 			obj_rulerize(OBJ_START);
 
+			config_set_farm_action(secondlevel, CONFIG_VALUE_ACTION_RELOAD);
+			config_set_fpolicy_action(secondlevel, fourthlevel, CONFIG_VALUE_ACTION_DELETE);
 		} else if (strcmp(firstlevel, CONFIG_KEY_POLICIES) == 0 &&
 				   strcmp(thirdlevel, CONFIG_KEY_ELEMENTS) == 0) {
 			ret = config_get_elements(secondlevel);

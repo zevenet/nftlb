@@ -68,8 +68,6 @@ static int farmpolicy_delete(struct farmpolicy *fp)
 	if (fp->policy->used > 0)
 		fp->policy->used--;
 
-	fp->farm->policies_action = ACTION_STOP;
-
 	free(fp);
 
 	return 0;
@@ -100,7 +98,7 @@ struct farmpolicy * farmpolicy_lookup_by_name(struct farm *f, const char *name)
 
 int farmpolicy_set_action(struct farmpolicy *fp, int action)
 {
-	if ((action == ACTION_DELETE) || (action == ACTION_STOP)) {
+	if (action == ACTION_DELETE) {
 		farmpolicy_delete(fp);
 		farmaddress_s_set_action(fp->farm, ACTION_RELOAD);
 		return 1;
@@ -109,7 +107,11 @@ int farmpolicy_set_action(struct farmpolicy *fp, int action)
 	if (fp->action > action) {
 		fp->action = action;
 		fp->policy->action = ACTION_RELOAD;
-		fp->farm->policies_action = ACTION_RELOAD;
+		if (action == ACTION_STOP)
+			fp->farm->policies_action = action;
+		else
+			fp->farm->policies_action = ACTION_RELOAD;
+		farmaddress_s_set_action(fp->farm, ACTION_RELOAD);
 		return 1;
 	}
 

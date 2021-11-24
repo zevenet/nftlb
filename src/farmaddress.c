@@ -131,8 +131,10 @@ int farmaddress_set_action(struct farmaddress *fa, int action)
 	if (fa->action != action) {
 		fa->action = action;
 
-		if (action != ACTION_RELOAD && f->policies_used)
+		if (action != ACTION_RELOAD && f->policies_used) {
 			f->policies_action = action;
+			fa->address->policies_action = action;
+		}
 
 		return 1;
 	}
