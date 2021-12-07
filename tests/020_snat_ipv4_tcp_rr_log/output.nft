@@ -42,7 +42,7 @@ table ip nftlb {
 
 	chain nat-lb01 {
 		log prefix "IN-lb01 "
-		dnat to ct mark map { 0x80000200 : 192.168.0.10, 0x80000201 : 192.168.0.11 }
+		ip protocol tcp dnat to ct mark map { 0x80000200 : 192.168.0.10, 0x80000201 : 192.168.0.11 }
 	}
 
 	chain forward {

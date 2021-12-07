@@ -49,6 +49,6 @@ table ip nftlb {
 	}
 
 	chain nat-newfarm {
-		dnat to ct mark map { 0x00000200 : 111.111.11.11 }
+		ip protocol tcp dnat to ct mark map { 0x00000200 : 111.111.11.11 }
 	}
 }

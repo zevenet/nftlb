@@ -60,7 +60,7 @@ table ip nftlb {
 	}
 
 	chain nat-Internal-Web-Server-FARM-HTTPS {
-		dnat ip to ct mark map { 0x00000202 : 172.18.15.95 . 80, 0x00000203 : 172.18.15.96 . 80 }
+		ip protocol tcp dnat ip to ct mark map { 0x00000202 : 172.18.15.95 . 80, 0x00000203 : 172.18.15.96 . 80 }
 	}
 
 	chain forward {

@@ -36,6 +36,6 @@ table ip nftlb {
 	}
 
 	chain nat-test1 {
-		dnat ip to ct mark map { 0x00000200 : 127.0.0.2 . 80 }
+		ip protocol tcp dnat ip to ct mark map { 0x00000200 : 127.0.0.2 . 80 }
 	}
 }

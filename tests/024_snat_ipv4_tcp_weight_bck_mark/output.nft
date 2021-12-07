@@ -36,6 +36,6 @@ table ip nftlb {
 	}
 
 	chain nat-lb01 {
-		dnat to ct mark map { 0x80dead01 : 192.168.0.10, 0x80dead02 : 192.168.0.11 }
+		ip protocol tcp dnat to ct mark map { 0x80dead01 : 192.168.0.10, 0x80dead02 : 192.168.0.11 }
 	}
 }

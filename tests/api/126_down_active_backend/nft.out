@@ -43,6 +43,6 @@ table ip nftlb {
 
 	chain nat-Ex-SMTP {
 		log prefix "IN-Ex-SMTP "
-		dnat ip to ct mark map { 0x00000203 : 10.20.10.28 . 25 }
+		ip protocol tcp dnat ip to ct mark map { 0x00000203 : 10.20.10.28 . 25 }
 	}
 }

@@ -42,6 +42,6 @@ table ip6 nftlb {
 	}
 
 	chain nat-lb01 {
-		dnat to ct mark map { 0x00000001 : 2001:db8:0:1:1:1:1:2, 0x00000002 : 2001:db8:0:1:1:1:1:3 }
+		ip6 nexthdr udp dnat to ct mark map { 0x00000001 : 2001:db8:0:1:1:1:1:2, 0x00000002 : 2001:db8:0:1:1:1:1:3 }
 	}
 }
