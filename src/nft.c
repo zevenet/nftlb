@@ -535,6 +535,14 @@ static char * print_nft_service(struct address *a, int family)
 	}
 }
 
+static char * print_nft_pos_service(int family)
+{
+	if (family == VALUE_FAMILY_IPV6)
+		return NFTLB_IP_SERVICES6_MAP;
+	else
+		return NFTLB_IP_SERVICES_MAP;
+}
+
 static char * print_nft_family_type(int family)
 {
 	switch (family) {
@@ -840,9 +848,10 @@ static void get_address_service(char *name, struct address *a, int type, int fam
 	else if (type & NFTLB_F_CHAIN_FWD_FILTER)
 		sprintf(name, "%s-%s", NFTLB_TYPE_FWD, print_nft_service(a, family));
 	else if (type & NFTLB_F_CHAIN_POS_SNAT) {
-		sprintf(name, "%s-back", print_nft_service(a, family));
 		if (key_mode == BCK_MAP_BCK_ID || key_mode == BCK_MAP_BCK_MARK)
-			strcat(name, "-m");
+			sprintf(name, "%s-back-m", print_nft_pos_service(family));
+		else
+			sprintf(name, "%s-back", print_nft_service(a, family));
 	}
 	else if (type & NFTLB_F_CHAIN_ING_DNAT)
 		sprintf(name, "%s-dnat-%s", print_nft_service(a, family), a->iface);
@@ -1175,7 +1184,7 @@ static int run_base_chain(struct sbuffer *buf, struct nftst *n, int type, int fa
 		snprintf(base_chain, NFTLB_MAX_OBJ_NAME, "%s", NFTLB_TABLE_POSTROUTING);
 		chain_type = NFTLB_TYPE_NAT;
 		chain_hook = NFTLB_HOOK_POSTROUTING;
-		snprintf(servicem, NFTLB_MAX_OBJ_NAME, "%s-m", service);
+		get_address_service(servicem, a, NFTLB_F_CHAIN_POS_SNAT, family, BCK_MAP_BCK_MARK);
 
 	} else if (type & NFTLB_F_CHAIN_FWD_FILTER) {
 		base_rules = get_rules_applied(type, family, "");
