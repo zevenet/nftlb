@@ -11,7 +11,7 @@ table ip nftlb {
 			     tcp . 127.0.0.1 . 8080 : goto nat-lb01 }
 	}
 
-	map proto-services-back-m {
+	map services-back-m {
 		type mark : ipv4_addr
 		elements = { 0x00000001 : 192.168.105.188, 0x00000002 : 192.168.105.187, 0x00000003 : 192.168.105.189, 0x00000004 : 192.168.105.188 }
 	}
@@ -35,7 +35,7 @@ table ip nftlb {
 		type nat hook postrouting priority srcnat; policy accept;
 		ct mark 0x00000000 ct mark set meta mark
 		ct mark 0x80000000/1 masquerade
-		snat to ct mark map @proto-services-back-m
+		snat to ct mark map @services-back-m
 		snat to ip protocol . ip daddr . th dport map @proto-services-back
 	}
 

@@ -19,7 +19,7 @@ table netdev nftlb {
 		flags dynamic,timeout
 		counter
 		timeout 2m
-		elements = { 127.0.0.1 counter packets 2 bytes 120 timeout 2m expires 1m57s952ms }
+		elements = { 127.0.0.1 counter packets 2 bytes 120 timeout 2m expires 1m57s944ms }
 	}
 
 	chain ingress-lo {
@@ -36,7 +36,7 @@ table ip nftlb {
 		type inet_proto . ipv4_addr . inet_service : verdict
 	}
 
-	map proto-services-back-m {
+	map services-back-m {
 		type mark : ipv4_addr
 		elements = { 0x00000203 : 192.168.100.212, 0x00000512 : 127.0.0.1, 0x00000513 : 192.168.101.210 }
 	}
@@ -55,7 +55,7 @@ table ip nftlb {
 		type nat hook postrouting priority srcnat; policy accept;
 		ct mark 0x00000000 ct mark set meta mark
 		ct mark 0x80000000/1 masquerade
-		snat to ct mark map @proto-services-back-m
+		snat to ct mark map @services-back-m
 	}
 
 	chain filter {

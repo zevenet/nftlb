@@ -1,0 +1,74 @@
+table ip nftlb {
+	map filter-proto-services {
+		type inet_proto . ipv4_addr . inet_service : verdict
+		elements = { tcp . 10.248.18.52 . 443 : goto filter-dragonspeech-poc }
+	}
+
+	map static-sessions-dragonspeech-poc {
+		type ipv4_addr : mark
+	}
+
+	map persist-dragonspeech-poc {
+		type ipv4_addr : mark
+		size 65535
+		timeout 1m
+	}
+
+	map nat-proto-services {
+		type inet_proto . ipv4_addr . inet_service : verdict
+		elements = { tcp . 10.248.18.52 . 443 : goto nat-dragonspeech-poc }
+	}
+
+	map services-back-m {
+		type mark : ipv4_addr
+		elements = { 0x00000202 : 10.248.18.152, 0x00000203 : 10.248.18.152 }
+	}
+
+	map proto-services-back {
+		type inet_proto . ipv4_addr . inet_service : ipv4_addr
+	}
+
+	map forward-proto-services {
+		type mark : verdict
+		elements = { 0x00000202 : goto forward-dragonspeech-poc, 0x00000203 : goto forward-dragonspeech-poc }
+	}
+
+	chain filter {
+		type filter hook prerouting priority mangle; policy accept;
+		meta mark set ct mark
+		ip protocol . ip daddr . th dport vmap @filter-proto-services
+	}
+
+	chain filter-dragonspeech-poc {
+		ct mark set ip saddr map @static-sessions-dragonspeech-poc accept
+		ct state new ct mark set ip saddr map @persist-dragonspeech-poc
+		ct state new ct mark 0x00000000 ct mark set numgen random mod 2 map { 0 : 0x00000202, 1 : 0x00000203 }
+		ct mark != 0x00000000 update @persist-dragonspeech-poc { ip saddr : ct mark }
+	}
+
+	chain prerouting {
+		type nat hook prerouting priority dstnat; policy accept;
+		ip protocol . ip daddr . th dport vmap @nat-proto-services
+	}
+
+	chain postrouting {
+		type nat hook postrouting priority srcnat; policy accept;
+		ct mark 0x00000000 ct mark set meta mark
+		ct mark 0x80000000/1 masquerade
+		snat to ct mark map @services-back-m
+		snat to ip protocol . ip daddr . th dport map @proto-services-back
+	}
+
+	chain nat-dragonspeech-poc {
+		ip protocol tcp dnat ip to ct mark map { 0x00000202 : 10.222.1.52 . 443, 0x00000203 : 10.222.1.53 . 443 }
+	}
+
+	chain forward {
+		type filter hook forward priority -100; policy accept;
+		ct mark vmap @forward-proto-services
+	}
+
+	chain forward-dragonspeech-poc {
+		log prefix "l4:dragonspeech-poc "
+	}
+}

@@ -21,7 +21,7 @@ table ip nftlb {
 			     tcp . 192.168.108.189 . 667 : goto nat-newfarm2 }
 	}
 
-	map proto-services-back-m {
+	map services-back-m {
 		type mark : ipv4_addr
 		elements = { 0x00000200 : 192.168.107.20 }
 	}
@@ -52,7 +52,7 @@ table ip nftlb {
 		type nat hook postrouting priority srcnat; policy accept;
 		ct mark 0x00000000 ct mark set meta mark
 		ct mark 0x80000000/1 masquerade
-		snat to ct mark map @proto-services-back-m
+		snat to ct mark map @services-back-m
 		snat to ip protocol . ip daddr . th dport map @proto-services-back
 	}
 

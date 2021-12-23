@@ -9,7 +9,7 @@ table ip nftlb {
 		elements = { tcp . 10.20.10.50 . 25 : goto nat-Ex-SMTP }
 	}
 
-	map proto-services-back-m {
+	map services-back-m {
 		type mark : ipv4_addr
 		elements = { 0x00000200 : 10.20.10.50, 0x00000201 : 10.20.10.50, 0x00000202 : 10.20.10.50, 0x00000203 : 10.20.10.50 }
 	}
@@ -37,7 +37,7 @@ table ip nftlb {
 		type nat hook postrouting priority srcnat; policy accept;
 		ct mark 0x00000000 ct mark set meta mark
 		ct mark 0x80000000/1 masquerade
-		snat to ct mark map @proto-services-back-m
+		snat to ct mark map @services-back-m
 		snat to ip protocol . ip daddr . th dport map @proto-services-back
 	}
 

@@ -1,0 +1,66 @@
+{
+        "farms": [
+                {
+                        "name": "dragonspeech-poc",
+                        "family": "ipv4",
+                        "virtual-addr": "10.248.18.52",
+                        "virtual-ports": "443",
+                        "source-addr": "10.248.18.152",
+                        "mode": "snat",
+                        "protocol": "tcp",
+                        "scheduler": "weight",
+                        "sched-param": "none",
+                        "persistence": "srcip ",
+                        "persist-ttl": "60",
+                        "helper": "none",
+                        "log": "forward ",
+                        "log-prefix": "l4:dragonspeech-poc ",
+                        "log-rtlimit": "0/second",
+                        "mark": "0x0",
+                        "priority": "1",
+                        "state": "up",
+                        "limits-ttl": "120",
+                        "new-rtlimit": "0",
+                        "new-rtlimit-burst": "0",
+                        "rst-rtlimit": "0",
+                        "rst-rtlimit-burst": "0",
+                        "est-connlimit": "0",
+                        "tcp-strict": "off",
+                        "queue": "-1",
+                        "verdict": "log drop accept",
+                        "addresses": [
+                                {
+                                        "name": "dragonspeech-poc-addr",
+                                        "family": "ipv4",
+                                        "ip-addr": "10.248.18.52",
+                                        "ports": "443",
+                                        "protocol": "tcp",
+                                        "used": "1"
+                                }
+                        ],
+                        "backends": [
+                                {
+                                        "name": "bck0",
+                                        "ip-addr": "10.222.1.52",
+                                        "port": "443",
+                                        "weight": "1",
+                                        "priority": "1",
+                                        "mark": "0x202",
+                                        "est-connlimit": "0",
+                                        "state": "up"
+                                },
+                                {
+                                        "name": "bck1",
+                                        "ip-addr": "10.222.1.53",
+                                        "port": "443",
+                                        "weight": "1",
+                                        "priority": "1",
+                                        "mark": "0x203",
+                                        "est-connlimit": "0",
+                                        "state": "up"
+                                }
+                        ],
+                        "policies": []
+                }
+        ]
+}
