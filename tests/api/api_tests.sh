@@ -14,6 +14,10 @@ CURL_ARGS=""
 INDEX=1
 STOPPED=0
 
+APPLY_REPORTS=0
+if [ "$1" == "-apply-reports" ] || [ "$3" == "-apply-reports" ]; then
+	APPLY_REPORTS=1
+fi
 
 echo "" > /var/log/syslog
 
@@ -57,6 +61,10 @@ for DIRTEST in `ls -d */`; do
 		if [ "`diff -Nru $CHECK_OUTPUT $CURL_OUTPUT`" != "" ]; then
 			echo -en "\e[31mFAILURE\e[0m) "
 			diff -Nru $CHECK_OUTPUT $CURL_OUTPUT
+			if [ $APPLY_REPORTS -eq 1 ]; then
+				cat $CURL_OUTPUT > $CHECK_OUTPUT
+				echo -en "APPLIED "
+			fi
 		else
 			echo -en "\e[32mOK\e[0m) "
 			rm -f report-*-req.out
@@ -75,6 +83,10 @@ for DIRTEST in `ls -d */`; do
 		if [ "`diff -Nru $CHECK_OUTPUT $NFT_OUTPUT`" != "" ]; then
 			echo -en "\e[31mFAILURE\e[0m) "
 			diff -Nru $CHECK_OUTPUT $NFT_OUTPUT
+			if [ $APPLY_REPORTS -eq 1 ]; then
+				cat $NFT_OUTPUT > $CHECK_OUTPUT
+				echo -en "APPLIED "
+			fi
 		else
 			echo -en "\e[32mOK\e[0m) "
 			rm -f report-*-nft.out
@@ -95,6 +107,10 @@ for DIRTEST in `ls -d */`; do
 		if [ "`diff -Nru $CHECK_OUTPUT $CURL_OUTPUT`" != "" ]; then
 			echo -en "\e[31mFAILURE\e[0m) "
 			diff -Nru $CHECK_OUTPUT $CURL_OUTPUT
+			if [ $APPLY_REPORTS -eq 1 ]; then
+				cat $CURL_OUTPUT > $CHECK_OUTPUT
+				echo -en "APPLIED "
+			fi
 		else
 			echo -en "\e[32mOK\e[0m) "
 			rm -f report-*-obj.out
