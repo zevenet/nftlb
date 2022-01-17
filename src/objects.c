@@ -559,6 +559,8 @@ int obj_set_attribute(struct config_pair *c, int actionable, int apply_action)
 		if (!farm_changed(c))
 			return PARSER_OK;
 
+		actionable &= farm_actionable(c);
+
 		if (actionable)
 			action = farm_pre_actionable(c);
 

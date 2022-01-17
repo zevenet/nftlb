@@ -200,13 +200,17 @@ static int farm_validate(struct farm *f)
 		return 0;
 	}
 
-	if (farm_needs_policies(f) && !farmaddress_s_validate_iface(f))
+	if (farm_needs_policies(f) && !farmaddress_s_validate_iface(f)) {
+		tools_printlog(LOG_WARNING, "Farm %s doesn't validate policy and input interface", f->name);
 		return 0;
+	}
 
 	if ((farm_is_ingress_mode(f) || farm_needs_flowtable(f)) &&
 		(!farmaddress_s_validate_iface(f) ||
-		!farm_validate_oface(f)))
+		!farm_validate_oface(f))) {
+		tools_printlog(LOG_WARNING, "Farm %s doesn't validate ingress mode or flowtable and interfaces", f->name);
 		return 0;
+	}
 
 	return 1;
 }
@@ -550,12 +554,16 @@ static int farm_set_newrtlimit(struct farm *f, int new_value)
 	if (f->newrtlimit == new_value)
 		return PARSER_OK;
 
+	f->newrtlimit = new_value;
+
+	if (f->mode == VALUE_MODE_DSR || f->mode == VALUE_MODE_STLSDNAT)
+		return PARSER_OK;
+
 	if (new_value == 0)
 		f->reload_action |= VALUE_RLD_NEWRTLIMIT_STOP;
 	else
 		f->reload_action |= VALUE_RLD_NEWRTLIMIT_START;
 
-	f->newrtlimit = new_value;
 	return PARSER_OK;
 }
 
@@ -564,12 +572,16 @@ static int farm_set_rstrtlimit(struct farm *f, int new_value)
 	if (f->rstrtlimit == new_value)
 		return PARSER_OK;
 
+	f->rstrtlimit = new_value;
+
+	if (f->mode == VALUE_MODE_DSR || f->mode == VALUE_MODE_STLSDNAT)
+		return PARSER_OK;
+
 	if (new_value == 0)
 		f->reload_action |= VALUE_RLD_RSTRTLIMIT_STOP;
 	else
 		f->reload_action |= VALUE_RLD_RSTRTLIMIT_START;
 
-	f->rstrtlimit = new_value;
 	return PARSER_OK;
 }
 
@@ -578,34 +590,46 @@ static int farm_set_estconnlimit(struct farm *f, int new_value)
 	if (f->estconnlimit == new_value)
 		return PARSER_OK;
 
+	f->estconnlimit = new_value;
+
+	if (f->mode == VALUE_MODE_DSR || f->mode == VALUE_MODE_STLSDNAT)
+		return PARSER_OK;
+
 	if (new_value == 0)
 		f->reload_action |= VALUE_RLD_ESTCONNLIMIT_STOP;
 	else
 		f->reload_action |= VALUE_RLD_ESTCONNLIMIT_START;
 
-	f->estconnlimit = new_value;
 	return PARSER_OK;
 }
 
 static int farm_set_tcpstrict(struct farm *f, int new_value)
 {
+	f->tcpstrict = new_value;
+
+	if (f->mode == VALUE_MODE_DSR || f->mode == VALUE_MODE_STLSDNAT)
+		return PARSER_OK;
+
 	if (new_value == VALUE_SWITCH_OFF)
 		f->reload_action |= VALUE_RLD_TCPSTRICT_STOP;
 	else
 		f->reload_action |= VALUE_RLD_TCPSTRICT_START;
 
-	f->tcpstrict = new_value;
 	return PARSER_OK;
 }
 
 static int farm_set_queue(struct farm *f, int new_value)
 {
+	f->queue = new_value;
+
+	if (f->mode == VALUE_MODE_DSR || f->mode == VALUE_MODE_STLSDNAT)
+		return PARSER_OK;
+
 	if (new_value == -1)
 		f->reload_action |= VALUE_RLD_QUEUE_STOP;
 	else
 		f->reload_action |= VALUE_RLD_QUEUE_START;
 
-	f->queue = new_value;
 	return PARSER_OK;
 }
 
@@ -749,6 +773,38 @@ int farm_changed(struct config_pair *c)
 	}
 
 	return 0;
+}
+
+int farm_actionable(struct config_pair *c)
+{
+	struct farm *f = obj_get_current_farm();
+
+	if (!f)
+		return -1;
+
+	tools_printlog(LOG_DEBUG, "%s():%d: farm %s with param %d", __FUNCTION__, __LINE__, f->name, c->key);
+
+	switch (c->key) {
+	case KEY_NEWRTLIMIT:
+	case KEY_NEWRTLIMITBURST:
+	case KEY_RSTRTLIMIT:
+	case KEY_RSTRTLIMITBURST:
+	case KEY_ESTCONNLIMIT:
+	case KEY_TCPSTRICT:
+	case KEY_QUEUE:
+	case KEY_FLOWOFFLOAD:
+	case KEY_NEWRTLIMIT_LOGPREFIX:
+	case KEY_RSTRTLIMIT_LOGPREFIX:
+	case KEY_ESTCONNLIMIT_LOGPREFIX:
+	case KEY_TCPSTRICT_LOGPREFIX:
+		if (farm_is_ingress_mode(f))
+			return 0;
+		break;
+	default:
+		break;
+	}
+
+	return 1;
 }
 
 int farm_set_priority(struct farm *f, int new_value)
@@ -1142,6 +1198,10 @@ int farm_set_attribute(struct config_pair *c)
 	case KEY_LOG_RTLIMIT:
 		f->logrtlimit = c->int_value;
 		f->logrtlimit_unit = c->int_value2;
+		if (farm_needs_policies(f)) {
+			f->policies_action = ACTION_RELOAD;
+			farmpolicy_s_set_action(f, ACTION_RELOAD);
+		}
 		ret = PARSER_OK;
 		break;
 	case KEY_NEWRTLIMIT_LOGPREFIX:
@@ -1278,7 +1338,7 @@ int farm_s_lookup_address_action(char *name, int action)
 
 int farm_rulerize(struct farm *f)
 {
-	tools_printlog(LOG_DEBUG, "%s():%d: rulerize farm %s", __FUNCTION__, __LINE__, f->name);
+	tools_printlog(LOG_DEBUG, "%s():%d: rulerize farm %s action %d", __FUNCTION__, __LINE__, f->name, f->action);
 
 	farm_print(f);
 

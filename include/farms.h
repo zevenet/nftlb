@@ -173,6 +173,7 @@ int farm_set_oface_info(struct farm *f);
 struct farm * farm_lookup_by_name(const char *name);
 
 int farm_changed(struct config_pair *c);
+int farm_actionable(struct config_pair *c);
 int farm_pre_actionable(struct config_pair *c);
 int farm_pos_actionable(struct config_pair *c);
 

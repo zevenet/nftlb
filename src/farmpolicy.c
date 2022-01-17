@@ -98,20 +98,23 @@ struct farmpolicy * farmpolicy_lookup_by_name(struct farm *f, const char *name)
 
 int farmpolicy_set_action(struct farmpolicy *fp, int action)
 {
+	struct farm *f = fp->farm;
+
 	if (action == ACTION_DELETE) {
 		farmpolicy_delete(fp);
-		farmaddress_s_set_action(fp->farm, ACTION_RELOAD);
+		farmaddress_s_set_action(f, ACTION_RELOAD);
 		return 1;
 	}
 
 	if (fp->action > action) {
 		fp->action = action;
 		fp->policy->action = ACTION_RELOAD;
-		if (action == ACTION_STOP)
-			fp->farm->policies_action = action;
+		// deactivate policies if it's the only one used
+		if (f->policies_used == 1 && fp->action == ACTION_STOP)
+			f->policies_action = action;
 		else
-			fp->farm->policies_action = ACTION_RELOAD;
-		farmaddress_s_set_action(fp->farm, ACTION_RELOAD);
+			f->policies_action = ACTION_RELOAD;
+		farmaddress_s_set_action(f, ACTION_RELOAD);
 		return 1;
 	}
 
@@ -124,6 +127,8 @@ int farmpolicy_s_set_action(struct farm *f, int action)
 
 	list_for_each_entry_safe(fp, next, &f->policies, list)
 		farmpolicy_set_action(fp, action);
+
+	f->policies_action = action;
 
 	return 0;
 }
