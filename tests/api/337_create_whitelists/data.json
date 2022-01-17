@@ -1,0 +1,40 @@
+{
+	"policies" : [
+		{
+			"name" : "white001",
+			"type" : "whitelist",
+			"elements" : [
+				{
+					"data" : "35.195.60.76"
+				}
+			]
+		},
+		{
+			"name" : "black001",
+			"type" : "blacklist",
+			"elements" : [
+				{
+					"data" : "35.195.60.77"
+				}
+			]
+		},
+		{
+			"name" : "black002",
+			"type" : "blacklist",
+			"elements" : [
+				{
+					"data" : "35.195.60.79"
+				}
+			]
+		},
+		{
+			"name" : "white002",
+			"type" : "whitelist",
+			"elements" : [
+				{
+					"data" : "35.195.60.78"
+				}
+			]
+		}
+	]
+}

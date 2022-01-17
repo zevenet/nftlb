@@ -1,0 +1,3 @@
+FILE="data.json"
+VERB="DELETE"
+URI="farms/farml7/policies/black001"

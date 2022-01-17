@@ -20,13 +20,13 @@ table netdev nftlb {
 		timeout 2m
 	}
 
+	chain lb01 {
+		ip saddr @mylist add @mylist-lb01-cnt { ip saddr } log prefix "policy-BL-mylist-lb01 " drop
+	}
+
 	chain ingress-lo {
 		type filter hook ingress device "lo" priority 101; policy accept;
 		ip protocol . ip daddr . th dport vmap @proto-services-lo
-	}
-
-	chain lb01 {
-		ip saddr @mylist add @mylist-lb01-cnt { ip saddr } log prefix "policy-BL-mylist-lb01 " drop
 	}
 }
 table ip nftlb {

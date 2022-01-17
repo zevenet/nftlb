@@ -1,0 +1,66 @@
+{
+        "farms": [
+                {
+                        "name": "tsthcmapp",
+                        "family": "ipv4",
+                        "virtual-addr": "10.248.18.59",
+                        "virtual-ports": "",
+                        "source-addr": "10.248.18.152",
+                        "mode": "snat",
+                        "protocol": "all",
+                        "scheduler": "weight",
+                        "sched-param": "none",
+                        "persistence": "srcip ",
+                        "persist-ttl": "60",
+                        "helper": "none",
+                        "log": "forward ",
+                        "log-prefix": "l4:tsthcmapp ",
+                        "log-rtlimit": "0/second",
+                        "mark": "0x0",
+                        "priority": "1",
+                        "state": "up",
+                        "limits-ttl": "120",
+                        "new-rtlimit": "0",
+                        "new-rtlimit-burst": "0",
+                        "rst-rtlimit": "0",
+                        "rst-rtlimit-burst": "0",
+                        "est-connlimit": "0",
+                        "tcp-strict": "off",
+                        "queue": "-1",
+                        "verdict": "log drop accept",
+                        "addresses": [
+                                {
+                                        "name": "tsthcmapp-addr",
+                                        "family": "ipv4",
+                                        "ip-addr": "10.248.18.59",
+                                        "ports": "",
+                                        "protocol": "all",
+                                        "used": "1"
+                                }
+                        ],
+                        "backends": [
+                                {
+                                        "name": "bck0",
+                                        "ip-addr": "10.222.1.75",
+                                        "port": "",
+                                        "weight": "1",
+                                        "priority": "1",
+                                        "mark": "0x205",
+                                        "est-connlimit": "0",
+                                        "state": "up"
+                                },
+                                {
+                                        "name": "bck1",
+                                        "ip-addr": "10.222.1.76",
+                                        "port": "",
+                                        "weight": "10",
+                                        "priority": "1",
+                                        "mark": "0x206",
+                                        "est-connlimit": "0",
+                                        "state": "up"
+                                }
+                        ],
+                        "policies": []
+                }
+        ]
+}
