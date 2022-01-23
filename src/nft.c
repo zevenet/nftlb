@@ -253,8 +253,10 @@ static unsigned int *get_service_counter(int type, unsigned int structure, int f
 		counter = &(service_cnt->proto_port_cnt);
 	else if (structure & NFTLB_PROTO_IP_ACTIVE)
 		counter = &(service_cnt->proto_ip_cnt);
-	else
+	else if (structure & NFTLB_PROTO_IP_PORT_ACTIVE)
 		counter = &(service_cnt->proto_ip_port_cnt);
+	else
+		counter = &(service_cnt->bckmark_cnt);
 
 	return counter;
 }
@@ -273,9 +275,14 @@ static unsigned int get_rules_needed(struct address *a)
 	return ret;
 }
 
-static void update_service_counters(struct address *a, int type, int family, int qty, int action)
+static void update_service_counters(struct address *a, int type, int structure, int family, int qty, int action)
 {
-	unsigned int *counter = get_service_counter(type, get_rules_needed(a), family);
+	unsigned int *counter;
+
+	if ((type & NFTLB_F_CHAIN_POS_SNAT) && structure)
+		counter = get_service_counter(type, NFTLB_IP_ACTIVE | NFTLB_MARK_ACTIVE, family);
+	else
+		counter = get_service_counter(type, get_rules_needed(a), family);
 
 	if (action == ACTION_START || action == ACTION_RELOAD) {
 		*counter += qty;
@@ -1220,13 +1227,24 @@ static int run_base_chain(struct sbuffer *buf, struct nftst *n, int type, int fa
 			run_base_chain_postrouting_masquerade(buf, type, chain_family);
 			run_base_chain_postrouting_bckmark(buf, servicem, type, family);
 			run_farm_map(buf, a, family, type, service, 0, 0, 0, ACTION_DELETE);
-			*base_rules &= ~NFTLB_PROTO_IP_PORT_ACTIVE & ~NFTLB_PROTO_PORT_ACTIVE & ~NFTLB_PROTO_IP_ACTIVE;
+			*base_rules &= ~NFTLB_PROTO_IP_PORT_ACTIVE & ~NFTLB_PROTO_PORT_ACTIVE & ~NFTLB_PROTO_IP_ACTIVE & ~NFTLB_MARK_ACTIVE;
 		}
 
-		if ((~type & NFTLB_F_CHAIN_POS_SNAT) && (*base_rules & NFTLB_IP_ACTIVE) &&
+		if (((~type & NFTLB_F_CHAIN_POS_SNAT) && (~type & NFTLB_F_CHAIN_PRE_DNAT) && (*base_rules & NFTLB_IP_ACTIVE) &&
 			(*get_service_counter(type, NFTLB_PROTO_IP_PORT_ACTIVE, family) == 0) &&
 			(*get_service_counter(type, NFTLB_PROTO_PORT_ACTIVE, family) == 0) &&
-			(*get_service_counter(type, NFTLB_PROTO_IP_ACTIVE, family) == 0)) {
+			(*get_service_counter(type, NFTLB_PROTO_IP_ACTIVE, family) == 0) &&
+			(*get_service_counter(type, NFTLB_MARK_ACTIVE, family) == 0)) ||
+
+			((~type & NFTLB_F_CHAIN_POS_SNAT) && (type & NFTLB_F_CHAIN_PRE_DNAT) && (*base_rules & NFTLB_IP_ACTIVE) &&
+			(*get_service_counter(NFTLB_F_CHAIN_POS_SNAT, NFTLB_PROTO_IP_PORT_ACTIVE, family) == 0) &&
+			(*get_service_counter(NFTLB_F_CHAIN_POS_SNAT, NFTLB_PROTO_PORT_ACTIVE, family) == 0) &&
+			(*get_service_counter(NFTLB_F_CHAIN_POS_SNAT, NFTLB_PROTO_IP_ACTIVE, family) == 0) &&
+			(*get_service_counter(NFTLB_F_CHAIN_POS_SNAT, NFTLB_MARK_ACTIVE, family) == 0) && //) {
+			(*get_service_counter(type, NFTLB_PROTO_IP_PORT_ACTIVE, family) == 0) &&
+			(*get_service_counter(type, NFTLB_PROTO_PORT_ACTIVE, family) == 0) &&
+			(*get_service_counter(type, NFTLB_PROTO_IP_ACTIVE, family) == 0) &&
+			(*get_service_counter(type, NFTLB_MARK_ACTIVE, family) == 0))) {
 
 			*base_rules &= ~NFTLB_IP_ACTIVE;
 			nft_chain_handler(buf, chain_family, base_chain, NULL, NULL, NULL, 0, ACTION_DELETE);
@@ -1238,7 +1256,7 @@ static int run_base_chain(struct sbuffer *buf, struct nftst *n, int type, int fa
 				nft_chain_handler(buf, chain_family, NFTLB_TABLE_POSTROUTING, NULL, NULL, NULL, 0, ACTION_DELETE);
 				run_farm_map(buf, a, family, type, servicem, 0, 0, 0, ACTION_DELETE);
 				base_rules = get_rules_applied(NFTLB_F_CHAIN_POS_SNAT, family, "");
-				*base_rules &= ~NFTLB_IP_ACTIVE & ~NFTLB_PROTO_IP_PORT_ACTIVE & ~NFTLB_PROTO_PORT_ACTIVE & ~NFTLB_PROTO_IP_ACTIVE;
+				*base_rules &= ~NFTLB_IP_ACTIVE & ~NFTLB_PROTO_IP_PORT_ACTIVE & ~NFTLB_PROTO_PORT_ACTIVE & ~NFTLB_PROTO_IP_ACTIVE & ~NFTLB_MARK_ACTIVE;
 			}
 		}
 	}
@@ -1367,6 +1385,7 @@ static int run_nftst_rules_gen_srv_map(struct sbuffer *buf, struct nftst *n, int
 	int bckmark;
 	int output = 0;
 	int first_port = 1;
+	int structure = 0;
 
 	data_str = calloc(1, 255);
 	if (!data_str) {
@@ -1491,21 +1510,28 @@ static int run_nftst_rules_gen_srv_map(struct sbuffer *buf, struct nftst *n, int
 				if (type == NFTLB_F_CHAIN_POS_SNAT && bckmark & masquerade_mark)
 					continue;
 
+				structure = 0;
 				if ((key_mode == BCK_MAP_BCK_ID || key_mode == BCK_MAP_BCK_MARK) && bckmark != DEFAULT_MARK) {
 					if (!first_port) { continue; }
 					snprintf(key_str, NFTLB_MAX_OBJ_NAME, "0x%x", bckmark);
+					structure = NFTLB_MARK_ACTIVE;
 				} else if ((key_mode == BCK_MAP_BCK_ID || key_mode == BCK_MAP_BCK_PROTO_IPADDR_F_PORT) && backend_no_port(b)) {
 					snprintf(key_str, NFTLB_MAX_OBJ_NAME, "%s . %s . %d", protocol, b->ipaddr, iport);
+					structure = NFTLB_PROTO_IP_PORT_ACTIVE;
 				} else if ((key_mode == BCK_MAP_BCK_ID || key_mode == BCK_MAP_BCK_PROTO_IPADDR_F_PORT) && !backend_no_port(b)) {
 					snprintf(key_str, NFTLB_MAX_OBJ_NAME, "%s . %s . %s", protocol, b->ipaddr, b->port);
+					structure = NFTLB_PROTO_IP_PORT_ACTIVE;
 				} else if ((key_mode == BCK_MAP_BCK_ID || key_mode == BCK_MAP_BCK_IPADDR_F_PORT) && backend_no_port(b)) {
 					snprintf(key_str, NFTLB_MAX_OBJ_NAME, "%s . %d", b->ipaddr, iport);
+					structure = NFTLB_PROTO_PORT_ACTIVE;
 				} else if (key_mode == BCK_MAP_BCK_ID && !backend_no_port(b)) {
 					if (!first_port) { continue; }
 					snprintf(key_str, NFTLB_MAX_OBJ_NAME, "%s . %s", b->ipaddr, b->port);
+					structure = NFTLB_PROTO_PORT_ACTIVE;
 				} else if (key_mode == BCK_MAP_BCK_ID || key_mode == BCK_MAP_BCK_IPADDR) {
 					if (!first_port) { continue; }
 					snprintf(key_str, NFTLB_MAX_OBJ_NAME, "%s", b->ipaddr);
+					structure = NFTLB_PROTO_IP_ACTIVE;
 				} else
 					if (!first_port) { continue; }
 
@@ -1516,6 +1542,7 @@ static int run_nftst_rules_gen_srv_map(struct sbuffer *buf, struct nftst *n, int
 					if (action == ACTION_START)
 						continue;
 					concat_exec_cmd(buf, " ; delete element %s %s %s { %s }", nft_family, NFTLB_TABLE_NAME, service, key_str);
+					update_service_counters(a, type, structure, family, 1, ACTION_DELETE);
 				}
 
 				if(!backend_is_usable(b))
@@ -1525,6 +1552,7 @@ static int run_nftst_rules_gen_srv_map(struct sbuffer *buf, struct nftst *n, int
 					continue;
 
 				concat_exec_cmd(buf, " ; %s element %s %s %s { %s %s}", action_str, nft_family, NFTLB_TABLE_NAME, service, key_str, data_str);
+				update_service_counters(a, type, structure, family, 1, action);
 				output++;
 			}
 			nftst_set_backend(n, NULL);
@@ -1548,6 +1576,8 @@ static void run_nftst_rules_gen_srv_map_by_type(struct sbuffer *buf, struct nfts
 	struct address *a = nftst_get_address(n);
 	int elements = 0;
 
+	tools_printlog(LOG_DEBUG, "%s():%d: ", __FUNCTION__, __LINE__);
+
 	if (type & NFTLB_F_CHAIN_ING_FILTER)
 		elements = run_nftst_rules_gen_srv_map(buf, n, family, type, protocol, action, address_no_port(a) ? BCK_MAP_PROTO_IPADDR : (address_no_ipaddr(a) ? BCK_MAP_PROTO_PORT : BCK_MAP_PROTO_IPADDR_PORT), BCK_MAP_NAME);
 	else if (type & NFTLB_F_CHAIN_PRE_FILTER)
@@ -1567,12 +1597,14 @@ static void run_nftst_rules_gen_srv_map_by_type(struct sbuffer *buf, struct nfts
 	else
 		return;
 
-	if (elements)
-		update_service_counters(a, type, family, elements, action);
+	if (elements && (~type & NFTLB_F_CHAIN_POS_SNAT))
+		update_service_counters(a, type, family, 0, elements, action);
 }
 
 static void run_nftst_rules_gen_srv_map_by_protocol(struct sbuffer *buf, struct nftst *n, int type, int family, int action)
 {
+	tools_printlog(LOG_DEBUG, "%s():%d: ", __FUNCTION__, __LINE__);
+
 	if (nftst_get_proto(n) != VALUE_PROTO_ALL || (type & NFTLB_F_CHAIN_FWD_FILTER) || (type & NFTLB_F_CHAIN_POS_SNAT)) {
 		run_nftst_rules_gen_srv_map_by_type(buf, n, type, family, nftst_get_proto(n), action);
 	} else {
@@ -1584,6 +1616,8 @@ static void run_nftst_rules_gen_srv_map_by_protocol(struct sbuffer *buf, struct 
 
 static void run_nftst_rules_gen_vsrv(struct sbuffer *buf, struct nftst *n, int type, int family, int srv_action, int action)
 {
+	tools_printlog(LOG_DEBUG, "%s():%d: pos %d", __FUNCTION__, __LINE__, get_chain_pos_counter(type));
+
 	if (srv_action == ACTION_NONE)
 		srv_action = action;
 
@@ -1610,6 +1644,8 @@ static void run_nftst_rules_gen_vsrv(struct sbuffer *buf, struct nftst *n, int t
 static int run_farm_snat(struct sbuffer *buf, struct nftst *n, int family, int action)
 {
 	struct farm *f = nftst_get_farm(n);
+
+	tools_printlog(LOG_DEBUG, "%s():%d: ", __FUNCTION__, __LINE__);
 
 	if (f->mode != VALUE_MODE_SNAT && f->mode != VALUE_MODE_LOCAL)
 		return 0;
@@ -2746,6 +2782,8 @@ static int run_farm_nat(struct sbuffer *buf, struct nftst *n, int family, int ac
 	struct farm *f = nftst_get_farm(n);
 	struct address *a = nftst_get_address(n);
 	int naction = nftst_get_action(n);
+
+	tools_printlog(LOG_DEBUG, "%s():%d: ", __FUNCTION__, __LINE__);
 
 	switch (action) {
 	case ACTION_RELOAD:

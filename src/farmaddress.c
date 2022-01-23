@@ -320,7 +320,7 @@ int farmaddress_s_set_attribute(struct farm *f, struct config_pair *c)
 
 struct farmaddress * farmaddress_get_first(struct farm *f)
 {
-	if (list_empty(&f->addresses))
+	if (!f || list_empty(&f->addresses))
 		return NULL;
 
 	return list_first_entry(&f->addresses, struct farmaddress, list);

@@ -649,9 +649,13 @@ static int farm_set_helper(struct farm *f, int new_value)
 int farm_changed(struct config_pair *c)
 {
 	struct farm *f = obj_get_current_farm();
+	struct farmaddress *fa = obj_get_current_farmaddress();
 
 	if (!f)
 		return -1;
+
+	if (!fa)
+		fa = farmaddress_get_first(f);
 
 	tools_printlog(LOG_DEBUG, "%s():%d: farm %s with param %d", __FUNCTION__, __LINE__, f->name, c->key);
 
@@ -668,11 +672,14 @@ int farm_changed(struct config_pair *c)
 	case KEY_ETHADDR:
 	case KEY_IETHADDR:
 	case KEY_IFACE:
-	case KEY_FAMILY:
 	case KEY_VIRTADDR:
 	case KEY_VIRTPORTS:
 	case KEY_PROTO:
 		return 1;
+		break;
+	case KEY_FAMILY:
+		if (!fa) return 1;
+		return !obj_equ_attribute_int(fa->address->family, c->int_value);
 		break;
 	case KEY_OETHADDR:
 		return !obj_equ_attribute_string(f->oethaddr, c->str_value);
@@ -1254,14 +1261,13 @@ int farm_set_action(struct farm *f, int action)
 	}
 
 	if (f->action > action) {
-		backend_s_gen_priority(f);
+		backend_s_gen_priority(f, ACTION_NONE);
 		farm_manage_eventd();
 		f->action = action;
 		farm_set_netinfo(f);
 		backend_s_validate(f);
 		if (action == ACTION_STOP || action == ACTION_START)
 			farmaddress_s_set_action(f, action);
-
 		return 1;
 	}
 

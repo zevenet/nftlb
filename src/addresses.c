@@ -439,7 +439,7 @@ int address_set_attribute(struct config_pair *c)
 		if (a->iethaddr)
 			free(a->iethaddr);
 		ret = obj_set_attribute_string(c->str_value, &a->iethaddr);
-		farm_s_set_oface_info(a);
+		address_set_netinfo(a);
 		break;
 	case KEY_IPADDR:
 		if (strcmp(a->ipaddr, DEFAULT_VIRTADDR) != 0)
