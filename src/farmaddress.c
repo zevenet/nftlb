@@ -274,8 +274,7 @@ int farmaddress_s_validate_iface(struct farm *f)
 	tools_printlog(LOG_DEBUG, "%s():%d: validating input farm addresses interface of %s", __FUNCTION__, __LINE__, f->name);
 
 	list_for_each_entry(fa, &f->addresses, list) {
-		if (!fa->address || !fa->address->iface || obj_equ_attribute_string(fa->address->iface, "") ||
-			!fa->address->iethaddr || obj_equ_attribute_string(fa->address->iethaddr, "")) {
+		if (address_validate_iface(fa->address) || address_validate_iether(fa->address)) {
 			fa->action = ACTION_NONE;
 			continue;
 		}

@@ -574,3 +574,19 @@ int address_s_lookup_policy_action(char *name, int action)
 
 	return 0;
 }
+
+int address_validate_iface(struct address *a)
+{
+	tools_printlog(LOG_DEBUG, "%s():%d: validating inbound address interface of %s", __FUNCTION__, __LINE__, a->name);
+	if (!a || !a->iface || obj_equ_attribute_string(a->iface, ""))
+		return 1;
+	return 0;
+}
+
+int address_validate_iether(struct address *a)
+{
+	tools_printlog(LOG_DEBUG, "%s():%d: validating inbound address ether of %s", __FUNCTION__, __LINE__, a->name);
+	if (!a || !a->iethaddr || obj_equ_attribute_string(a->iethaddr, ""))
+		return 1;
+	return 0;
+}

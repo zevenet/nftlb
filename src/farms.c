@@ -1348,8 +1348,8 @@ int farm_rulerize(struct farm *f)
 
 	farm_print(f);
 
-	if ((f->action == ACTION_START || f->action == ACTION_RELOAD) &&
-		!farm_is_available(f)) {
+	if (((f->action == ACTION_START || f->action == ACTION_RELOAD) && !farm_is_available(f)) ||
+		(f->state == VALUE_STATE_CONFERR)) {
 		tools_printlog(LOG_INFO, "%s():%d: farm %s won't be rulerized", __FUNCTION__, __LINE__, f->name);
 		if (f->state == VALUE_STATE_UP)
 			farm_set_state(f, VALUE_STATE_CONFERR);

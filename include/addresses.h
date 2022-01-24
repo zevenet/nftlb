@@ -72,7 +72,9 @@ int address_needs_policies(struct address *a);
 int address_set_protocol(struct address *a, int new_value);
 int address_not_used(struct address *a);
 int address_delete(struct address *paddress);
-
 int address_search_array_port(struct address *a, int port);
+int address_validate_iface(struct address *a);
+int address_validate_iether(struct address *a);
+
 
 #endif /* _ADDRESSES_H_ */
