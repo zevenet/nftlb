@@ -1693,6 +1693,22 @@ static int run_farm_rules_gen_sched(struct sbuffer *buf, struct nftst *n, int fa
 	return 0;
 }
 
+static int get_nftst_first_port(struct nftst *n)
+{
+	struct address *a = nftst_get_address(n);
+	int iport = 0;
+
+	if (nftst_get_proto(n) == VALUE_PROTO_ALL || a->nports == 0)
+		return 0;
+
+	while (iport <= NFTLB_MAX_PORTS && a->nports > 0) {
+		if (a->port_list[iport])
+			return ++iport;
+		iport++;
+	}
+	return 0;
+}
+
 static int run_farm_rules_gen_bck_map(struct sbuffer *buf, struct nftst *n, enum map_modes key_mode, enum map_modes data_mode, int usable)
 {
 	struct farm *f = nftst_get_farm(n);
@@ -1700,6 +1716,7 @@ static int run_farm_rules_gen_bck_map(struct sbuffer *buf, struct nftst *n, enum
 	int i = 0;
 	int last = 0;
 	int new;
+	int port;
 
 	concat_buf(buf, " map {");
 
@@ -1745,9 +1762,10 @@ static int run_farm_rules_gen_bck_map(struct sbuffer *buf, struct nftst *n, enum
 			concat_buf(buf, " %s", b->ethaddr);
 			break;
 		case BCK_MAP_IPADDR_PORT:
-			if (backend_no_port(b))
-				concat_buf(buf, " %s . 0", b->ipaddr);
-			else
+			if (backend_no_port(b)) {
+				port = get_nftst_first_port(n);
+				concat_buf(buf, " %s . %d", b->ipaddr, port);
+			} else
 				concat_buf(buf, " %s . %s", b->ipaddr, b->port);
 			break;
 		case BCK_MAP_PORT:
