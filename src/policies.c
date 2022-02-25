@@ -289,13 +289,13 @@ int policy_pre_actionable(struct config_pair *c)
 	case KEY_NAME:
 		break;
 	case KEY_FAMILY:
-	case KEY_TYPE:
 	case KEY_ROUTE:
 	case KEY_TIMEOUT:
 		policy_set_action(p, ACTION_STOP);
 		break;
 	case KEY_USED:
 		break;
+	case KEY_TYPE:
 	default:
 		policy_set_action(p, ACTION_RELOAD);
 	}

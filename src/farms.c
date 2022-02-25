@@ -327,6 +327,12 @@ static int farm_set_state(struct farm *f, int new_value)
 
 	tools_printlog(LOG_DEBUG, "%s():%d: farm %s old state %d new state %d", __FUNCTION__, __LINE__, f->name, old_value, new_value);
 
+	if (new_value == VALUE_STATE_CONFERR) {
+		f->state = new_value;
+		farm_set_action(f, ACTION_NONE);
+		return 0;
+	}
+
 	if (old_value != VALUE_STATE_UP &&
 	    new_value == VALUE_STATE_UP) {
 
@@ -670,16 +676,31 @@ int farm_changed(struct config_pair *c)
 		return !obj_equ_attribute_string(f->fqdn, c->str_value);
 		break;
 	case KEY_ETHADDR:
-	case KEY_IETHADDR:
-	case KEY_IFACE:
-	case KEY_VIRTADDR:
-	case KEY_VIRTPORTS:
-	case KEY_PROTO:
 		return 1;
+		break;
+	case KEY_IETHADDR:
+		if (!fa) return 1;
+		return !obj_equ_attribute_string(fa->address->iethaddr, c->str_value);
+		break;
+	case KEY_IFACE:
+		if (!fa) return 1;
+		return !obj_equ_attribute_string(fa->address->iface, c->str_value);
+		break;
+	case KEY_VIRTADDR:
+		if (!fa) return 1;
+		return !obj_equ_attribute_string(fa->address->ipaddr, c->str_value);
 		break;
 	case KEY_FAMILY:
 		if (!fa) return 1;
 		return !obj_equ_attribute_int(fa->address->family, c->int_value);
+		break;
+	case KEY_VIRTPORTS:
+		if (!fa) return 1;
+		return !obj_equ_attribute_string(fa->address->ports, c->str_value);
+		break;
+	case KEY_PROTO:
+		if (!fa) return 1;
+		return !obj_equ_attribute_int(fa->address->protocol, c->int_value);
 		break;
 	case KEY_OETHADDR:
 		return !obj_equ_attribute_string(f->oethaddr, c->str_value);
@@ -1009,7 +1030,7 @@ int farm_pos_actionable(struct config_pair *c)
 int farm_set_attribute(struct config_pair *c)
 {
 	struct farm *f = obj_get_current_farm();
-	struct farmaddress *fa;
+	struct farmaddress *fa = obj_get_current_farmaddress();
 	struct address *a;
 	struct farm *nf;
 	int ret = PARSER_FAILED;
@@ -1026,6 +1047,8 @@ int farm_set_attribute(struct config_pair *c)
 				return -1;
 		}
 		obj_set_current_farm(f);
+		obj_set_current_farmaddress(NULL);
+		obj_set_current_farmpolicy(NULL);
 		ret = PARSER_OK;
 		break;
 	case KEY_NEWNAME:
@@ -1244,12 +1267,21 @@ int farm_set_attribute(struct config_pair *c)
 
 int farm_set_action(struct farm *f, int action)
 {
-	tools_printlog(LOG_DEBUG, "%s():%d: farm %s action is %d - new action %d", __FUNCTION__, __LINE__, f->name, f->action, action);
+	tools_printlog(LOG_DEBUG, "%s():%d: farm %s action is %d - new action %d state %d", __FUNCTION__, __LINE__, f->name, f->action, action, f->state);
+	int force = 0;
+
+	if (action == ACTION_STOP && f->state == VALUE_STATE_CONFERR) {
+		f->policies_action = ACTION_NONE;
+		if (farm_validate(f)) {
+			f->state = VALUE_STATE_UP;
+		}
+		force = 1;
+	}
 
 	if (action == ACTION_STOP && f->state != VALUE_STATE_UP)
 		return 0;
 
-	if (action == ACTION_RELOAD && f->state != VALUE_STATE_UP)
+	if (action == ACTION_RELOAD && f->state != VALUE_STATE_UP && f->state != VALUE_STATE_CONFERR)
 		action = ACTION_START;
 
 	if (action != ACTION_NONE && action != ACTION_RELOAD && f->policies_used != 0)
@@ -1260,7 +1292,7 @@ int farm_set_action(struct farm *f, int action)
 		return 1;
 	}
 
-	if (f->action > action) {
+	if (f->action > action || force) {
 		backend_s_gen_priority(f, ACTION_NONE);
 		farm_manage_eventd();
 		f->action = action;
@@ -1324,6 +1356,8 @@ int farm_s_lookup_policy_action(char *name, int action)
 	struct list_head *farms = obj_get_farms();
 	struct farm *f, *next;
 
+	tools_printlog(LOG_DEBUG, "%s():%d: policy %s action %d", __FUNCTION__, __LINE__, name, action);
+
 	list_for_each_entry_safe(f, next, farms, list)
 		farmpolicy_s_lookup_policy_action(f, name, action);
 
@@ -1335,6 +1369,8 @@ int farm_s_lookup_address_action(char *name, int action)
 	struct list_head *farms = obj_get_farms();
 	struct farm *f, *next;
 	int ret = 0;
+
+	tools_printlog(LOG_DEBUG, "%s():%d: address %s action %d", __FUNCTION__, __LINE__, name, action);
 
 	list_for_each_entry_safe(f, next, farms, list)
 		ret |= farmaddress_s_lookup_address_action(f, name, action);
@@ -1348,11 +1384,18 @@ int farm_rulerize(struct farm *f)
 
 	farm_print(f);
 
+	if (f->action == ACTION_NONE)
+		return 0;
+
+	if (f->state == VALUE_STATE_CONFERR && farm_validate(f))
+		farm_set_state(f, VALUE_STATE_UP);
+
 	if (((f->action == ACTION_START || f->action == ACTION_RELOAD) && !farm_is_available(f)) ||
 		(f->state == VALUE_STATE_CONFERR)) {
 		tools_printlog(LOG_INFO, "%s():%d: farm %s won't be rulerized", __FUNCTION__, __LINE__, f->name);
 		if (f->state == VALUE_STATE_UP)
 			farm_set_state(f, VALUE_STATE_CONFERR);
+		f->action = ACTION_NONE;
 		return 0;
 	}
 

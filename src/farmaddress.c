@@ -66,6 +66,9 @@ static int farmaddress_delete(struct farmaddress *fa)
 	if (fa->address->used > 0)
 		fa->address->used--;
 
+	if (address_not_used(fa->address))
+		address_delete(fa->address);
+
 	free(fa);
 
 	return 0;
@@ -118,13 +121,10 @@ struct farmaddress * farmaddress_lookup_by_name(struct farm *f, const char *name
 int farmaddress_set_action(struct farmaddress *fa, int action)
 {
 	struct farm *f = fa->farm;
-	struct address *a = fa->address;
 	tools_printlog(LOG_DEBUG, "%s():%d: farm %s address %s action %d", __FUNCTION__, __LINE__, fa->farm->name, fa->address->ipaddr, action);
 
 	if (action == ACTION_DELETE) {
 		farmaddress_delete(fa);
-		if (address_not_used(a))
-			address_delete(a);
 		return 1;
 	}
 
@@ -180,6 +180,25 @@ int farmaddress_s_lookup_address_action(struct farm *f, char *name, int action)
 	return ret;
 }
 
+static int farmaddress_set_default_addr_name(char *fa_name, char *prefix)
+{
+	struct address *a;
+	int i = 0;
+
+	sprintf(fa_name, "%s-addr", prefix);
+	a = address_lookup_by_name(fa_name);
+	if (!a)
+		return 0;
+
+	do {
+		sprintf(fa_name, "%s-addr-%d", prefix, i);
+		a = address_lookup_by_name(fa_name);
+		i++;
+	} while (a);
+
+	return 0;
+}
+
 int farmaddress_create_default(struct config_pair *c)
 {
 	char fa_name[300];
@@ -191,14 +210,20 @@ int farmaddress_create_default(struct config_pair *c)
 	if (!f)
 		return 1;
 
-	sprintf(fa_name, "%s-addr", f->name);
-	a = address_lookup_by_name(fa_name);
-	if (!a) {
-		a = address_create(fa_name);
-		if (!a)
-			return -1;
-		obj_set_current_address(a);
+	tools_printlog(LOG_DEBUG, "%s():%d: farm %s", __FUNCTION__, __LINE__, f->name);
+
+	fa = farmaddress_get_first(f);
+	if (fa) {
+		obj_set_current_farmaddress(fa);
+		return 0;
 	}
+
+	farmaddress_set_default_addr_name(fa_name, f->name);
+
+	a = address_create(fa_name);
+	if (!a)
+		return -1;
+	obj_set_current_address(a);
 	fa = farmaddress_lookup_by_name(f, fa_name);
 	if (!fa)
 		fa = farmaddress_create(f, a);
@@ -336,17 +361,16 @@ int farmaddress_rename_default(struct config_pair *c)
 	if (!f)
 		return 1;
 
-	sprintf(fa_name, "%s-addr", f->name);
-	a = address_lookup_by_name(fa_name);
-	if (!a)
+	fa = farmaddress_get_first(f);
+	if (!fa || !fa->address)
 		return 1;
 
-	fa = farmaddress_lookup_by_name(f, fa_name);
-	if (!fa)
+	a = fa->address;
+	if (!strstr(a->name, "-addr"))
 		return 1;
 
 	free(a->name);
-	sprintf(fa_name, "%s-addr", c->str_value);
+	farmaddress_set_default_addr_name(fa_name, c->str_value);
 	obj_set_attribute_string(fa_name, &a->name);
 
 	return 0;

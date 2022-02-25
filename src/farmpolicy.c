@@ -100,6 +100,8 @@ int farmpolicy_set_action(struct farmpolicy *fp, int action)
 {
 	struct farm *f = fp->farm;
 
+	tools_printlog(LOG_DEBUG, "%s():%d: farm %s action %d", __FUNCTION__, __LINE__, fp->farm->name, action);
+
 	if (action == ACTION_DELETE) {
 		farmpolicy_delete(fp);
 		farmaddress_s_set_action(f, ACTION_RELOAD);
@@ -125,6 +127,8 @@ int farmpolicy_s_set_action(struct farm *f, int action)
 {
 	struct farmpolicy *fp, *next;
 
+	tools_printlog(LOG_DEBUG, "%s():%d: farm %s action %d", __FUNCTION__, __LINE__, f->name, action);
+
 	list_for_each_entry_safe(fp, next, &f->policies, list)
 		farmpolicy_set_action(fp, action);
 
@@ -147,6 +151,8 @@ int farmpolicy_s_lookup_policy_action(struct farm *f, char *name, int action)
 {
 	struct farmpolicy *fp;
 	int ret = 0;
+
+	tools_printlog(LOG_DEBUG, "%s():%d: looking for policy %s in farm %s", __FUNCTION__, __LINE__, name, f->name);
 
 	fp = farmpolicy_lookup_by_name(f, name);
 	if (fp)
