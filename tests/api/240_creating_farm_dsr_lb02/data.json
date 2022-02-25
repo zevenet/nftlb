@@ -6,7 +6,6 @@
 			"scheduler" : "weight",
 			"state" : "up",
 			"oface" : "lo",
-			"ether-addr" : "0f:0f:0f:0f:0f:0f",
 			"addresses" : [
 				{
 					"name" : "lb02-addr",
@@ -18,6 +17,7 @@
 					"ether-addr" : "0f:0f:0f:0f:0f:0f"
 				}
 			],
+			"ether-addr" : "0f:0f:0f:0f:0f:0f",
 			"backends" : [
 				{
 					"name" : "bck2",

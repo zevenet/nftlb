@@ -26,7 +26,7 @@ table ip nftlb {
 	}
 
 	chain filter-newfarm {
-		ct state new add @est-connlimit-newfarm { ip saddr ct count over 22 counter } log prefix "est-connlimit-newfarm " drop
+		ct state new add @est-connlimit-newfarm { ip saddr ct count over 22 } log prefix "est-connlimit-newfarm " drop
 	}
 
 	chain prerouting {

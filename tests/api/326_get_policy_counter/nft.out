@@ -19,7 +19,7 @@ table netdev nftlb {
 		flags dynamic,timeout
 		counter
 		timeout 2m
-		elements = { 127.0.0.1 counter packets 2 bytes 120 timeout 2m expires 1m57s944ms }
+		elements = { 127.0.0.1 counter packets 2 bytes 120 timeout 2m expires 1m57s952ms }
 	}
 
 	chain ingress-lo {

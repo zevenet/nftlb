@@ -16,10 +16,6 @@ table ip nftlb {
 		elements = { 0x00000001 : 192.168.105.188, 0x00000002 : 192.168.105.187, 0x00000003 : 192.168.105.189, 0x00000004 : 192.168.105.188 }
 	}
 
-	map proto-services-back {
-		type inet_proto . ipv4_addr . inet_service : ipv4_addr
-	}
-
 	chain filter {
 		type filter hook prerouting priority mangle; policy accept;
 		meta mark set ct mark
@@ -36,7 +32,6 @@ table ip nftlb {
 		ct mark 0x00000000 ct mark set meta mark
 		ct mark 0x80000000/1 masquerade
 		snat to ct mark map @services-back-m
-		snat to ip protocol . ip daddr . th dport map @proto-services-back
 	}
 
 	chain filter-lb02 {

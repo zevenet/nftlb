@@ -24,10 +24,6 @@ table ip nftlb {
 		elements = { 0x00000202 : 10.248.18.152, 0x00000203 : 10.248.18.152, 0x00000205 : 10.248.18.152, 0x00000206 : 10.248.18.152 }
 	}
 
-	map proto-services-back {
-		type inet_proto . ipv4_addr . inet_service : ipv4_addr
-	}
-
 	map forward-proto-services {
 		type mark : verdict
 		elements = { 0x00000202 : goto forward-dragonspeech-poc, 0x00000203 : goto forward-dragonspeech-poc }
@@ -55,10 +51,6 @@ table ip nftlb {
 		elements = { tcp . 10.248.18.59 : goto nat-tsthcmapp,
 			     udp . 10.248.18.59 : goto nat-tsthcmapp,
 			     sctp . 10.248.18.59 : goto nat-tsthcmapp }
-	}
-
-	map services-back {
-		type inet_proto . ipv4_addr : ipv4_addr
 	}
 
 	map forward-services {
@@ -91,8 +83,6 @@ table ip nftlb {
 		ct mark 0x00000000 ct mark set meta mark
 		ct mark 0x80000000/1 masquerade
 		snat to ct mark map @services-back-m
-		snat to ip protocol . ip daddr . th dport map @proto-services-back
-		snat to ip protocol . ip daddr map @services-back
 	}
 
 	chain nat-dragonspeech-poc {

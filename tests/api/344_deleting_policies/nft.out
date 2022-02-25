@@ -1,5 +1,3 @@
-table netdev nftlb {
-}
 table ip nftlb {
 	map nat-proto-services {
 		type inet_proto . ipv4_addr . inet_service : verdict

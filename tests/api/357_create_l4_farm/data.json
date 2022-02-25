@@ -1,0 +1,1 @@
+{"farms" : [ { "name" : "l4-port0", "virtual-addr" : "127.0.0.1", "virtual-ports" : "80", "protocol" : "tcp", "mode" : "snat", "scheduler" : "weight", "state" : "up" } ] }

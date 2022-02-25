@@ -27,7 +27,7 @@ table ip nftlb {
 	}
 
 	chain filter-newfarm {
-		ct state new add @new-rtlimit-newfarm { ip saddr limit rate over 22/second counter } log prefix "new-rtlimit-newfarm " drop
+		ct state new add @new-rtlimit-newfarm { ip saddr limit rate over 22/second } log prefix "new-rtlimit-newfarm " drop
 	}
 
 	chain prerouting {

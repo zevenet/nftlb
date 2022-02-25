@@ -1,0 +1,32 @@
+table netdev nftlb {
+	set blacklist1 {
+		type ipv4_addr
+		flags interval
+		counter
+		auto-merge
+	}
+
+	set blacklist2 {
+		type ipv4_addr
+		flags interval
+		counter
+		auto-merge
+	}
+}
+table ip nftlb {
+	map filter-services {
+		type inet_proto . ipv4_addr : verdict
+		elements = { tcp . 222.222.222.222 : goto filter-farmdslb,
+			     udp . 222.222.222.222 : goto filter-farmdslb,
+			     sctp . 222.222.222.222 : goto filter-farmdslb }
+	}
+
+	chain filter {
+		type filter hook prerouting priority mangle; policy accept;
+		meta mark set ct mark
+		ip protocol . ip daddr vmap @filter-services
+	}
+
+	chain filter-farmdslb {
+	}
+}

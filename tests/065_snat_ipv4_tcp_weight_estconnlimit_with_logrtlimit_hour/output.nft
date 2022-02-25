@@ -26,7 +26,7 @@ table ip nftlb {
 	}
 
 	chain filter-lb01 {
-		ct state new add @est-connlimit-lb01 { ip saddr ct count over 10 counter } jump {
+		ct state new add @est-connlimit-lb01 { ip saddr ct count over 10 } jump {
 			limit rate 2/hour log prefix "est-connlimit-lb01 "
 			drop
 		}

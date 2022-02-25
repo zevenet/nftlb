@@ -1,0 +1,68 @@
+{
+        "farms": [
+                {
+                        "name": "l4farm",
+                        "family": "ipv4",
+                        "virtual-addr": "192.168.102.242",
+                        "virtual-ports": "",
+                        "source-addr": "192.168.102.242",
+                        "mode": "snat",
+                        "protocol": "all",
+                        "scheduler": "weight",
+                        "sched-param": "none",
+                        "persistence": "none",
+                        "persist-ttl": "60",
+                        "helper": "none",
+                        "log": "forward ",
+                        "log-prefix": "l4:l4farm ",
+                        "log-rtlimit": "0/second",
+                        "mark": "0x0",
+                        "priority": "1",
+                        "state": "up",
+                        "limits-ttl": "120",
+                        "new-rtlimit": "0",
+                        "new-rtlimit-burst": "0",
+                        "rst-rtlimit": "0",
+                        "rst-rtlimit-burst": "0",
+                        "est-connlimit": "0",
+                        "tcp-strict": "off",
+                        "queue": "-1",
+                        "verdict": "log drop accept",
+                        "addresses": [
+                                {
+                                        "name": "l4farm-addr",
+                                        "family": "ipv4",
+                                        "ip-addr": "192.168.102.242",
+                                        "ports": "",
+                                        "protocol": "all",
+                                        "used": "1"
+                                }
+                        ],
+                        "backends": [
+                                {
+                                        "name": "bck0",
+                                        "ip-addr": "192.168.100.254",
+                                        "port": "80",
+                                        "source-addr": "192.168.100.242",
+                                        "weight": "1",
+                                        "priority": "2",
+                                        "mark": "0x207",
+                                        "est-connlimit": "0",
+                                        "state": "up"
+                                },
+                                {
+                                        "name": "bck1",
+                                        "ip-addr": "192.168.101.254",
+                                        "port": "",
+                                        "source-addr": "192.168.101.242",
+                                        "weight": "3",
+                                        "priority": "1",
+                                        "mark": "0x208",
+                                        "est-connlimit": "0",
+                                        "state": "up"
+                                }
+                        ],
+                        "policies": []
+                }
+        ]
+}

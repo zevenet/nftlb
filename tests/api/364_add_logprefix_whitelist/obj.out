@@ -1,0 +1,15 @@
+{
+        "policies": [
+                {
+                        "name": "blacklist1",
+                        "family": "ipv4",
+                        "type": "whitelist",
+                        "route": "in",
+                        "timeout": "0",
+                        "priority": "1",
+                        "log-prefix": "[WL,blacklist1,FNAME]",
+                        "used": "0",
+                        "elements": []
+                }
+        ]
+}

@@ -19,6 +19,9 @@ table ip nftlb {
 		ip protocol . ip daddr . th dport vmap @filter-proto-services
 	}
 
+	chain filter-newfarm {
+	}
+
 	chain prerouting {
 		type nat hook prerouting priority dstnat; policy accept;
 		ip protocol . ip daddr . th dport vmap @nat-proto-services
@@ -29,9 +32,6 @@ table ip nftlb {
 		ct mark 0x00000000 ct mark set meta mark
 		ct mark 0x80000000/1 masquerade
 		snat to ct mark map @services-back-m
-	}
-
-	chain filter-newfarm {
 	}
 
 	chain nat-newfarm {

@@ -24,10 +24,6 @@ table ip nftlb {
 		elements = { 0x00000202 : 172.18.15.97, 0x00000203 : 172.18.15.97 }
 	}
 
-	map proto-services-back {
-		type inet_proto . ipv4_addr . inet_service : ipv4_addr
-	}
-
 	map forward-proto-services {
 		type mark : verdict
 		elements = { 0x00000202 : goto forward-Internal-Web-Server-FARM-HTTPS, 0x00000203 : goto forward-Internal-Web-Server-FARM-HTTPS }
@@ -56,7 +52,6 @@ table ip nftlb {
 		ct mark 0x00000000 ct mark set meta mark
 		ct mark 0x80000000/1 masquerade
 		snat to ct mark map @services-back-m
-		snat to ip protocol . ip daddr . th dport map @proto-services-back
 	}
 
 	chain nat-Internal-Web-Server-FARM-HTTPS {

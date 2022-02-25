@@ -11,16 +11,20 @@ APISRV_KEY="hola"
 CURL=`which curl`
 
 TESTS=""
+APPLY_REPORTS=0
 
-if [ "${ARG}" = "-s" -a -e "$CURL" ]; then
+if [ "${ARG}" == "-s" -a -e "$CURL" ]; then
 	APISERVER=1
+elif [ "${ARG}" == "-apply-reports" ]; then
+	APPLY_REPORTS=1
+	TESTS="${ARG2}"
 elif [[ -d ${ARG} ]]; then
 	TESTS="${ARG}"
-elif [ "${ARG}" = "" ]; then
+elif [ "${ARG}" == "" ]; then
 	TESTS="*/"
 fi
 
-if [ "$TESTS" = "" -a "${ARG2}" = "" ]; then
+if [ "$TESTS" == "" -a "${ARG2}" == "" ]; then
 	TESTS="*/"
 fi
 
@@ -72,6 +76,10 @@ for test in `ls -d ${TESTS}`; do
 		rm -f ${reportfile}
 	else
 		echo -e "\e[31mNFT DUMP ERROR\e[0m"
+		if [ $APPLY_REPORTS -eq 1 ]; then
+			cat ${reportfile} > ${outputfile}
+			echo -e "APPLIED"
+		fi
 	fi
 done
 

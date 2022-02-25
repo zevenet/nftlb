@@ -1,0 +1,1 @@
+{"farms" : [ { "name" : "newfarm", "virtual-addr" : "127.0.0.1", "virtual-ports" : "80", "source-addr" : "127.0.0.1", "mode" : "local", "backends" : [ { "name" : "bck512", "ip-addr" : "192.168.104.254", "mark" : "0x200", "source-addr" : "", "state": "up" } ] } ] }

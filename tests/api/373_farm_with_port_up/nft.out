@@ -1,0 +1,79 @@
+table ip nftlb {
+	map filter-services {
+		type inet_proto . ipv4_addr : verdict
+		elements = { tcp . 192.168.102.242 : goto filter-l4farm,
+			     udp . 192.168.102.242 : goto filter-l4farm,
+			     sctp . 192.168.102.242 : goto filter-l4farm }
+	}
+
+	map nat-services {
+		type inet_proto . ipv4_addr : verdict
+		elements = { tcp . 192.168.102.242 : goto nat-l4farm,
+			     udp . 192.168.102.242 : goto nat-l4farm,
+			     sctp . 192.168.102.242 : goto nat-l4farm }
+	}
+
+	map services-back-m {
+		type mark : ipv4_addr
+		elements = { 0x00000208 : 192.168.101.242 }
+	}
+
+	map forward-services {
+		type mark : verdict
+		elements = { 0x00000208 : goto forward-l4farm }
+	}
+
+	map filter-proto-services {
+		type inet_proto . ipv4_addr . inet_service : verdict
+		elements = { tcp . 192.168.101.242 . 31 : goto filter-asdf }
+	}
+
+	map nat-proto-services {
+		type inet_proto . ipv4_addr . inet_service : verdict
+		elements = { tcp . 192.168.101.242 . 31 : goto nat-asdf }
+	}
+
+	chain filter {
+		type filter hook prerouting priority mangle; policy accept;
+		meta mark set ct mark
+		ip protocol . ip daddr vmap @filter-services
+		ip protocol . ip daddr . th dport vmap @filter-proto-services
+	}
+
+	chain filter-l4farm {
+		ct state new ct mark 0x00000000 ct mark set numgen random mod 3 map { 0-2 : 0x00000208 }
+	}
+
+	chain prerouting {
+		type nat hook prerouting priority dstnat; policy accept;
+		ip protocol . ip daddr vmap @nat-services
+		ip protocol . ip daddr . th dport vmap @nat-proto-services
+	}
+
+	chain postrouting {
+		type nat hook postrouting priority srcnat; policy accept;
+		ct mark 0x00000000 ct mark set meta mark
+		ct mark 0x80000000/1 masquerade
+		snat to ct mark map @services-back-m
+	}
+
+	chain nat-l4farm {
+		ip protocol tcp dnat ip to ct mark map { 0x00000208 : 192.168.101.254 . 0 }
+	}
+
+	chain forward {
+		type filter hook forward priority -100; policy accept;
+		ct mark vmap @forward-services
+	}
+
+	chain forward-l4farm {
+		log prefix "l4:l4farm "
+	}
+
+	chain filter-asdf {
+		ct state new ct mark 0x00000000 ct mark set 0x80000000
+	}
+
+	chain nat-asdf {
+	}
+}

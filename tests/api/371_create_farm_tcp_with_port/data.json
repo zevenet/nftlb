@@ -1,0 +1,1 @@
+{"farms" : [ { "name" : "asdf", "virtual-addr" : "192.168.101.242", "virtual-ports" : "31", "protocol" : "tcp", "mode" : "snat", "scheduler" : "weight", "state" : "up" } ] }

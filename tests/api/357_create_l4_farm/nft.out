@@ -1,0 +1,40 @@
+table ip nftlb {
+	map filter-proto-services {
+		type inet_proto . ipv4_addr . inet_service : verdict
+		elements = { tcp . 127.0.0.1 . 80 : goto filter-l4-port0 }
+	}
+
+	map nat-proto-services {
+		type inet_proto . ipv4_addr . inet_service : verdict
+		elements = { tcp . 127.0.0.1 . 80 : goto nat-l4-port0 }
+	}
+
+	map services-back-m {
+		type mark : ipv4_addr
+	}
+
+	chain filter {
+		type filter hook prerouting priority mangle; policy accept;
+		meta mark set ct mark
+		ip protocol . ip daddr . th dport vmap @filter-proto-services
+	}
+
+	chain filter-l4-port0 {
+		ct state new ct mark 0x00000000 ct mark set 0x80000000
+	}
+
+	chain prerouting {
+		type nat hook prerouting priority dstnat; policy accept;
+		ip protocol . ip daddr . th dport vmap @nat-proto-services
+	}
+
+	chain postrouting {
+		type nat hook postrouting priority srcnat; policy accept;
+		ct mark 0x00000000 ct mark set meta mark
+		ct mark 0x80000000/1 masquerade
+		snat to ct mark map @services-back-m
+	}
+
+	chain nat-l4-port0 {
+	}
+}

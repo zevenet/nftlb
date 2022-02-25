@@ -28,6 +28,9 @@ table ip nftlb {
 		ip protocol . ip daddr . th dport vmap @filter-proto-services
 	}
 
+	chain filter-newfarm {
+	}
+
 	chain prerouting {
 		type nat hook prerouting priority dstnat; policy accept;
 		ip protocol . ip daddr . th dport vmap @nat-proto-services
@@ -40,18 +43,15 @@ table ip nftlb {
 		snat to ct mark map @services-back-m
 	}
 
+	chain nat-newfarm {
+	}
+
 	chain filter-newfarm6 {
 		ct state invalid log prefix "tcp-strict-newfarm6 " drop
-		tcp flags rst add @rst-rtlimit-newfarm6 { ip saddr limit rate over 22/second counter } log prefix "rst-rtlimit-newfarm6 " drop
+		tcp flags rst add @rst-rtlimit-newfarm6 { ip saddr limit rate over 22/second } log prefix "rst-rtlimit-newfarm6 " drop
 		ct state new ct mark 0x00000000 ct mark set 0x80000000
 	}
 
 	chain nat-newfarm6 {
-	}
-
-	chain filter-newfarm {
-	}
-
-	chain nat-newfarm {
 	}
 }

@@ -4,10 +4,6 @@ table ip nftlb {
 		elements = { 0x00000205 : 10.248.18.152, 0x00000206 : 10.248.18.152 }
 	}
 
-	map proto-services-back {
-		type inet_proto . ipv4_addr . inet_service : ipv4_addr
-	}
-
 	map filter-services {
 		type inet_proto . ipv4_addr : verdict
 		elements = { tcp . 10.248.18.59 : goto filter-tsthcmapp,
@@ -32,10 +28,6 @@ table ip nftlb {
 			     sctp . 10.248.18.59 : goto nat-tsthcmapp }
 	}
 
-	map services-back {
-		type inet_proto . ipv4_addr : ipv4_addr
-	}
-
 	map forward-services {
 		type mark : verdict
 		elements = { 0x00000205 : goto forward-tsthcmapp, 0x00000206 : goto forward-tsthcmapp }
@@ -44,10 +36,12 @@ table ip nftlb {
 	chain filter {
 		type filter hook prerouting priority mangle; policy accept;
 		meta mark set ct mark
+		ip protocol . ip daddr vmap @filter-services
 	}
 
 	chain prerouting {
 		type nat hook prerouting priority dstnat; policy accept;
+		ip protocol . ip daddr vmap @nat-services
 	}
 
 	chain postrouting {
@@ -55,12 +49,11 @@ table ip nftlb {
 		ct mark 0x00000000 ct mark set meta mark
 		ct mark 0x80000000/1 masquerade
 		snat to ct mark map @services-back-m
-		snat to ip protocol . ip daddr . th dport map @proto-services-back
-		snat to ip protocol . ip daddr map @services-back
 	}
 
 	chain forward {
 		type filter hook forward priority -100; policy accept;
+		ct mark vmap @forward-services
 	}
 
 	chain filter-tsthcmapp {
