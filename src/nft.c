@@ -574,14 +574,6 @@ static int get_address_service_mode(struct address *a)
 		return NFTLB_PROTO_IP_PORT_ACTIVE;
 }
 
-static char * print_nft_pos_service(int family)
-{
-	if (family == VALUE_FAMILY_IPV6)
-		return NFTLB_IP_SERVICES6_MAP;
-	else
-		return NFTLB_IP_SERVICES_MAP;
-}
-
 static char * print_nft_family_type(int family)
 {
 	switch (family) {
