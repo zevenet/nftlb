@@ -1164,7 +1164,7 @@ static int run_base_chain(struct sbuffer *buf, struct nftst *n, int type, int fa
 	char service[NFTLB_MAX_OBJ_NAME-2] = { 0 };
 	char servicem[NFTLB_MAX_OBJ_NAME] = { 0 };
 	char base_chain[NFTLB_MAX_OBJ_NAME] = { 0 };
-	char chain_device[NFTLB_MAX_OBJ_NAME] = { 0 };
+	char chain_device[NFTLB_MAX_OBJ_DEVICE] = { 0 };
 	char trailing[NFTLB_MAX_OBJ_NAME] = { 0 };
 	char *chain_type;
 	char *chain_hook;
@@ -1189,7 +1189,7 @@ static int run_base_chain(struct sbuffer *buf, struct nftst *n, int type, int fa
 		chain_prio = NFTLB_INGRESS_PRIO;
 		chain_type = NFTLB_TYPE_FILTER;
 		chain_hook = NFTLB_HOOK_INGRESS;
-		snprintf(chain_device, NFTLB_MAX_OBJ_NAME, "%s", a->iface);
+		snprintf(chain_device, NFTLB_MAX_OBJ_DEVICE, "%s", a->iface);
 		snprintf(base_chain, NFTLB_MAX_OBJ_NAME, "%s-%s", NFTLB_TABLE_INGRESS, a->iface);
 		snprintf(trailing, NFTLB_MAX_OBJ_NAME, "-%s", a->iface);
 
@@ -1203,7 +1203,7 @@ static int run_base_chain(struct sbuffer *buf, struct nftst *n, int type, int fa
 		chain_prio = NFTLB_INGRESS_DNAT_PRIO;
 		chain_type = NFTLB_TYPE_FILTER;
 		chain_hook = NFTLB_HOOK_INGRESS;
-		snprintf(chain_device, NFTLB_MAX_OBJ_NAME, "%s", f->oface);
+		snprintf(chain_device, NFTLB_MAX_OBJ_DEVICE, "%s", f->oface);
 		snprintf(base_chain, NFTLB_MAX_OBJ_NAME, "%s-dnat-%s", NFTLB_TABLE_INGRESS, chain_device);
 		snprintf(trailing, NFTLB_MAX_OBJ_NAME, "-%s", f->oface);
 
