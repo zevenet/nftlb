@@ -1263,24 +1263,29 @@ static int run_base_chain(struct sbuffer *buf, struct nftst *n, int type, int fa
 			(*get_service_counter(type, NFTLB_PROTO_IP_ACTIVE, family) == 0) &&
 			(*get_service_counter(type, NFTLB_MARK_ACTIVE, family) == 0)) {
 
-			if ((~type & NFTLB_F_CHAIN_POS_SNAT)) {
-				*base_rules &= ~NFTLB_IP_ACTIVE;
-				nft_chain_handler(buf, chain_family, base_chain, NULL, NULL, NULL, 0, ACTION_DELETE);
+			// for prerouting stage, do not remove the chain if postrouting is being used
+			if (type & NFTLB_F_CHAIN_PRE_DNAT && (
+					(*get_service_counter(NFTLB_F_CHAIN_POS_SNAT, NFTLB_PROTO_IP_PORT_ACTIVE, family) != 0) ||
+					(*get_service_counter(NFTLB_F_CHAIN_POS_SNAT, NFTLB_PROTO_PORT_ACTIVE, family) != 0) ||
+					(*get_service_counter(NFTLB_F_CHAIN_POS_SNAT, NFTLB_PROTO_IP_ACTIVE, family) != 0) ||
+					(*get_service_counter(NFTLB_F_CHAIN_POS_SNAT, NFTLB_MARK_ACTIVE, family) != 0)))
+				return 0;
 
-				if (type & NFTLB_F_CHAIN_ING_FILTER || type & NFTLB_F_CHAIN_ING_DNAT)
-					del_ndv_base(if_base_list, a->iface);
+			if (type & NFTLB_F_CHAIN_POS_SNAT)
+				return 0;
 
-				if (type & NFTLB_F_CHAIN_PRE_DNAT &&
-					(*get_service_counter(NFTLB_F_CHAIN_POS_SNAT, NFTLB_PROTO_IP_PORT_ACTIVE, family) == 0) &&
-					(*get_service_counter(NFTLB_F_CHAIN_POS_SNAT, NFTLB_PROTO_PORT_ACTIVE, family) == 0) &&
-					(*get_service_counter(NFTLB_F_CHAIN_POS_SNAT, NFTLB_PROTO_IP_ACTIVE, family) == 0) &&
-					(*get_service_counter(NFTLB_F_CHAIN_POS_SNAT, NFTLB_MARK_ACTIVE, family) == 0)) {
+			*base_rules &= ~NFTLB_IP_ACTIVE;
+			nft_chain_handler(buf, chain_family, base_chain, NULL, NULL, NULL, 0, ACTION_DELETE);
 
-					nft_chain_handler(buf, chain_family, NFTLB_TABLE_POSTROUTING, NULL, NULL, NULL, 0, ACTION_DELETE);
-					run_farm_map(buf, a, family, type, servicem, 0, 0, 0, ACTION_DELETE);
-					base_rules_t = get_rules_applied(NFTLB_F_CHAIN_POS_SNAT, family, "");
-					*base_rules_t &= ~NFTLB_IP_ACTIVE & ~NFTLB_PROTO_IP_PORT_ACTIVE & ~NFTLB_PROTO_PORT_ACTIVE & ~NFTLB_PROTO_IP_ACTIVE & ~NFTLB_MARK_ACTIVE;
-				}
+			if (type & NFTLB_F_CHAIN_ING_FILTER || type & NFTLB_F_CHAIN_ING_DNAT)
+				del_ndv_base(if_base_list, a->iface);
+
+			// in prerouting stage, apply the same action to prerouting
+			if (type & NFTLB_F_CHAIN_PRE_DNAT) {
+				nft_chain_handler(buf, chain_family, NFTLB_TABLE_POSTROUTING, NULL, NULL, NULL, 0, ACTION_DELETE);
+				run_farm_map(buf, a, family, type, servicem, 0, 0, 0, ACTION_DELETE);
+				base_rules_t = get_rules_applied(NFTLB_F_CHAIN_POS_SNAT, family, "");
+				*base_rules_t &= ~NFTLB_IP_ACTIVE & ~NFTLB_PROTO_IP_PORT_ACTIVE & ~NFTLB_PROTO_PORT_ACTIVE & ~NFTLB_PROTO_IP_ACTIVE & ~NFTLB_MARK_ACTIVE;
 			}
 			return 0;
 		}
@@ -2322,7 +2327,6 @@ static int run_farm_rules_filter(struct sbuffer *buf, struct nftst *n, int famil
 		}
 		run_farm_rules_filter_policies(buf, f, family, chain, action);
 		run_base_chain(buf, n, NFTLB_F_CHAIN_PRE_FILTER, family, get_rules_needed(a), action);
-		run_base_table(buf, NFTLB_F_CHAIN_PRE_FILTER, family, action);
 		break;
 	default:
 		break;
@@ -2889,8 +2893,8 @@ static int run_farm_local(struct sbuffer *buf, struct nftst *n, int family, int 
 			run_farm_snat(buf, n, family, action);
 			run_base_chain(buf, n, NFTLB_F_CHAIN_PRE_DNAT, family, get_rules_needed(a), action);
 			run_base_chain(buf, n, NFTLB_F_CHAIN_POS_SNAT, family, get_rules_needed(a), action);
-			run_base_table(buf, NFTLB_F_CHAIN_PRE_DNAT, family, action);
 		}
+		run_base_table(buf, NFTLB_F_CHAIN_PRE_DNAT, family, action);
 		run_nftst_ingress_policies(buf, n, family, f->policies_action);
 		break;
 	default:
