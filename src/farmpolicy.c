@@ -178,8 +178,10 @@ int farmpolicy_set_attribute(struct config_pair *c)
 	switch (c->key) {
 	case KEY_NAME:
 		p = policy_lookup_by_name(c->str_value);
-		if (!p)
-			return -1;
+		if (!p) {
+			config_set_output(". Unknown policy '%s'", c->str_value);
+			return PARSER_OBJ_UNKNOWN;
+		}
 		fp = farmpolicy_lookup_by_name(f, c->str_value);
 		if (fp)
 			return 0;
