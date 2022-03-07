@@ -158,6 +158,7 @@ int main(int argc, char *argv[])
 	if (signal(SIGINT, nftlb_sighandler) == SIG_ERR ||
 	    signal(SIGTERM, nftlb_sighandler) == SIG_ERR ||
 	    signal(SIGPIPE, SIG_IGN) == SIG_ERR ||
+	    signal(SIGABRT, nftlb_trace) == SIG_ERR ||
 	    signal(SIGSEGV, nftlb_trace) == SIG_ERR) {
 		fprintf(stderr, "Error assigning signals\n");
 		syslog(LOG_ERR, "Error assigning signals");
