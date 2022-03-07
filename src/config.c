@@ -39,7 +39,7 @@
 #include "tools.h"
 
 #define CONFIG_MAXBUF			4096
-#define CONFIG_OUTBUF_SIZE		255
+#define CONFIG_OUTBUF_SIZE		1024
 
 static int config_json(json_t *element, int level, int source, int key, int apply_action);
 
@@ -778,7 +778,7 @@ void config_set_output(char *fmt, ...)
 	len = strlen(config_outbuf);
 
 	va_start(args, fmt);
-	len = vsprintf(config_outbuf + len, fmt, args);
+	len = vsnprintf(config_outbuf + len, CONFIG_OUTBUF_SIZE - len + 1, fmt, args);
 	va_end(args);
 }
 
@@ -956,6 +956,7 @@ static struct json_t *add_dump_list(json_t *obj, const char *objname, int object
 			add_dump_obj(item, CONFIG_KEY_PRIORITY, value);
 			config_dump_hex(value, b->mark);
 			add_dump_obj(item, CONFIG_KEY_MARK, value);
+
 			config_dump_int(value, b->estconnlimit);
 			add_dump_obj(item, CONFIG_KEY_ESTCONNLIMIT, value);
 			if (b->estconnlimit_logprefix && strcmp(b->estconnlimit_logprefix, DEFAULT_B_ESTCONNLIMIT_LOGPREFIX) != 0)
@@ -1098,7 +1099,7 @@ static int add_dump_elements(json_t *jdata, struct policy *p)
 int config_print_farms(char **buf, char *name)
 {
 	struct list_head *farms = obj_get_farms();
-	json_t* jdata;
+	json_t *jdata;
 	struct farm *f;
 
 	if (name && strcmp(name, "") != 0) {
