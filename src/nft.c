@@ -2487,6 +2487,7 @@ static int run_farm_rules_ingress_policies(struct sbuffer *buf, struct farm *f, 
 	struct nftst *n = nftst_create_from_farm(f);
 
 	list_for_each_entry(fp, &f->policies, list) {
+		nftst_set_policy(n, fp->policy);
 		snprintf(meter_str, NFTLB_MAX_OBJ_NAME, "%s-%s-cnt", fp->policy->name, f->name);
 		if ((fp->action == ACTION_RELOAD && f->policies_action == ACTION_RELOAD) ||
 			(action == ACTION_START && f->policies_action != ACTION_RELOAD) ||
