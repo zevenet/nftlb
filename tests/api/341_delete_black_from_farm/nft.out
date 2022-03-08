@@ -50,7 +50,7 @@ table netdev nftlb {
 	}
 
 	chain farml7 {
-		ip saddr @black002 add @black002-farml7-cnt { ip saddr } log prefix "TYPE-farml7 " drop
+		ip saddr @black002 add @black002-farml7-cnt { ip saddr } log prefix "policy-BL-black002-farml7 " drop
 	}
 }
 table ip nftlb {

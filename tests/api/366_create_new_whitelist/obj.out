@@ -6,7 +6,6 @@
                         "type": "whitelist",
                         "route": "in",
                         "timeout": "0",
-                        "priority": "1",
                         "log-prefix": "[WL,blacklist1,FNAME]",
                         "used": "1",
                         "elements": []
@@ -17,7 +16,6 @@
                         "type": "whitelist",
                         "route": "in",
                         "timeout": "0",
-                        "priority": "1",
                         "used": "0",
                         "elements": []
                 }
