@@ -46,7 +46,6 @@ static struct policy * policy_create(char *name)
 	p->route = DEFAULT_POLICY_ROUTE;
 	p->family = DEFAULT_FAMILY;
 	p->timeout = DEFAULT_POLICY_TIMEOUT;
-	p->priority = DEFAULT_POLICY_PRIORITY;
 	p->used = 0;
 	p->logprefix = DEFAULT_POLICY_LOGPREFIX;
 	p->action = DEFAULT_ACTION;
@@ -120,7 +119,6 @@ void policy_print(struct policy *p)
 	tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_ROUTE, obj_print_policy_route(p->route));
 	tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_FAMILY, obj_print_family(p->family));
 	tools_printlog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_TIMEOUT, p->timeout);
-	tools_printlog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_PRIORITY, p->priority);
 	if (p->logprefix)
 		tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_LOGPREFIX, p->logprefix);
 
@@ -177,9 +175,6 @@ int policy_changed(struct config_pair *c)
 	case KEY_TIMEOUT:
 		return !obj_equ_attribute_int(p->timeout, c->int_value);
 		break;
-	case KEY_PRIORITY:
-		return !obj_equ_attribute_int(p->priority, c->int_value);
-		break;
 	case KEY_LOGPREFIX:
 		return !obj_equ_attribute_string(p->logprefix, c->str_value);
 		break;
@@ -221,9 +216,6 @@ int policy_set_attribute(struct config_pair *c)
 		break;
 	case KEY_TIMEOUT:
 		p->timeout = c->int_value;
-		break;
-	case KEY_PRIORITY:
-		p->priority = c->int_value;
 		break;
 	case KEY_ACTION:
 		policy_set_action(p, c->int_value);

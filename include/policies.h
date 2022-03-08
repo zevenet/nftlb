@@ -42,7 +42,6 @@ struct policy {
 	int					route;
 	int					family;
 	int					timeout;
-	int					priority;
 	int					total_elem;
 	int					used;
 	char				*logprefix;

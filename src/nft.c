@@ -2485,48 +2485,8 @@ static int run_farm_rules_ingress_policies(struct sbuffer *buf, struct farm *f, 
 	struct farmpolicy *fp;
 	char meter_str[NFTLB_MAX_OBJ_NAME] = { 0 };
 	struct nftst *n = nftst_create_from_farm(f);
-	int drop_policy = 0;
 
 	list_for_each_entry(fp, &f->policies, list) {
-		if (fp->policy->type != VALUE_TYPE_ALLOW)
-			continue;
-
-		snprintf(meter_str, NFTLB_MAX_OBJ_NAME, "%s-%s-cnt", fp->policy->name, f->name);
-		if ((fp->action == ACTION_RELOAD && f->policies_action == ACTION_RELOAD) ||
-			(action == ACTION_START && f->policies_action != ACTION_RELOAD) ||
-			(action == ACTION_RELOAD && f->policies_action == ACTION_START) ||
-			(fp->action == ACTION_START && f->policies_action == ACTION_RELOAD)) {
-			run_farm_meter(buf, f, VALUE_FAMILY_NETDEV, fp->policy->family, KEY_ELEMENTS, meter_str, ACTION_START);
-			nftst_set_policy(n, fp->policy);
-
-		} else if (((action == ACTION_STOP || action == ACTION_DELETE) && f->policies_action != ACTION_RELOAD) ||
-					(f->policies_action == ACTION_RELOAD && fp->action == ACTION_STOP) ||
-					(fp->action == ACTION_STOP && f->policies_action == ACTION_RELOAD)) {
-			run_farm_meter(buf, f, VALUE_FAMILY_NETDEV, fp->policy->family, KEY_ELEMENTS, meter_str, ACTION_STOP);
-		}
-
-		if ((fp->action == ACTION_NONE && (f->policies_action == ACTION_RELOAD || f->policies_action == ACTION_START)) ||
-			(fp->action == ACTION_START && (f->policies_action == ACTION_RELOAD || f->policies_action == ACTION_START)) ||
-			(fp->action == ACTION_RELOAD && f->policies_action == ACTION_RELOAD)) {
-			concat_buf(buf, " ; add rule %s %s %s %s saddr @%s add @%s { %s saddr }",
-							NFTLB_NETDEV_FAMILY_STR, NFTLB_TABLE_NAME, chain, print_nft_family(fp->policy->family), fp->policy->name, meter_str, print_nft_family(fp->policy->family));
-			run_farm_rules_log_and_verdict(buf, n, f->logrtlimit, f->verdict, VALUE_TYPE_ALLOW, KEY_LOGPREFIX, NFTLB_F_CHAIN_ING_FILTER);
-			drop_policy++;
-		}
-
-		fp->action = ACTION_NONE;
-	}
-
-	if (drop_policy) {
-		concat_exec_cmd(buf, "; add rule %s %s %s drop", NFTLB_NETDEV_FAMILY_STR, NFTLB_TABLE_NAME, chain);
-
-		return 0;
-	}
-
-	list_for_each_entry(fp, &f->policies, list) {
-		if (fp->policy->type != VALUE_TYPE_DENY)
-			continue;
-
 		snprintf(meter_str, NFTLB_MAX_OBJ_NAME, "%s-%s-cnt", fp->policy->name, f->name);
 		if ((fp->action == ACTION_RELOAD && f->policies_action == ACTION_RELOAD) ||
 			(action == ACTION_START && f->policies_action != ACTION_RELOAD) ||
@@ -2546,7 +2506,7 @@ static int run_farm_rules_ingress_policies(struct sbuffer *buf, struct farm *f, 
 			(fp->action == ACTION_RELOAD && f->policies_action == ACTION_RELOAD)) {
 			concat_buf(buf, " ; add rule %s %s %s %s saddr @%s add @%s { %s saddr }",
 							NFTLB_NETDEV_FAMILY_STR, NFTLB_TABLE_NAME, chain, print_nft_family(fp->policy->family), fp->policy->name, meter_str, print_nft_family(fp->policy->family));
-			run_farm_rules_log_and_verdict(buf, n, f->logrtlimit, f->verdict, VALUE_TYPE_DENY, KEY_LOGPREFIX, NFTLB_F_CHAIN_ING_FILTER);
+			run_farm_rules_log_and_verdict(buf, n, f->logrtlimit, f->verdict, fp->policy->type, KEY_LOGPREFIX, NFTLB_F_CHAIN_ING_FILTER);
 		}
 
 		fp->action = ACTION_NONE;
@@ -2564,22 +2524,9 @@ static int run_nftst_rules_ingress_policies(struct sbuffer *buf, struct nftst *n
 		return 0;
 
 	list_for_each_entry(ap, &a->policies, list) {
-		if (ap->policy->type != VALUE_TYPE_ALLOW)
-			continue;
-
 		concat_buf(buf, " ; add rule %s %s %s %s saddr @%s",
 						NFTLB_NETDEV_FAMILY_STR, NFTLB_TABLE_NAME, chain, print_nft_family(ap->policy->family), ap->policy->name);
-		run_farm_rules_log_and_verdict(buf, n, a->logrtlimit, a->verdict, VALUE_TYPE_ALLOW, KEY_LOGPREFIX, NFTLB_F_CHAIN_ING_FILTER);
-		ap->action = ACTION_NONE;
-	}
-
-	list_for_each_entry(ap, &a->policies, list) {
-		if (ap->policy->type != VALUE_TYPE_DENY)
-			continue;
-
-		concat_buf(buf, " ; add rule %s %s %s %s saddr @%s",
-						NFTLB_NETDEV_FAMILY_STR, NFTLB_TABLE_NAME, chain, print_nft_family(ap->policy->family), ap->policy->name);
-		run_farm_rules_log_and_verdict(buf, n, a->logrtlimit, a->verdict, VALUE_TYPE_DENY, KEY_LOGPREFIX, NFTLB_F_CHAIN_ING_FILTER);
+		run_farm_rules_log_and_verdict(buf, n, a->logrtlimit, a->verdict, ap->policy->type, KEY_LOGPREFIX, NFTLB_F_CHAIN_ING_FILTER);
 		ap->action = ACTION_NONE;
 	}
 
