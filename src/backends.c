@@ -240,7 +240,7 @@ static int backend_set_ipaddr_from_ether(struct backend *b)
 	int *oface;
 	char **source_ip;
 
-	if (!farm_is_ingress_mode(f))
+	if (!farm_is_ingress_mode(f) || (f->state != VALUE_STATE_UP && f->state != VALUE_STATE_CONFERR))
 		return 0;
 
 	fa = farmaddress_get_first(f);
@@ -457,10 +457,8 @@ static int backend_set_ifinfo(struct backend *b)
 
 	tools_printlog(LOG_DEBUG, "%s():%d: backend %s set interface info", __FUNCTION__, __LINE__, b->name);
 
-	if (!farm_is_ingress_mode(f)) {
-		tools_printlog(LOG_DEBUG, "%s():%d: farm %s is not in ingress mode", __FUNCTION__, __LINE__, f->name);
+	if (!farm_is_ingress_mode(f) || (f->state != VALUE_STATE_UP && f->state != VALUE_STATE_CONFERR))
 		return 0;
-	}
 
 	if (f->oface && strcmp(f->oface, IFACE_LOOPBACK) == 0) {
 		tools_printlog(LOG_DEBUG, "%s():%d: backend %s in farm %s doesn't require output netinfo, loopback interface", __FUNCTION__, __LINE__, b->name, f->name);
@@ -510,6 +508,7 @@ static int backend_set_ifinfo(struct backend *b)
 static int backend_set_ipaddr(struct backend *b, char *new_value)
 {
 	char *old_value = b->ipaddr;
+	int netconfig;
 
 	tools_printlog(LOG_DEBUG, "%s():%d: current value is %s, but new value will be %s",
 				   __FUNCTION__, __LINE__, old_value, new_value);
@@ -521,15 +520,16 @@ static int backend_set_ipaddr(struct backend *b, char *new_value)
 	obj_set_attribute_string(new_value, &b->ipaddr);
 	obj_set_attribute_string("", &b->ethaddr);
 
-	if (backend_set_ifinfo(b) == 0 &&
-	    backend_set_ipaddr_from_ether(b) == 0 ) {
-		if (old_value != DEFAULT_IPADDR && b->state == VALUE_STATE_CONFERR)
+	netconfig = (backend_set_ifinfo(b) == 0 && backend_set_ipaddr_from_ether(b) == 0);
+
+	if (old_value == DEFAULT_IPADDR)
+		return 0;
+
+	if (netconfig) {
+		if (b->state == VALUE_STATE_CONFERR)
 			backend_set_state(b, VALUE_STATE_UP);
-	} else {
-		tools_printlog(LOG_DEBUG, "%s():%d: backend %s comes to OFF", __FUNCTION__, __LINE__, b->name);
-		if (old_value != DEFAULT_IPADDR)
-			backend_set_state(b, VALUE_STATE_CONFERR);
-	}
+	} else
+		backend_set_state(b, VALUE_STATE_CONFERR);
 
 	return 0;
 }
@@ -891,7 +891,16 @@ int backend_s_set_ether_by_ipaddr(struct farm *f, const char *ip_bck, char *ethe
 	return changed;
 }
 
-int backend_s_find_ethers(struct farm *f)
+static void backend_set_netinfo(struct backend *b)
+{
+	if (backend_set_ifinfo(b) == 0 && backend_set_ipaddr_from_ether(b) == 0) {
+		if (b->state == VALUE_STATE_CONFERR)
+			backend_set_state(b, VALUE_STATE_UP);
+	} else
+		backend_set_state(b, VALUE_STATE_CONFERR);
+}
+
+int backend_s_set_netinfo(struct farm *f)
 {
 	struct backend *b;
 	int changed = 0;
@@ -901,11 +910,7 @@ int backend_s_find_ethers(struct farm *f)
 	list_for_each_entry(b, &f->backends, list) {
 		if (backend_validate(b))
 			continue;
-
-		if (backend_set_ipaddr_from_ether(b) == -1)
-			backend_set_state(b, VALUE_STATE_CONFERR);
-		else
-			backend_set_state(b, VALUE_STATE_UP);
+		backend_set_netinfo(b);
 	}
 
 	return changed;

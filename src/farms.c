@@ -215,7 +215,7 @@ static int farm_validate(struct farm *f)
 	return 1;
 }
 
-static int farm_is_available(struct farm *f)
+int farm_is_available(struct farm *f)
 {
 	tools_printlog(LOG_DEBUG, "%s():%d: farm %s state is %s",
 				   __FUNCTION__, __LINE__, f->name, obj_print_state(f->state));
@@ -233,7 +233,7 @@ static int farm_s_update_dsr_counter(void)
 	tools_printlog(LOG_DEBUG, "%s():%d: updating dsr counter", __FUNCTION__, __LINE__);
 
 	list_for_each_entry(f, farms, list) {
-		if (farm_is_ingress_mode(f))
+		if (farm_is_ingress_mode(f) && (f->state == VALUE_STATE_UP || f->state == VALUE_STATE_CONFERR))
 			dsrcount++;
 	}
 
@@ -287,7 +287,7 @@ static int farm_set_netinfo(struct farm *f)
 		farm_set_oface_info(f) == 0 ) {
 		f->bcks_have_if = backend_s_check_have_iface(f);
 		farm_manage_eventd();
-		backend_s_find_ethers(f);
+		backend_s_set_netinfo(f);
 	}
 
 	if (farm_needs_flowtable(f)) {
@@ -335,7 +335,6 @@ static int farm_set_state(struct farm *f, int new_value)
 
 	if (old_value != VALUE_STATE_UP &&
 	    new_value == VALUE_STATE_UP) {
-
 		farm_set_action(f, ACTION_START);
 		f->state = new_value;
 		farm_set_netinfo(f);
@@ -344,12 +343,11 @@ static int farm_set_state(struct farm *f, int new_value)
 
 	if (old_value == VALUE_STATE_UP &&
 	    new_value != VALUE_STATE_UP) {
-
 		farm_set_action(f, ACTION_STOP);
-		farm_manage_eventd();
 	}
 
 	f->state = new_value;
+	farm_manage_eventd();
 
 	return 0;
 }

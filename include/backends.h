@@ -58,7 +58,7 @@ int backend_s_delete(struct farm *f);
 int backend_set_attribute(struct config_pair *c);
 int backend_set_state(struct backend *b, int new_value);
 int backend_s_set_ether_by_ipaddr(struct farm *f, const char *ip_bck, char *ether_bck);
-int backend_s_find_ethers(struct farm *f);
+int backend_s_set_netinfo(struct farm *f);
 
 struct backend * backend_get_first(struct farm *f);
 
