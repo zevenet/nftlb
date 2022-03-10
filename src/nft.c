@@ -2261,7 +2261,7 @@ static int run_farm_rules_filter_marks(struct sbuffer *buf, struct nftst *n, int
 	int mark = farm_get_mark(f);
 
 	if (action == ACTION_START || action == ACTION_RELOAD) {
-		if (f->bcks_available != 0) {
+		if (f->bcks_available) {
 			concat_buf(buf, " ; add rule %s %s %s ct state new ct mark 0x0 ct mark set", print_nft_table_family(family, NFTLB_F_CHAIN_PRE_FILTER), NFTLB_TABLE_NAME, chain);
 			if (run_farm_rules_gen_sched(buf, n, family) == -1)
 				return -1;
@@ -2556,20 +2556,23 @@ static int run_farm_rules_gen_nat(struct sbuffer *buf, struct nftst *n, int fami
 	case VALUE_MODE_DSR:
 		run_farm_rules_check_sessions(buf, n, SESSION_TYPE_STATIC, family, NFTLB_F_CHAIN_ING_FILTER, action);
 		run_farm_rules_check_sessions(buf, n, SESSION_TYPE_TIMED, family, NFTLB_F_CHAIN_ING_FILTER, action);
-		concat_buf(buf, " ; add rule %s %s %s", print_nft_table_family(family, NFTLB_F_CHAIN_ING_FILTER), NFTLB_TABLE_NAME, chain);
-		run_farm_log_prefix(buf, f, VALUE_LOG_INPUT, NFTLB_F_CHAIN_ING_FILTER, ACTION_START);
-		// TODO: support of different output interfaces per backend during saddr
-		concat_buf(buf, " ether saddr set %s ether daddr set", f->oethaddr);
-		run_farm_rules_gen_sched(buf, n, family);
-		run_farm_rules_gen_bck_map(buf, n, BCK_MAP_WEIGHT, BCK_MAP_ETHADDR, NFTLB_CHECK_AVAIL);
-		run_farm_rules_update_sessions(buf, n, family, chain, action);
-		run_farm_log_prefix(buf, f, VALUE_LOG_OUTPUT, NFTLB_F_CHAIN_ING_DNAT, ACTION_START);
-		concat_buf(buf, " fwd to");
-		if (f->bcks_have_if) {
-			concat_buf(buf, " ether daddr");
-			run_farm_rules_gen_bck_map(buf, n, BCK_MAP_ETHADDR, BCK_MAP_OFACE, NFTLB_CHECK_AVAIL);
-		} else
-			concat_buf(buf, " %s", f->oface);
+
+		if (f->bcks_available) {
+			concat_buf(buf, " ; add rule %s %s %s", print_nft_table_family(family, NFTLB_F_CHAIN_ING_FILTER), NFTLB_TABLE_NAME, chain);
+			run_farm_log_prefix(buf, f, VALUE_LOG_INPUT, NFTLB_F_CHAIN_ING_FILTER, ACTION_START);
+			// TODO: support of different output interfaces per backend during saddr
+			concat_buf(buf, " ether saddr set %s ether daddr set", f->oethaddr);
+			run_farm_rules_gen_sched(buf, n, family);
+			run_farm_rules_gen_bck_map(buf, n, BCK_MAP_WEIGHT, BCK_MAP_ETHADDR, NFTLB_CHECK_AVAIL);
+			run_farm_rules_update_sessions(buf, n, family, chain, action);
+			run_farm_log_prefix(buf, f, VALUE_LOG_OUTPUT, NFTLB_F_CHAIN_ING_DNAT, ACTION_START);
+			concat_buf(buf, " fwd to");
+			if (f->bcks_have_if) {
+				concat_buf(buf, " ether daddr");
+				run_farm_rules_gen_bck_map(buf, n, BCK_MAP_ETHADDR, BCK_MAP_OFACE, NFTLB_CHECK_AVAIL);
+			} else
+				concat_buf(buf, " %s", f->oface);
+		}
 		concat_exec_cmd(buf, "");
 		break;
 	case VALUE_MODE_STLSDNAT:
@@ -2579,31 +2582,33 @@ static int run_farm_rules_gen_nat(struct sbuffer *buf, struct nftst *n, int fami
 		run_farm_rules_check_sessions(buf, n, SESSION_TYPE_STATIC, family, NFTLB_F_CHAIN_ING_FILTER, action);
 		run_farm_rules_check_sessions(buf, n, SESSION_TYPE_TIMED, family, NFTLB_F_CHAIN_ING_FILTER, action);
 
-		concat_buf(buf, " ; add rule %s %s %s", print_nft_table_family(family, NFTLB_F_CHAIN_ING_FILTER), NFTLB_TABLE_NAME, chain);
-		run_farm_log_prefix(buf, f, VALUE_LOG_INPUT, NFTLB_F_CHAIN_ING_FILTER, ACTION_START);
-		concat_buf(buf, " %s daddr set", print_nft_family(family));
-		run_farm_rules_gen_sched(buf, n, family);
-		run_farm_rules_gen_bck_map(buf, n, BCK_MAP_WEIGHT, BCK_MAP_IPADDR, NFTLB_CHECK_AVAIL);
-		concat_buf(buf, " ether daddr set %s daddr", print_nft_family(family));
-		run_farm_rules_gen_bck_map(buf, n, BCK_MAP_IPADDR, BCK_MAP_ETHADDR, NFTLB_CHECK_AVAIL);
+		if (f->bcks_available) {
+			concat_buf(buf, " ; add rule %s %s %s", print_nft_table_family(family, NFTLB_F_CHAIN_ING_FILTER), NFTLB_TABLE_NAME, chain);
+			run_farm_log_prefix(buf, f, VALUE_LOG_INPUT, NFTLB_F_CHAIN_ING_FILTER, ACTION_START);
+			concat_buf(buf, " %s daddr set", print_nft_family(family));
+			run_farm_rules_gen_sched(buf, n, family);
+			run_farm_rules_gen_bck_map(buf, n, BCK_MAP_WEIGHT, BCK_MAP_IPADDR, NFTLB_CHECK_AVAIL);
+			concat_buf(buf, " ether daddr set %s daddr", print_nft_family(family));
+			run_farm_rules_gen_bck_map(buf, n, BCK_MAP_IPADDR, BCK_MAP_ETHADDR, NFTLB_CHECK_AVAIL);
 
-		if (f->bcks_have_port) {
-			concat_buf(buf, " th dport set ether daddr");
-			run_farm_rules_gen_bck_map(buf, n, BCK_MAP_ETHADDR, BCK_MAP_PORT, NFTLB_CHECK_AVAIL);
-		}
+			if (f->bcks_have_port) {
+				concat_buf(buf, " th dport set ether daddr");
+				run_farm_rules_gen_bck_map(buf, n, BCK_MAP_ETHADDR, BCK_MAP_PORT, NFTLB_CHECK_AVAIL);
+			}
 
-		// TODO: support of different output interfaces per backend during saddr
-		concat_buf(buf, " ether saddr set %s", f->oethaddr);
+			// TODO: support of different output interfaces per backend during saddr
+			concat_buf(buf, " ether saddr set %s", f->oethaddr);
 
-		run_farm_rules_update_sessions(buf, n, family, chain, action);
+			run_farm_rules_update_sessions(buf, n, family, chain, action);
 
-		run_farm_log_prefix(buf, f, VALUE_LOG_OUTPUT, NFTLB_F_CHAIN_ING_DNAT, ACTION_START);
-		concat_buf(buf, " fwd to");
-		if (f->bcks_have_if) {
-			concat_buf(buf, " ether daddr");
-			run_farm_rules_gen_bck_map(buf, n, BCK_MAP_ETHADDR, BCK_MAP_OFACE, NFTLB_CHECK_AVAIL);
-		} else {
-			concat_buf(buf, " %s", f->oface);
+			run_farm_log_prefix(buf, f, VALUE_LOG_OUTPUT, NFTLB_F_CHAIN_ING_DNAT, ACTION_START);
+			concat_buf(buf, " fwd to");
+			if (f->bcks_have_if) {
+				concat_buf(buf, " ether daddr");
+				run_farm_rules_gen_bck_map(buf, n, BCK_MAP_ETHADDR, BCK_MAP_OFACE, NFTLB_CHECK_AVAIL);
+			} else {
+				concat_buf(buf, " %s", f->oface);
+			}
 		}
 		concat_exec_cmd(buf, "");
 		break;
