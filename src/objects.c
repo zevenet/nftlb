@@ -649,7 +649,7 @@ int obj_set_attribute(struct config_pair *c, int actionable, int apply_action)
 		break;
 	default:
 		tools_printlog(LOG_ERR, "%s():%d: unknown level %d", __FUNCTION__, __LINE__, c->level);
-		return PARSER_FAILED;
+		return PARSER_STRUCT_FAILED;
 	}
 
 	return ret;

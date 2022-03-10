@@ -101,6 +101,23 @@ static struct nftlb_server nftserver = {
 	.port	= NULL,
 };
 
+static int parse_to_http_status(int code)
+{
+	switch (code) {
+	case PARSER_OK:
+	case PARSER_IDEM_VALUE:
+		return WS_HTTP_200;
+	case PARSER_STRUCT_FAILED:
+	case PARSER_VALID_FAILED:
+		return WS_HTTP_400;
+	case PARSER_OBJ_UNKNOWN:
+		return WS_HTTP_404;
+	case PARSER_FAILED:
+	default:
+		return WS_HTTP_500;
+	}
+}
+
 static int auth_key(const char *recvkey)
 {
 	return (strcmp(nftserver.key, recvkey) == 0);
@@ -144,7 +161,7 @@ static int get_request(int fd, struct sbuffer *buf, struct nftlb_http_state *sta
 	} else if (strncmp(method, STR_DELETE_ACTION, 6) == 0) {
 		state->method = WS_DELETE_ACTION;
 	} else {
-		state->status_code = WS_HTTP_500;
+		state->status_code = parse_to_http_status(PARSER_STRUCT_FAILED);
 		return -1;
 	}
 
@@ -156,7 +173,7 @@ static int get_request(int fd, struct sbuffer *buf, struct nftlb_http_state *sta
 	state->body = strstr(get_buf_data(buf), "\r\n\r\n");
 	if (!state->body) {
 		tools_printlog(LOG_ERR, "Not found body section in the request");
-		state->status_code = WS_HTTP_400;
+		state->status_code = parse_to_http_status(PARSER_STRUCT_FAILED);
 		return -1;
 	}
 	state->body += 4;
@@ -209,7 +226,7 @@ static int init_http_state(struct nftlb_http_state *state)
 {
 	state->body_response = malloc(SRV_MAX_BUF);
 	if (!state->body_response) {
-		state->status_code = WS_HTTP_500;
+		state->status_code = parse_to_http_status(PARSER_STRUCT_FAILED);
 		return -1;
 	}
 
@@ -229,45 +246,30 @@ static int send_get_response(struct nftlb_http_state *state)
 	char secondlevel[SRV_MAX_IDENT] = {0};
 	char thirdlevel[SRV_MAX_IDENT] = {0};
 	char fourthlevel[SRV_MAX_IDENT] = {0};
+	int ret = PARSER_STRUCT_FAILED;
 
 	sscanf(state->uri, "/%199[^/]/%199[^/]/%199[^/]/%199[^\n]",
 	       firstlevel, secondlevel, thirdlevel, fourthlevel);
 
 	if (strcmp(firstlevel, CONFIG_KEY_FARMS) == 0) {
 
-		if (strcmp(thirdlevel, CONFIG_KEY_SESSIONS) == 0 &&
-			config_print_farm_sessions(&state->body_response, secondlevel) == 0) {
-				state->status_code = WS_HTTP_200;
-				return 0;
-		}
+		if (strcmp(thirdlevel, CONFIG_KEY_SESSIONS) == 0)
+			ret = config_print_farm_sessions(&state->body_response, secondlevel);
+		else if (strcmp(thirdlevel, "") == 0)
+			ret = config_print_farms(&state->body_response, secondlevel);
 
-		if (strcmp(thirdlevel, "") == 0 &&
-			config_print_farms(&state->body_response, secondlevel) == 0) {
-				state->status_code = WS_HTTP_200;
-				return 0;
-		}
+	} else if (strcmp(firstlevel, CONFIG_KEY_POLICIES) == 0)
+		ret = config_print_policies(&state->body_response, secondlevel);
 
+	else if (strcmp(firstlevel, CONFIG_KEY_ADDRESSES) == 0)
+		ret = config_print_addresses(&state->body_response, secondlevel);
+
+	state->status_code = parse_to_http_status(ret);
+	if (ret) {
 		config_print_response(&state->body_response, "%s%s", "invalid request",
-								config_get_output());
+							  config_get_output());
 		config_delete_output();
-		state->status_code = WS_HTTP_404;
-		return 0;
-
-	} else if (strcmp(firstlevel, CONFIG_KEY_POLICIES) == 0 &&
-			   config_print_policies(&state->body_response, secondlevel) == 0) {
-		state->status_code = WS_HTTP_200;
-		return 0;
-
-	} else if (strcmp(firstlevel, CONFIG_KEY_ADDRESSES) == 0 &&
-			   config_print_addresses(&state->body_response, secondlevel) == 0) {
-		state->status_code = WS_HTTP_200;
-		return 0;
 	}
-
-	config_print_response(&state->body_response, "%s%s", "invalid request",
-							config_get_output());
-	config_delete_output();
-	state->status_code = WS_HTTP_404;
 	return 0;
 }
 
@@ -278,7 +280,8 @@ static int send_delete_response(struct nftlb_http_state *state)
 	char thirdlevel[SRV_MAX_IDENT] = {0};
 	char fourthlevel[SRV_MAX_IDENT] = {0};
 	char fifthlevel[SRV_MAX_IDENT] = {0};
-	int ret;
+	char message[SRV_MAX_IDENT] = {0};
+	int ret = PARSER_OK;
 
 	sscanf(state->uri, "/%199[^/]/%199[^/]/%199[^/]/%199[^/]/%199[^\n]",
 	       firstlevel, secondlevel, thirdlevel, fourthlevel, fifthlevel);
@@ -286,59 +289,39 @@ static int send_delete_response(struct nftlb_http_state *state)
 	if (strcmp(firstlevel, CONFIG_KEY_FARMS) != 0 &&
 		strcmp(firstlevel, CONFIG_KEY_POLICIES) != 0 &&
 		strcmp(firstlevel, CONFIG_KEY_ADDRESSES) != 0) {
-		config_print_response(&state->body_response, "%s%s", "invalid request",
-								config_get_output());
-		config_delete_output();
-		state->status_code = WS_HTTP_404;
-		return 0;
+		snprintf(message, SRV_MAX_IDENT, "%s", "invalid request");
+		ret = PARSER_OBJ_UNKNOWN;
+		goto delete_end;
 	}
 
+	snprintf(message, SRV_MAX_IDENT, "%s", "success");
 	if (strlen(state->body) == 0) {
 
 		if (strcmp(firstlevel, CONFIG_KEY_FARMS) == 0 &&
 			strcmp(thirdlevel, CONFIG_KEY_BCKS) == 0 &&
 			strcmp(fifthlevel, CONFIG_KEY_SESSIONS) == 0) {
 			ret = config_set_session_backend_action(secondlevel, fourthlevel, CONFIG_VALUE_ACTION_DELETE);
-			if (ret < 0) {
-				config_print_response(&state->body_response, "%s%s", "error deleting sessions from backend",
-										config_get_output());
-				config_delete_output();
-				state->status_code = WS_HTTP_500;
-				goto delete_end;
-			}
+			if (ret)
+				snprintf(message, SRV_MAX_IDENT, "%s", "error deleting sessions from backend");
 
 		} else if (strcmp(firstlevel, CONFIG_KEY_FARMS) == 0 &&
 			strcmp(thirdlevel, CONFIG_KEY_BCKS) == 0) {
 			ret = config_set_backend_action(secondlevel, fourthlevel, CONFIG_VALUE_ACTION_DELETE);
-			if (ret < 0) {
-				config_print_response(&state->body_response, "%s%s", "error deleting backend",
-										config_get_output());
-				config_delete_output();
-				state->status_code = WS_HTTP_500;
-				goto delete_end;
-			}
+			if (ret)
+				snprintf(message, SRV_MAX_IDENT, "%s", "error deleting backend");
 
 		} else if (strcmp(firstlevel, CONFIG_KEY_FARMS) == 0 &&
 			strcmp(thirdlevel, CONFIG_KEY_SESSIONS) == 0) {
 			ret = config_set_session_action(secondlevel, fourthlevel, CONFIG_VALUE_ACTION_STOP);
-			if (ret < 0) {
-				config_print_response(&state->body_response, "%s%s", "error deleting session",
-										config_get_output());
-				config_delete_output();
-				state->status_code = WS_HTTP_500;
-				goto delete_end;
-			}
+			if (ret)
+				snprintf(message, SRV_MAX_IDENT, "%s", "error deleting session");
 
 		} else if (strcmp(firstlevel, CONFIG_KEY_FARMS) == 0 &&
 			strcmp(thirdlevel, CONFIG_KEY_ADDRESSES) == 0) {
 			config_set_farm_action(secondlevel, CONFIG_VALUE_ACTION_RELOAD);
 			ret = config_set_farmaddress_action(secondlevel, fourthlevel, CONFIG_VALUE_ACTION_STOP);
-			ret = 1;
-			if (ret < 0) {
-				config_print_response(&state->body_response, "%s%s", "error deleting farm address",
-										config_get_output());
-				config_delete_output();
-				state->status_code = WS_HTTP_500;
+			if (ret) {
+				snprintf(message, SRV_MAX_IDENT, "%s", "error deleting farm address");
 				goto delete_end;
 			}
 			obj_rulerize(OBJ_START);
@@ -348,26 +331,19 @@ static int send_delete_response(struct nftlb_http_state *state)
 				   strcmp(thirdlevel, CONFIG_KEY_POLICIES) == 0) {
 			config_set_farm_action(secondlevel, CONFIG_VALUE_ACTION_RELOAD);
 			ret = config_set_fpolicy_action(secondlevel, fourthlevel, CONFIG_VALUE_ACTION_STOP);
-			ret = 1;
-			if (ret < 0) {
-				config_print_response(&state->body_response, "%s%s", "error deleting farm policy",
-										config_get_output());
-				config_delete_output();
-				state->status_code = WS_HTTP_500;
+			if (ret) {
+				snprintf(message, SRV_MAX_IDENT, "%s", "error deleting farm policy");
 				goto delete_end;
 			}
 			obj_rulerize(OBJ_START);
-
 			config_set_farm_action(secondlevel, CONFIG_VALUE_ACTION_RELOAD);
 			config_set_fpolicy_action(secondlevel, fourthlevel, CONFIG_VALUE_ACTION_DELETE);
+
 		} else if (strcmp(firstlevel, CONFIG_KEY_POLICIES) == 0 &&
 				   strcmp(thirdlevel, CONFIG_KEY_ELEMENTS) == 0) {
 			ret = config_get_elements(secondlevel);
-			if (ret != 0) {
-				config_print_response(&state->body_response, "%s%s", "could not get the policy elements",
-										config_get_output());
-				config_delete_output();
-				state->status_code = WS_HTTP_500;
+			if (ret) {
+				snprintf(message, SRV_MAX_IDENT, "%s", "could not get the policy elements");
 				goto delete_end;
 			}
 
@@ -379,11 +355,8 @@ static int send_delete_response(struct nftlb_http_state *state)
 			}
 
 			ret = config_set_element_action(secondlevel, fourthlevel, CONFIG_VALUE_ACTION_STOP);
-			if (ret < 0) {
-				config_print_response(&state->body_response, "%s%s", "error deleting policy element",
-										config_get_output());
-				config_delete_output();
-				state->status_code = WS_HTTP_500;
+			if (ret) {
+				snprintf(message, SRV_MAX_IDENT, "%s", "error deleting policy element");
 				config_delete_elements(secondlevel);
 				goto delete_end;
 			}
@@ -397,11 +370,8 @@ static int send_delete_response(struct nftlb_http_state *state)
 		} else if (strcmp(firstlevel, CONFIG_KEY_FARMS) == 0 &&
 				   strcmp(thirdlevel, "") == 0) {
 			ret = config_set_farm_action(secondlevel, CONFIG_VALUE_ACTION_STOP);
-			if (ret < 0) {
-				config_print_response(&state->body_response, "%s%s", "error deleting farm",
-										config_get_output());
-				config_delete_output();
-				state->status_code = WS_HTTP_500;
+			if (ret) {
+				snprintf(message, SRV_MAX_IDENT, "%s", "error deleting farm");
 				goto delete_end;
 			}
 			obj_rulerize(OBJ_START);
@@ -411,154 +381,108 @@ static int send_delete_response(struct nftlb_http_state *state)
 				   strcmp(thirdlevel, "") == 0) {
 
 			ret = config_set_policy_action(secondlevel, CONFIG_VALUE_ACTION_STOP);
-			if (ret < 0) {
-				config_print_response(&state->body_response, "%s%s", "error stopping policy",
-										config_get_output());
-				config_delete_output();
-				state->status_code = WS_HTTP_500;
+			if (ret) {
+				snprintf(message, SRV_MAX_IDENT, "%s", "error stopping policy");
 				goto delete_end;
 			}
 			obj_rulerize(OBJ_START_INV);
 
 			ret = config_set_policy_action(secondlevel, CONFIG_VALUE_ACTION_DELETE);
-			if (ret < 0) {
-				config_print_response(&state->body_response, "%s%s", "error deleting policy",
-										config_get_output());
-				config_delete_output();
-				state->status_code = WS_HTTP_500;
-				goto delete_end;
-			}
+			if (ret)
+				snprintf(message, SRV_MAX_IDENT, "%s", "error deleting policy");
 
 		} else if (strcmp(firstlevel, CONFIG_KEY_ADDRESSES) == 0 &&
 				   strcmp(thirdlevel, "") == 0) {
 
 			ret = config_set_address_action(secondlevel, CONFIG_VALUE_ACTION_STOP);
-			if (ret < 0) {
-				config_print_response(&state->body_response, "%s%s", "error stopping address",
-										config_get_output());
-				config_delete_output();
-				state->status_code = WS_HTTP_500;
+			if (ret) {
+				snprintf(message, SRV_MAX_IDENT, "%s", "error stopping address");
 				goto delete_end;
 			}
 			obj_rulerize(OBJ_START_INV);
 
 			ret = config_set_address_action(secondlevel, CONFIG_VALUE_ACTION_DELETE);
-			if (ret < 0) {
-				config_print_response(&state->body_response, "%s%s", "error deleting address",
-										config_get_output());
-				config_delete_output();
-				state->status_code = WS_HTTP_500;
-				goto delete_end;
-			}
+			if (ret)
+				snprintf(message, SRV_MAX_IDENT, "%s", "error deleting address");
 
 		} else {
-			config_print_response(&state->body_response, "%s%s", "invalid request",
-									config_get_output());
-			config_delete_output();
-			state->status_code = WS_HTTP_404;
-			return 0;
+			snprintf(message, SRV_MAX_IDENT, "%s", "invalid request");
+			ret = PARSER_STRUCT_FAILED;
 		}
 
 	} else {
 
-		switch (config_buffer(state->body, ACTION_STOP)) {
+		ret = config_buffer(state->body, ACTION_STOP);
+		switch (ret) {
 		case PARSER_OK:
 			break;
 		case PARSER_STRUCT_FAILED:
-			config_print_response(&state->body_response, "%s%s",
-						  "the structure is invalid", config_get_output());
-			config_delete_output();
-			state->status_code = WS_HTTP_400;
+			snprintf(message, SRV_MAX_IDENT, "%s", "the structure is invalid");
 			goto delete_end;
-			break;
 		case PARSER_OBJ_UNKNOWN:
-			config_print_response(&state->body_response, "%s%s",
-						  "the object to modify is unknown", config_get_output());
-			config_delete_output();
-			state->status_code = WS_HTTP_400;
+			snprintf(message, SRV_MAX_IDENT, "%s", "the object to modify is unknown");
 			goto delete_end;
-			break;
 		default:
-			config_print_response(&state->body_response, "%s%s",
-						  "error parsing buffer", config_get_output());
-			config_delete_output();
-			state->status_code = WS_HTTP_400;
+			snprintf(message, SRV_MAX_IDENT, "%s", "error parsing buffer");
 			goto delete_end;
-			break;
 		}
 
-		if (obj_rulerize(OBJ_START) != 0) {
-			config_print_response(&state->body_response, "%s%s", "error generating rules",
-									config_get_output());
-			config_delete_output();
-			state->status_code = WS_HTTP_500;
-			goto delete_end;
+		if (obj_rulerize(OBJ_START)) {
+			snprintf(message, SRV_MAX_IDENT, "%s", "error generating rules");
+			ret = PARSER_FAILED;
 		}
 	}
 
-	config_print_response(&state->body_response, "%s%s", "success", config_get_output());
-	config_delete_output();
-	state->status_code = WS_HTTP_200;
-
 delete_end:
+	config_print_response(&state->body_response, "%s%s", message, config_get_output());
+	config_delete_output();
+	state->status_code = parse_to_http_status(ret);
+
 	return 0;
 }
 
 static int send_post_response(struct nftlb_http_state *state)
 {
 	char firstlevel[SRV_MAX_IDENT] = {0};
+	char message[SRV_MAX_IDENT] = {0};
+	int ret = 0;
 
 	sscanf(state->uri, "/%199[^\n]", firstlevel);
 
 	if ((strcmp(firstlevel, CONFIG_KEY_FARMS) != 0) &&
 		(strcmp(firstlevel, CONFIG_KEY_POLICIES) != 0) &&
 		(strcmp(firstlevel, CONFIG_KEY_ADDRESSES) != 0)) {
-		config_print_response(&state->body_response, "%s%s", "invalid request",
-								config_get_output());
-		config_delete_output();
-		state->status_code = WS_HTTP_404;
-		return 0;
+		snprintf(message, SRV_MAX_IDENT, "%s", "invalid request");
+		ret = PARSER_OBJ_UNKNOWN;
+		goto post_end;
 	}
 
-	switch (config_buffer(state->body, ACTION_START)) {
+	snprintf(message, SRV_MAX_IDENT, "%s", "success");
+	ret = config_buffer(state->body, ACTION_START);
+	switch (ret) {
 	case PARSER_OK:
 		break;
 	case PARSER_STRUCT_FAILED:
-		config_print_response(&state->body_response, "%s%s",
-				      "the structure is invalid", config_get_output());
-		config_delete_output();
-		state->status_code = WS_HTTP_400;
+		snprintf(message, SRV_MAX_IDENT, "%s", "the structure is invalid");
 		goto post_end;
-		break;
 	case PARSER_OBJ_UNKNOWN:
-		config_print_response(&state->body_response, "%s%s",
-				      "the object to modify is unknown", config_get_output());
-		config_delete_output();
-		state->status_code = WS_HTTP_400;
+		snprintf(message, SRV_MAX_IDENT, "%s", "the object to modify is unknown");
 		goto post_end;
-		break;
 	default:
-		config_print_response(&state->body_response, "%s%s",
-				      "error parsing buffer", config_get_output());
-		config_delete_output();
-		state->status_code = WS_HTTP_400;
-		goto post_end;
-		break;
-	}
-
-	if (obj_rulerize(OBJ_START) != 0) {
-		config_print_response(&state->body_response, "%s%s", "error generating rules",
-								config_get_output());
-		config_delete_output();
-		state->status_code = WS_HTTP_500;
+		snprintf(message, SRV_MAX_IDENT, "%s", "error parsing buffer");
 		goto post_end;
 	}
 
-	config_print_response(&state->body_response, "%s%s", "success", config_get_output());
-	config_delete_output();
-	state->status_code = WS_HTTP_200;
+	if (obj_rulerize(OBJ_START)) {
+		snprintf(message, SRV_MAX_IDENT, "%s", "error generating rules");
+		ret = PARSER_FAILED;
+	}
 
 post_end:
+	config_print_response(&state->body_response, "%s%s", message, config_get_output());
+	config_delete_output();
+	state->status_code = parse_to_http_status(ret);
+
 	return 0;
 }
 

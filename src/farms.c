@@ -644,7 +644,7 @@ static int farm_set_helper(struct farm *f, int new_value)
 	syslog(LOG_DEBUG, "%s():%d: farm %s old helper %d new helper %d", __FUNCTION__, __LINE__, f->name, old_value, new_value);
 
 	if (farmaddress_s_validate_helper(f, new_value))
-		return PARSER_FAILED;
+		return PARSER_VALID_FAILED;
 
 	f->helper = new_value;
 	return PARSER_OK;
@@ -1042,7 +1042,7 @@ int farm_set_attribute(struct config_pair *c)
 		if (!f) {
 			f = farm_create(c->str_value);
 			if (!f)
-				return -1;
+				return PARSER_FAILED;
 		}
 		obj_set_current_farm(f);
 		obj_set_current_farmaddress(NULL);

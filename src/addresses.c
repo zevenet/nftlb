@@ -410,7 +410,7 @@ int address_set_attribute(struct config_pair *c)
 		if (!a) {
 			a = address_create(c->str_value);
 			if (!a)
-				return -1;
+				return PARSER_FAILED;
 		}
 		obj_set_current_address(a);
 		ret = PARSER_OK;

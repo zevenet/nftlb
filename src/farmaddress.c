@@ -320,13 +320,13 @@ int farmaddress_s_validate_helper(struct farm *f, int new_value)
 
 	list_for_each_entry(fa, &f->addresses, list) {
 		if ((new_value == VALUE_HELPER_FTP || new_value == VALUE_HELPER_PPTP) && (fa->address->protocol != VALUE_PROTO_TCP))
-			return PARSER_FAILED;
+			return PARSER_VALID_FAILED;
 
 		if ((new_value == VALUE_HELPER_TFTP || new_value == VALUE_HELPER_SNMP) && (fa->address->protocol != VALUE_PROTO_UDP))
-			return PARSER_FAILED;
+			return PARSER_VALID_FAILED;
 
 		if (new_value == VALUE_HELPER_SIP && fa->address->protocol == VALUE_PROTO_SCTP)
-			return PARSER_FAILED;
+			return PARSER_VALID_FAILED;
 	}
 
 	return PARSER_OK;

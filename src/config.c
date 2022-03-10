@@ -314,7 +314,7 @@ static int config_value_ratelimit(int *int_value, int *int_unit, const char *val
 	else {
 		config_set_output(". Parsing unknown value '%s' in '%s'", value, CONFIG_KEY_LOG_RTLIMIT);
 		tools_printlog(LOG_ERR, "%s():%d: parsing unknown value '%s' in '%s'", __FUNCTION__, __LINE__, value, CONFIG_KEY_LOG_RTLIMIT);
-		return PARSER_FAILED;
+		return PARSER_VALID_FAILED;
 	}
 
 	return PARSER_OK;
@@ -753,7 +753,7 @@ int config_file(const char *file)
 		json_decref(root);
 	} else {
 		tools_printlog(LOG_ERR, "Configuration file error '%s' on line %d: %s", file, error.line, error.text);
-		ret = PARSER_FAILED;
+		ret = PARSER_STRUCT_FAILED;
 	}
 
 	fclose(fd);
@@ -797,7 +797,7 @@ int config_buffer(const char *buf, int apply_action)
 		json_decref(root);
 	} else {
 		tools_printlog(LOG_ERR, "Configuration error on line %d: %s", error.line, error.text);
-		ret = PARSER_FAILED;
+		ret = PARSER_STRUCT_FAILED;
 	}
 
 	return ret;
@@ -1126,11 +1126,11 @@ int config_print_farm_sessions(char **buf, char *name)
 	struct farm *f;
 
 	if (!name || strcmp(name, "") == 0)
-		return -1;
+		return PARSER_STRUCT_FAILED;
 
 	f = farm_lookup_by_name(name);
 	if (!f)
-		return -1;
+		return PARSER_OBJ_UNKNOWN;
 
 	jdata_cont = add_dump_list(jdata, CONFIG_KEY_SESSIONS, LEVEL_SESSIONS, &f->static_sessions, name);
 	continue_obj = 1;
@@ -1144,9 +1144,9 @@ int config_print_farm_sessions(char **buf, char *name)
 	session_s_delete(f, SESSION_TYPE_TIMED);
 
 	if (*buf == NULL)
-		return -1;
+		return PARSER_FAILED;
 
-	return 0;
+	return PARSER_OK;
 }
 
 int config_print_policies(char **buf, char *name)
@@ -1161,9 +1161,9 @@ int config_print_policies(char **buf, char *name)
 	json_decref(jdata);
 
 	if (*buf == NULL)
-		return -1;
+		return PARSER_FAILED;
 
-	return 0;
+	return PARSER_OK;
 }
 
 int config_set_farm_action(const char *name, const char *value)
@@ -1171,15 +1171,15 @@ int config_set_farm_action(const char *name, const char *value)
 	struct farm *f;
 
 	if (!name || strcmp(name, "") == 0)
-		return farm_s_set_action(config_value_action(value));
+		return (farm_s_set_action(config_value_action(value)) >= 0) ? PARSER_OK : PARSER_FAILED;
 
 	f = farm_lookup_by_name(name);
 	if (!f) {
 		config_set_output(". Unknown farm '%s'", name);
-		return -1;
+		return PARSER_OBJ_UNKNOWN;
 	}
 
-	return farm_set_action(f, config_value_action(value));
+	return (farm_set_action(f, config_value_action(value)) >= 0) ? PARSER_OK : PARSER_FAILED;
 }
 
 int config_set_session_backend_action(const char *fname, const char *bname, const char *value)
@@ -1189,26 +1189,26 @@ int config_set_session_backend_action(const char *fname, const char *bname, cons
 	int ret = 0;
 
 	if (!fname || strcmp(fname, "") == 0)
-		return -1;
+		return PARSER_STRUCT_FAILED;
 
 	if (!bname || strcmp(bname, "") == 0)
-		return -1;
+		return PARSER_STRUCT_FAILED;
 
 	f = farm_lookup_by_name(fname);
 	if (!f) {
 		config_set_output(". Unknown farm '%s'", fname);
-		return -1;
+		return PARSER_OBJ_UNKNOWN;
 	}
 
 	if (f->persistence == VALUE_META_NONE) {
 		config_set_output(". Farm '%s' without session persistence", fname);
-		return -1;
+		return PARSER_VALID_FAILED;
 	}
 
 	b = backend_lookup_by_key(f, KEY_NAME, bname, 0);
 	if (!b) {
 		config_set_output(". Unknown backend '%s' in farm '%s'", bname, fname);
-		return -1;
+		return PARSER_OBJ_UNKNOWN;
 	}
 
 	session_get_timed(f);
@@ -1231,12 +1231,12 @@ int config_set_backend_action(const char *fname, const char *bname, const char *
 	int ret = 0;
 
 	if (!fname || strcmp(fname, "") == 0)
-		return -1;
+		return PARSER_STRUCT_FAILED;
 
 	f = farm_lookup_by_name(fname);
 	if (!f) {
 		config_set_output(". Unknown farm '%s'", fname);
-		return -1;
+		return PARSER_OBJ_UNKNOWN;
 	}
 
 	session_get_timed(f);
@@ -1249,15 +1249,15 @@ int config_set_backend_action(const char *fname, const char *bname, const char *
 	b = backend_lookup_by_key(f, KEY_NAME, bname, 0);
 	if (!b) {
 		config_set_output(". Unknown backend '%s' in farm '%s'", bname, fname);
-		ret = -1;
-		goto out;
+		session_s_delete(f, SESSION_TYPE_TIMED);
+		return PARSER_OBJ_UNKNOWN;
 	}
 
 	ret = backend_set_action(b, config_value_action(value));
 
 out:
 	session_s_delete(f, SESSION_TYPE_TIMED);
-	return ret;
+	return (ret >= 0) ? PARSER_OK : PARSER_FAILED;
 }
 
 int config_set_session_action(const char *fname, const char *sname, const char *value)
@@ -1272,13 +1272,13 @@ int config_set_session_action(const char *fname, const char *sname, const char *
 
 	if (!fname || strcmp(fname, "") == 0) {
 		config_set_output(". Please select a valid farm");
-		return -1;
+		return PARSER_STRUCT_FAILED;
 	}
 
 	f = farm_lookup_by_name(fname);
 	if (!f) {
 		config_set_output(". Unknown farm '%s'", fname);
-		return -1;
+		return PARSER_OBJ_UNKNOWN;
 	}
 
 	if (!sname || strcmp(sname, "") == 0) {
@@ -1305,11 +1305,11 @@ int config_set_session_action(const char *fname, const char *sname, const char *
 			ret = session_set_action(s, SESSION_TYPE_TIMED, action);
 			goto apply;
 		}
-		return 0;
+		return PARSER_OK;
 	}
 
 	config_set_output(". Unknown session '%s' in farm '%s'", sname, fname);
-	return -1;
+	return PARSER_OBJ_UNKNOWN;
 
 apply:
 	if (ret > 0) {
@@ -1319,16 +1319,16 @@ apply:
 
 	if (timed) {
 		session_s_delete(f, SESSION_TYPE_TIMED);
-		return 0;
+		return PARSER_OK;
 	}
 
 	if (action != ACTION_STOP)
-		return 0;
+		return PARSER_OK;
 
 	if (!s)
-		return session_s_set_action(f, ACTION_DELETE);
+		return (session_s_set_action(f, ACTION_DELETE) >= 0) ? PARSER_OK : PARSER_FAILED;
 
-	return session_set_action(s, SESSION_TYPE_STATIC, ACTION_DELETE);
+	return (session_set_action(s, SESSION_TYPE_STATIC, ACTION_DELETE) >= 0) ? PARSER_OK : PARSER_FAILED;
 }
 
 int config_set_fpolicy_action(const char *fname, const char *fpname, const char *value)
@@ -1338,13 +1338,13 @@ int config_set_fpolicy_action(const char *fname, const char *fpname, const char 
 
 	if (!fname || strcmp(fname, "") == 0) {
 		config_set_output(". Please select a valid farm");
-		return -1;
+		return PARSER_STRUCT_FAILED;
 	}
 
 	f = farm_lookup_by_name(fname);
 	if (!f) {
 		config_set_output(". Unknown farm '%s'", fname);
-		return -1;
+		return PARSER_OBJ_UNKNOWN;
 	}
 
 	if (!fpname || strcmp(fpname, "") == 0)
@@ -1353,12 +1353,12 @@ int config_set_fpolicy_action(const char *fname, const char *fpname, const char 
 	fp = farmpolicy_lookup_by_name(f, fpname);
 	if (!fp) {
 		config_set_output(". Unknown farm policy '%s' in farm '%s'", fpname, fname);
-		return -1;
+		return PARSER_OBJ_UNKNOWN;
 	}
 
 	farmpolicy_set_action(fp, config_value_action(value));
 
-	return 0;
+	return PARSER_OK;
 }
 
 int config_set_policy_action(const char *name, const char *value)
@@ -1366,15 +1366,15 @@ int config_set_policy_action(const char *name, const char *value)
 	struct policy *p;
 
 	if (!name || strcmp(name, "") == 0)
-		return policy_s_set_action(config_value_action(value));
+		return (policy_s_set_action(config_value_action(value)) >= 0) ? PARSER_OK : PARSER_FAILED;
 
 	p = policy_lookup_by_name(name);
 	if (!p) {
 		config_set_output(". Unknown policy '%s'", name);
-		return -1;
+		return PARSER_OBJ_UNKNOWN;
 	}
 
-	return policy_set_action(p, config_value_action(value));
+	return (policy_set_action(p, config_value_action(value)) >= 0) ? PARSER_OK : PARSER_FAILED;
 }
 
 int config_set_element_action(const char *pname, const char *edata, const char *value)
@@ -1384,25 +1384,25 @@ int config_set_element_action(const char *pname, const char *edata, const char *
 
 	if (!pname || strcmp(pname, "") == 0) {
 		config_set_output(". Please select a valid policy");
-		return -1;
+		return PARSER_STRUCT_FAILED;
 	}
 
 	p = policy_lookup_by_name(pname);
 	if (!p) {
 		config_set_output(". Unknown policy '%s'", pname);
-		return -1;
+		return PARSER_OBJ_UNKNOWN;
 	}
 
 	if (!edata || strcmp(edata, "") == 0)
-		return element_s_set_action(p, config_value_action(value));
+		return (element_s_set_action(p, config_value_action(value)) >= 0) ? PARSER_OK : PARSER_FAILED;
 
 	e = element_lookup_by_name(p, edata);
 	if (!e) {
 		config_set_output(". Unknown element '%s' in policy '%s'", edata, pname);
-		return -1;
+		return PARSER_OBJ_UNKNOWN;
 	}
 
-	return element_set_action(e, config_value_action(value));
+	return (element_set_action(e, config_value_action(value)) >= 0) ? PARSER_OK : PARSER_FAILED;
 }
 
 int config_get_elements(const char *pname)
@@ -1412,7 +1412,7 @@ int config_get_elements(const char *pname)
 	p = policy_lookup_by_name(pname);
 	if (!p) {
 		config_set_output(". Unknown policy '%s'", pname);
-		return -1;
+		return PARSER_OBJ_UNKNOWN;
 	}
 
 	return element_get_list(p);
@@ -1425,7 +1425,7 @@ int config_delete_elements(const char *pname)
 	p = policy_lookup_by_name(pname);
 	if (!p) {
 		config_set_output(". Unknown policy '%s'", pname);
-		return -1;
+		return PARSER_OBJ_UNKNOWN;
 	}
 
 	return element_s_delete(p);
@@ -1450,15 +1450,15 @@ int config_set_address_action(const char *name, const char *value)
 	struct address *a;
 
 	if (!name || strcmp(name, "") == 0)
-		return address_s_set_action(config_value_action(value));
+		return (address_s_set_action(config_value_action(value)) >= 0) ? PARSER_OK : PARSER_FAILED;
 
 	a = address_lookup_by_name(name);
 	if (!a) {
 		config_set_output(". Unknown address '%s'", name);
-		return -1;
+		return PARSER_OBJ_UNKNOWN;
 	}
 
-	return address_set_action(a, config_value_action(value));
+	return (address_set_action(a, config_value_action(value)) >= 0) ? PARSER_OK : PARSER_FAILED;
 }
 
 int config_set_farmaddress_action(const char *fname, const char *faname, const char *value)
@@ -1468,13 +1468,13 @@ int config_set_farmaddress_action(const char *fname, const char *faname, const c
 
 	if (!fname || strcmp(fname, "") == 0) {
 		config_set_output(". Please select a valid farm");
-		return -1;
+		return PARSER_STRUCT_FAILED;
 	}
 
 	f = farm_lookup_by_name(fname);
 	if (!f) {
 		config_set_output(". Unknown farm '%s'", fname);
-		return -1;
+		return PARSER_OBJ_UNKNOWN;
 	}
 
 	if (!faname || strcmp(faname, "") == 0)
@@ -1483,7 +1483,7 @@ int config_set_farmaddress_action(const char *fname, const char *faname, const c
 	fa = farmaddress_lookup_by_name(f, faname);
 	if (!fa) {
 		config_set_output(". Unknown farm address '%s' in farm '%s'", faname, fname);
-		return -1;
+		return PARSER_OBJ_UNKNOWN;
 	}
 
 	farmaddress_set_action(fa, config_value_action(value));
