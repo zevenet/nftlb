@@ -1,0 +1,33 @@
+{
+	"farms" : [
+		{
+			"name" : "lb01",
+			"state" : "up",
+			"mode" : "dsr",
+			"family" : "ipv4",
+			"virtual-addr" : "127.0.0.1",
+			"ether-addr" : "01:01:01:01:01:01",
+			"virtual-ports" : "80",
+			"protocol" : "tcp",
+			"scheduler" : "hash",
+			"backends" : [
+				{
+					"name" : "bck0",
+					"ip-addr" : "127.0.0.1",
+					"ether-addr" : "01:01:01:01:01:01",
+					"weight" : "1",
+					"priority" : "1",
+					"state" : "up"
+				},
+				{
+					"name" : "bck1",
+					"ip-addr" : "127.0.0.1",
+					"ether-addr" : "01:01:01:01:01:01",
+					"weight" : "1",
+					"priority" : "1",
+					"state" : "up"
+				}
+			]
+		}
+	]
+}
