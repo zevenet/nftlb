@@ -37,7 +37,7 @@ table netdev nftlb {
 
 	chain lb01 {
 		ip saddr @mylist add @mylist-lb01-cnt { ip saddr } jump {
-			limit rate 10/minute log prefix "policy-BL-mylist-lb01 "
+			limit rate 20/second log prefix "policy-BL-mylist-lb01 "
 			drop
 		}
 		ether type ip ether daddr set ip saddr . tcp sport map @static-sessions-lb01 ether saddr set 01:01:01:01:01:01 fwd to "lo"
