@@ -64,7 +64,7 @@ static struct farm * farm_create(char *name)
 	pfarm->log = DEFAULT_LOG;
 	pfarm->logprefix = DEFAULT_LOG_LOGPREFIX;
 	pfarm->logrtlimit = DEFAULT_LOG_RTLIMIT;
-	pfarm->logrtlimit_unit = DEFAULT_LOG_RTLIMIT_UNIT;
+	pfarm->logrtlimit_unit = DEFAULT_RTLIMIT_UNIT;
 	pfarm->mark = DEFAULT_MARK;
 	pfarm->state = DEFAULT_FARM_STATE;
 	pfarm->action = DEFAULT_ACTION;
@@ -77,9 +77,11 @@ static struct farm * farm_create(char *name)
 	pfarm->priority = DEFAULT_PRIORITY;
 	pfarm->limitsttl = DEFAULT_LIMITSTTL;
 	pfarm->newrtlimit = DEFAULT_NEWRTLIMIT;
+	pfarm->newrtlimit_unit = DEFAULT_RTLIMIT_UNIT;
 	pfarm->newrtlimitbst = DEFAULT_RTLIMITBURST;
 	pfarm->newrtlimit_logprefix = DEFAULT_LOGPREFIX;
 	pfarm->rstrtlimit = DEFAULT_RSTRTLIMIT;
+	pfarm->rstrtlimit_unit = DEFAULT_RTLIMIT_UNIT;
 	pfarm->rstrtlimitbst = DEFAULT_RTLIMITBURST;
 	pfarm->rstrtlimit_logprefix = DEFAULT_LOGPREFIX;
 	pfarm->estconnlimit = DEFAULT_ESTCONNLIMIT;
@@ -489,12 +491,14 @@ static void farm_print(struct farm *f)
 	tools_printlog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_PRIORITY, f->priority);
 
 	tools_printlog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_LIMITSTTL, f->limitsttl);
-	tools_printlog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_NEWRTLIMIT, f->newrtlimit);
+	obj_print_rtlimit(buf, f->newrtlimit, f->newrtlimit_unit);
+	tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_NEWRTLIMIT, buf);
 	tools_printlog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_NEWRTLIMITBURST, f->newrtlimitbst);
 	if (f->newrtlimit_logprefix)
 		tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_NEWRTLIMIT_LOGPREFIX, f->newrtlimit_logprefix);
 
-	tools_printlog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_RSTRTLIMIT, f->rstrtlimit);
+	obj_print_rtlimit(buf, f->rstrtlimit, f->rstrtlimit_unit);
+	tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_RSTRTLIMIT, buf);
 	tools_printlog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_RSTRTLIMITBURST, f->rstrtlimitbst);
 	if (f->rstrtlimit_logprefix)
 		tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_RSTRTLIMIT_LOGPREFIX, f->rstrtlimit_logprefix);
@@ -553,12 +557,13 @@ static int farm_set_limitsttl(struct farm *f, int new_value)
 	return PARSER_OK;
 }
 
-static int farm_set_newrtlimit(struct farm *f, int new_value)
+static int farm_set_newrtlimit(struct farm *f, int new_value, int new_unit)
 {
-	if (f->newrtlimit == new_value)
+	if (f->newrtlimit == new_value && f->newrtlimit_unit == new_unit)
 		return PARSER_OK;
 
 	f->newrtlimit = new_value;
+	f->newrtlimit_unit = new_unit;
 
 	if (f->mode == VALUE_MODE_DSR || f->mode == VALUE_MODE_STLSDNAT)
 		return PARSER_OK;
@@ -571,12 +576,13 @@ static int farm_set_newrtlimit(struct farm *f, int new_value)
 	return PARSER_OK;
 }
 
-static int farm_set_rstrtlimit(struct farm *f, int new_value)
+static int farm_set_rstrtlimit(struct farm *f, int new_value, int new_unit)
 {
 	if (f->rstrtlimit == new_value)
 		return PARSER_OK;
 
 	f->rstrtlimit = new_value;
+	f->rstrtlimit_unit = new_unit;
 
 	if (f->mode == VALUE_MODE_DSR || f->mode == VALUE_MODE_STLSDNAT)
 		return PARSER_OK;
@@ -753,13 +759,15 @@ int farm_changed(struct config_pair *c)
 		return !obj_equ_attribute_int(f->limitsttl, c->int_value);
 		break;
 	case KEY_NEWRTLIMIT:
-		return !obj_equ_attribute_int(f->newrtlimit, c->int_value);
+		return !obj_equ_attribute_int(f->newrtlimit, c->int_value) ||
+			   !obj_equ_attribute_int(f->newrtlimit_unit, c->int_value2);
 		break;
 	case KEY_NEWRTLIMITBURST:
 		return !obj_equ_attribute_int(f->newrtlimitbst, c->int_value);
 		break;
 	case KEY_RSTRTLIMIT:
-		return !obj_equ_attribute_int(f->rstrtlimit, c->int_value);
+		return !obj_equ_attribute_int(f->rstrtlimit, c->int_value) ||
+			   !obj_equ_attribute_int(f->rstrtlimit_unit, c->int_value2);
 		break;
 	case KEY_RSTRTLIMITBURST:
 		return !obj_equ_attribute_int(f->rstrtlimitbst, c->int_value);
@@ -1185,14 +1193,14 @@ int farm_set_attribute(struct config_pair *c)
 		ret = farm_set_limitsttl(f, c->int_value);
 		break;
 	case KEY_NEWRTLIMIT:
-		ret = farm_set_newrtlimit(f, c->int_value);
+		ret = farm_set_newrtlimit(f, c->int_value, c->int_value2);
 		break;
 	case KEY_NEWRTLIMITBURST:
 		f->newrtlimitbst = c->int_value;
 		ret = PARSER_OK;
 		break;
 	case KEY_RSTRTLIMIT:
-		ret = farm_set_rstrtlimit(f, c->int_value);
+		ret = farm_set_rstrtlimit(f, c->int_value, c->int_value2);
 		break;
 	case KEY_RSTRTLIMITBURST:
 		f->rstrtlimitbst = c->int_value;

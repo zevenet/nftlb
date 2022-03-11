@@ -2179,6 +2179,7 @@ static int run_farm_rules_filter_policies(struct sbuffer *buf, struct farm *f, i
 	char meter_str[NFTLB_MAX_OBJ_NAME] = { 0 };
 	char burst_str[NFTLB_MAX_OBJ_NAME] = { 0 };
 	struct nftst *n = nftst_create_from_farm(f);
+	char rtlimit_str[NFTLB_MAX_OBJ_NAME] = { 0 };
 
 	if ((action == ACTION_START || action == ACTION_RELOAD) && f->tcpstrict == VALUE_SWITCH_ON) {
 		concat_buf(buf, " ; add rule %s %s %s ct state invalid",
@@ -2194,10 +2195,10 @@ static int run_farm_rules_filter_policies(struct sbuffer *buf, struct farm *f, i
 	if ((action == ACTION_START || action == ACTION_RELOAD) && f->newrtlimit != DEFAULT_NEWRTLIMIT) {
 		if (f->newrtlimitbst != DEFAULT_RTLIMITBURST)
 			snprintf(burst_str, NFTLB_MAX_OBJ_NAME, "burst %d packets ", f->newrtlimitbst);
-		//~ concat_buf(buf, " ; add rule %s %s %s ct state new add @%s { %s saddr limit rate over %d/second %s counter }",
-		concat_buf(buf, " ; add rule %s %s %s ct state new add @%s { %s saddr limit rate over %d/second %s }",
-						print_nft_table_family(family, NFTLB_F_CHAIN_PRE_FILTER), NFTLB_TABLE_NAME, chain, meter_str, print_nft_family(family), f->newrtlimit, burst_str);
-
+		//~ concat_buf(buf, " ; add rule %s %s %s ct state new add @%s { %s saddr limit rate over %s %s counter }",
+		obj_print_rtlimit(rtlimit_str, f->newrtlimit, f->newrtlimit_unit);
+		concat_buf(buf, " ; add rule %s %s %s ct state new add @%s { %s saddr limit rate over %s %s }",
+				   print_nft_table_family(family, NFTLB_F_CHAIN_PRE_FILTER), NFTLB_TABLE_NAME, chain, meter_str, print_nft_family(family), rtlimit_str, burst_str);
 		run_farm_rules_log_and_verdict(buf, n, f->logrtlimit, f->verdict, VALUE_TYPE_DENY, KEY_NEWRTLIMIT_LOGPREFIX, NFTLB_F_CHAIN_PRE_FILTER);
 	}
 
@@ -2209,9 +2210,10 @@ static int run_farm_rules_filter_policies(struct sbuffer *buf, struct farm *f, i
 	if ((action == ACTION_START || action == ACTION_RELOAD) && f->rstrtlimit != DEFAULT_RSTRTLIMIT) {
 		if (f->rstrtlimitbst != DEFAULT_RTLIMITBURST)
 			snprintf(burst_str, NFTLB_MAX_OBJ_NAME, "burst %d packets ", f->rstrtlimitbst);
-		//~ concat_buf(buf, " ; add rule %s %s %s tcp flags rst add @%s { %s saddr limit rate over %d/second %s counter }",
-		concat_buf(buf, " ; add rule %s %s %s tcp flags rst add @%s { %s saddr limit rate over %d/second %s }",
-						print_nft_table_family(family, NFTLB_F_CHAIN_PRE_FILTER), NFTLB_TABLE_NAME, chain, meter_str, print_nft_family(family), f->rstrtlimit, burst_str);
+		//~ concat_buf(buf, " ; add rule %s %s %s tcp flags rst add @%s { %s saddr limit rate over %s %s counter }",
+		obj_print_rtlimit(rtlimit_str, f->rstrtlimit, f->rstrtlimit_unit);
+		concat_buf(buf, " ; add rule %s %s %s tcp flags rst add @%s { %s saddr limit rate over %s %s }",
+				   print_nft_table_family(family, NFTLB_F_CHAIN_PRE_FILTER), NFTLB_TABLE_NAME, chain, meter_str, print_nft_family(family), rtlimit_str, burst_str);
 		run_farm_rules_log_and_verdict(buf, n, f->logrtlimit, f->verdict, VALUE_TYPE_DENY, KEY_RSTRTLIMIT_LOGPREFIX, NFTLB_F_CHAIN_PRE_FILTER);
 	}
 

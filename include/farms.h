@@ -126,9 +126,11 @@ struct farm {
 	int			priority;
 	int			limitsttl;
 	int			newrtlimit;
+	int			newrtlimit_unit;
 	int			newrtlimitbst;
 	char		*newrtlimit_logprefix;
 	int			rstrtlimit;
+	int			rstrtlimit_unit;
 	int			rstrtlimitbst;
 	char		*rstrtlimit_logprefix;
 	int			estconnlimit;

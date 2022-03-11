@@ -95,14 +95,14 @@ Where every farm object has the following attributes:
 	"helper": "<none | ftp | pptp | sip | snmp | tftp>",	*L7 helper to be used (none by default)*
 	"log": "<none | input | forward | output>",	*Enable logging (none by default)*
 	"log-prefix": "<string|KNAME|TYPE|FNAME|ANAME>",	*Farm log prefix (default "TYPE-FNAME")*
-	"log-rtlimit": "<number>[/<second | minute | hour | day | week >]",			*Security logs rate limit per second (0/second by default)*
+	"log-rtlimit": "<number>[/<second | minute | hour | day | week >]",			*Security logs rate limit (0/second by default)*
 	"mark": "<hexadecimal mark>",			*Set mark mask for the farm (none by default)*
 	"priority": "<number>",				*Priority availability for backends > 0 (1 by default)*
 	"limits-ttl": "<number>",				*Timeout of banned client due to limit protections (120 seconds by default)*
-	"new-rtlimit": "<number>",				*Number of new connections per second per service (disabled by default)*
+	"new-rtlimit": "<number>[/<second | minute | hour | day | week >]",				*Number of new connections per service (0/second by default)*
 	"new-rtlimit-burst": "<number>",			*Number of burst packets (disabled by default)*
 	"new-rtlimit-log-prefix": "<string|KNAME|TYPE|FNAME>",	*Farm new rtlimit log prefix (default "KNAME-TYPE-FNAME")*
-	"rst-rtlimit": "<number>",				*Number of tcp resets per second allowed (disabled by default)*
+	"rst-rtlimit": "<number>[/<second | minute | hour | day | week >]",				*Number of tcp resets allowed (0/second by default)*
 	"rst-rtlimit-burst": "<number>",			*Number of burst RST packets (disabled by default)*
 	"rst-rtlimit-log-prefix": "<string|KNAME|TYPE|FNAME>",	*Farm reset rtlimit log prefix (default "KNAME-TYPE-FNAME")*
 	"est-connlimit": "<number>",				*Number of established connections allowed (disabled by default)*

@@ -293,14 +293,14 @@ static int config_value_route(const char *value)
 	return VALUE_ROUTE_IN;
 }
 
-static int config_value_ratelimit(int *int_value, int *int_unit, const char *value)
+static int config_value_ratelimit(int key, int *int_value, int *int_unit, const char *value)
 {
 	char str_unit[100];
 
 	sscanf(value, "%d%*[/]%99[a-zA-Z]", int_value, str_unit);
 
-	if (strcmp(str_unit, "") == 0)
-		*int_unit = DEFAULT_LOG_RTLIMIT_UNIT;
+	if (str_unit[0] == '\001' || strcmp(str_unit, "") == 0)
+		*int_unit = DEFAULT_RTLIMIT_UNIT;
 	else if (strcmp(str_unit, CONFIG_VALUE_UNIT_SECOND) == 0)
 		*int_unit = VALUE_UNIT_SECOND;
 	else if (strcmp(str_unit, CONFIG_VALUE_UNIT_MINUTE) == 0)
@@ -312,8 +312,8 @@ static int config_value_ratelimit(int *int_value, int *int_unit, const char *val
 	else if (strcmp(str_unit, CONFIG_VALUE_UNIT_WEEK) == 0)
 		*int_unit = VALUE_UNIT_WEEK;
 	else {
-		config_set_output(". Parsing unknown value '%s' in '%s'", value, CONFIG_KEY_LOG_RTLIMIT);
-		tools_printlog(LOG_ERR, "%s():%d: parsing unknown value '%s' in '%s'", __FUNCTION__, __LINE__, value, CONFIG_KEY_LOG_RTLIMIT);
+		config_set_output(". Parsing unknown value '%s' in '%s'", value, obj_print_key(key));
+		tools_printlog(LOG_ERR, "%s():%d: parsing unknown value '%s' in '%s'", __FUNCTION__, __LINE__, value, obj_print_key(key));
 		return PARSER_VALID_FAILED;
 	}
 
@@ -377,9 +377,7 @@ static int config_value(const char *value)
 	case KEY_RESPONSETTL:
 	case KEY_PERSISTTM:
 	case KEY_LIMITSTTL:
-	case KEY_NEWRTLIMIT:
 	case KEY_NEWRTLIMITBURST:
-	case KEY_RSTRTLIMIT:
 	case KEY_RSTRTLIMITBURST:
 	case KEY_ESTCONNLIMIT:
 	case KEY_TIMEOUT:
@@ -392,8 +390,10 @@ static int config_value(const char *value)
 		config_set_output(". Invalid value of key '%s' must be >=0", obj_print_key(c.key));
 		tools_printlog(LOG_ERR, "%s():%d: invalid value of key '%s' must be >=0", __FUNCTION__, __LINE__, obj_print_key(c.key));
 		break;
+	case KEY_NEWRTLIMIT:
+	case KEY_RSTRTLIMIT:
 	case KEY_LOG_RTLIMIT:
-		ret = config_value_ratelimit(&c.int_value, &c.int_value2, (char *)value);
+		ret = config_value_ratelimit(c.key, &c.int_value, &c.int_value2, (char *)value);
 		break;
 	case KEY_QUEUE:
 		new_int_value = atoi(value);
@@ -896,15 +896,15 @@ static struct json_t *add_dump_list(json_t *obj, const char *objname, int object
 
 			config_dump_int(value, f->limitsttl);
 			add_dump_obj(item, CONFIG_KEY_LIMITSTTL, value);
-			config_dump_int(value, f->newrtlimit);
-			add_dump_obj(item, CONFIG_KEY_NEWRTLIMIT, value);
+			obj_print_rtlimit(buf, f->newrtlimit, f->newrtlimit_unit);
+			add_dump_obj(item, CONFIG_KEY_NEWRTLIMIT, buf);
 			config_dump_int(value, f->newrtlimitbst);
 			add_dump_obj(item, CONFIG_KEY_NEWRTLIMITBURST, value);
 			if (f->newrtlimit_logprefix && strcmp(f->newrtlimit_logprefix, DEFAULT_LOGPREFIX) != 0)
 				add_dump_obj(item, CONFIG_KEY_NEWRTLIMIT_LOGPREFIX, f->newrtlimit_logprefix);
 
-			config_dump_int(value, f->rstrtlimit);
-			add_dump_obj(item, CONFIG_KEY_RSTRTLIMIT, value);
+			obj_print_rtlimit(buf, f->rstrtlimit, f->newrtlimit_unit);
+			add_dump_obj(item, CONFIG_KEY_RSTRTLIMIT, buf);
 			config_dump_int(value, f->rstrtlimitbst);
 			add_dump_obj(item, CONFIG_KEY_RSTRTLIMITBURST, value);
 			if (f->rstrtlimit_logprefix && strcmp(f->rstrtlimit_logprefix, DEFAULT_LOGPREFIX) != 0)

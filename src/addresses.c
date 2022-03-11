@@ -60,7 +60,7 @@ struct address * address_create(char *name)
 	paddress->verdict = DEFAULT_VERDICT;
 	paddress->logprefix = DEFAULT_LOG_LOGPREFIX_ADDRESS;
 	paddress->logrtlimit = DEFAULT_LOG_RTLIMIT;
-	paddress->logrtlimit_unit = DEFAULT_LOG_RTLIMIT_UNIT;
+	paddress->logrtlimit_unit = DEFAULT_RTLIMIT_UNIT;
 	paddress->policies_action = ACTION_NONE;
 
 	init_list_head(&paddress->policies);
