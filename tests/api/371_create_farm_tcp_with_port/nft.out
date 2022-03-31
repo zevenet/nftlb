@@ -58,7 +58,7 @@ table ip nftlb {
 	}
 
 	chain nat-l4farm {
-		ip protocol tcp dnat ip to ct mark map { 0x00000208 : 192.168.101.254 . 0 }
+		dnat ip to ct mark map { 0x00000208 : 192.168.101.254 . 0 }
 	}
 
 	chain forward {

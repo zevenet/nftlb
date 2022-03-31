@@ -64,7 +64,7 @@ table ip nftlb {
 	}
 
 	chain nat-tsthcmapp {
-		ip protocol tcp dnat to ct mark map { 0x00000205 : 10.222.1.75, 0x00000206 : 10.222.1.76 }
+		dnat to ct mark map { 0x00000205 : 10.222.1.75, 0x00000206 : 10.222.1.76 }
 	}
 
 	chain forward-tsthcmapp {
