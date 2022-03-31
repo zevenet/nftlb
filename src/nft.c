@@ -2616,7 +2616,13 @@ static int run_farm_rules_gen_nat(struct sbuffer *buf, struct nftst *n, int fami
 		break;
 	default:
 		run_farm_gen_log_rules(buf, f, family, chain, VALUE_LOG_INPUT, NFTLB_F_CHAIN_PRE_DNAT, ACTION_START);
-		concat_buf(buf, " ; add rule %s %s %s %s %s %s dnat", print_nft_table_family(family, NFTLB_F_CHAIN_PRE_DNAT), NFTLB_TABLE_NAME, chain, print_nft_family(family), print_nft_family_protocol(family), print_nft_protocol(nftst_get_proto(n)));
+
+		concat_buf(buf, " ; add rule %s %s %s", print_nft_table_family(family, NFTLB_F_CHAIN_PRE_DNAT), NFTLB_TABLE_NAME, chain);
+
+		if (nftst_get_proto(n) != VALUE_PROTO_ALL)
+			concat_buf(buf, " %s %s %s", print_nft_family(family), print_nft_family_protocol(family), print_nft_protocol(nftst_get_proto(n)));
+
+		concat_buf(buf, " dnat");
 
 		if (f->bcks_have_port)
 			bck_map_data = BCK_MAP_IPADDR_PORT;
@@ -2626,6 +2632,7 @@ static int run_farm_rules_gen_nat(struct sbuffer *buf, struct nftst *n, int fami
 		run_farm_rules_gen_bck_map(buf, n, BCK_MAP_MARK, bck_map_data, NFTLB_CHECK_USABLE);
 
 		concat_exec_cmd(buf, "");
+
 		break;
 	}
 
