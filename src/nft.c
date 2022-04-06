@@ -1713,8 +1713,7 @@ static int run_farm_rules_gen_sched(struct sbuffer *buf, struct nftst *n, int fa
 		concat_buf(buf, " mod %d", f->total_weight);
 		break;
 	case VALUE_SCHED_SYMHASH:
-		if (f->bcks_available != 1)	// FIXME: Control bug in nftables
-			concat_buf(buf, " symhash mod %d", f->total_weight);
+		concat_buf(buf, " symhash mod %d", f->total_weight);
 		break;
 	default:
 		return -1;
@@ -2265,9 +2264,13 @@ static int run_farm_rules_filter_marks(struct sbuffer *buf, struct nftst *n, int
 	if (action == ACTION_START || action == ACTION_RELOAD) {
 		if (f->bcks_available) {
 			concat_buf(buf, " ; add rule %s %s %s ct state new ct mark 0x0 ct mark set", print_nft_table_family(family, NFTLB_F_CHAIN_PRE_FILTER), NFTLB_TABLE_NAME, chain);
-			if (run_farm_rules_gen_sched(buf, n, family) == -1)
-				return -1;
-			run_farm_rules_gen_bck_map(buf, n, BCK_MAP_WEIGHT, BCK_MAP_MARK, NFTLB_CHECK_AVAIL);
+			if (f->scheduler == VALUE_SCHED_SYMHASH && f->bcks_available == 1) // FIXME: Control bug in nftables
+				concat_buf(buf, " 0x%x", backend_get_mark(list_first_entry(&f->backends, struct backend, list)));
+			else {
+				if (run_farm_rules_gen_sched(buf, n, family) == -1)
+					return -1;
+				run_farm_rules_gen_bck_map(buf, n, BCK_MAP_WEIGHT, BCK_MAP_MARK, NFTLB_CHECK_AVAIL);
+			}
 			run_farm_rules_gen_limits_per_bck(buf, f, family, chain, action);
 		} else if (mark != DEFAULT_MARK) {
 			concat_buf(buf, " ; add rule %s %s %s ct state new ct mark 0x0 ct mark set 0x%x", print_nft_table_family(family, NFTLB_F_CHAIN_PRE_FILTER), NFTLB_TABLE_NAME, chain, mark);
