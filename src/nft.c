@@ -2258,15 +2258,20 @@ static int run_farm_rules_gen_limits_per_bck(struct sbuffer *buf, struct farm *f
 static int run_farm_rules_filter_marks(struct sbuffer *buf, struct nftst *n, int family, char *chain, int action)
 {
 	struct farm *f = nftst_get_farm(n);
+	struct backend *b;
 
 	int mark = farm_get_mark(f);
 
 	if (action == ACTION_START || action == ACTION_RELOAD) {
 		if (f->bcks_available) {
 			concat_buf(buf, " ; add rule %s %s %s ct state new ct mark 0x0 ct mark set", print_nft_table_family(family, NFTLB_F_CHAIN_PRE_FILTER), NFTLB_TABLE_NAME, chain);
-			if (f->scheduler == VALUE_SCHED_SYMHASH && f->bcks_available == 1) // FIXME: Control bug in nftables
-				concat_buf(buf, " 0x%x", backend_get_mark(list_first_entry(&f->backends, struct backend, list)));
-			else {
+			if (f->scheduler == VALUE_SCHED_SYMHASH && f->bcks_available == 1) { // FIXME: Control bug in nftables
+				list_for_each_entry(b, &f->backends, list) {
+					if (!backend_is_available(b))
+						continue;
+					concat_buf(buf, " 0x%x", backend_get_mark(b));
+				}
+			} else {
 				if (run_farm_rules_gen_sched(buf, n, family) == -1)
 					return -1;
 				run_farm_rules_gen_bck_map(buf, n, BCK_MAP_WEIGHT, BCK_MAP_MARK, NFTLB_CHECK_AVAIL);
