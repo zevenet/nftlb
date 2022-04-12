@@ -2544,10 +2544,15 @@ static int run_nftst_rules_ingress_policies(struct sbuffer *buf, struct nftst *n
 	return 0;
 }
 
-static void get_farm_rules_nat_params(struct sbuffer *buf, struct farm *f, int family)
+static void get_farm_rules_nat_params(struct sbuffer *buf, int family, int mode)
 {
-	if (f->bcks_have_port)
+	switch (mode) {
+	case BCK_MAP_IPADDR_PORT:
 		concat_buf(buf, " %s addr . port", print_nft_family(family));
+		break;
+	default:
+		break;
+	}
 }
 
 static int run_farm_rules_gen_nat(struct sbuffer *buf, struct nftst *n, int family, int type, int action)
@@ -2632,10 +2637,10 @@ static int run_farm_rules_gen_nat(struct sbuffer *buf, struct nftst *n, int fami
 
 		concat_buf(buf, " dnat");
 
-		if (f->bcks_have_port)
+		if (f->bcks_have_port && nftst_get_proto(n) != VALUE_PROTO_ALL)
 			bck_map_data = BCK_MAP_IPADDR_PORT;
 
-		get_farm_rules_nat_params(buf, f, family);
+		get_farm_rules_nat_params(buf, family, bck_map_data);
 		concat_buf(buf, " to ct mark");
 		run_farm_rules_gen_bck_map(buf, n, BCK_MAP_MARK, bck_map_data, NFTLB_CHECK_USABLE);
 
