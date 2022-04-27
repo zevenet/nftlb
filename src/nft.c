@@ -1003,6 +1003,9 @@ static int run_nftst_rules_gen_chain(struct sbuffer *buf, struct nftst *n, int f
 
 static int run_base_chain_set_meta_mark(struct sbuffer *buf, int type, char *chain_family, char *base_chain)
 {
+
+	if (type & NFTLB_F_CHAIN_PRE_FILTER)
+		concat_exec_cmd(buf, " ; add rule %s %s %s meta mark 0x0 meta mark set ct mark", chain_family, NFTLB_TABLE_NAME, base_chain);
 	if (type & NFTLB_F_CHAIN_PRE_DNAT)
 		concat_exec_cmd(buf, " ; add rule %s %s %s ct state new meta mark 0x0 meta mark set ct mark", chain_family, NFTLB_TABLE_NAME, base_chain);
 
