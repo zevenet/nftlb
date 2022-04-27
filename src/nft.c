@@ -1001,10 +1001,10 @@ static int run_nftst_rules_gen_chain(struct sbuffer *buf, struct nftst *n, int f
 	return 0;
 }
 
-static int run_base_chain_filter_ctmark(struct sbuffer *buf, int type, char *chain_family, char *base_chain)
+static int run_base_chain_set_meta_mark(struct sbuffer *buf, int type, char *chain_family, char *base_chain)
 {
-	if (type & NFTLB_F_CHAIN_PRE_FILTER)
-		concat_exec_cmd(buf, " ; add rule %s %s %s mark set ct mark", chain_family, NFTLB_TABLE_NAME, base_chain);
+	if (type & NFTLB_F_CHAIN_PRE_DNAT)
+		concat_exec_cmd(buf, " ; add rule %s %s %s ct state new meta mark 0x0 meta mark set ct mark", chain_family, NFTLB_TABLE_NAME, base_chain);
 
 	return 0;
 }
@@ -1253,7 +1253,7 @@ static int run_base_chain(struct sbuffer *buf, struct nftst *n, int type, int fa
 			((*base_rules & NFTLB_MARK_ACTIVE) && *get_service_counter(type, NFTLB_MARK_ACTIVE, family) == 0)) {
 
 			nft_chain_handler(buf, chain_family, base_chain, NULL, NULL, NULL, 0, ACTION_RELOAD);
-			run_base_chain_filter_ctmark(buf, type, chain_family, base_chain);
+			run_base_chain_set_meta_mark(buf, type, chain_family, base_chain);
 			run_farm_map(buf, a, family, type, service, 0, 0, 0, ACTION_DELETE);
 			*base_rules &= ~NFTLB_PROTO_IP_PORT_ACTIVE & ~NFTLB_PROTO_PORT_ACTIVE & ~NFTLB_PROTO_IP_ACTIVE & ~NFTLB_MARK_ACTIVE;
 		}
@@ -1305,7 +1305,7 @@ static int run_base_chain(struct sbuffer *buf, struct nftst *n, int type, int fa
 	if ((rules_needed & NFTLB_IP_ACTIVE) && !(*base_rules & NFTLB_IP_ACTIVE)) {
 
 		nft_chain_handler(buf, chain_family, base_chain, chain_type, chain_hook, chain_device, chain_prio, ACTION_START);
-		run_base_chain_filter_ctmark(buf, type, chain_family, base_chain);
+		run_base_chain_set_meta_mark(buf, type, chain_family, base_chain);
 
 		if (type & NFTLB_F_CHAIN_POS_SNAT) {
 			get_nft_name_service(servicem, NFTLB_PROTO_IP_PORT_ACTIVE, "-m", type, family);
