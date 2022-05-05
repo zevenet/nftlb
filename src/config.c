@@ -454,7 +454,7 @@ static int config_value(const char *value)
 	case KEY_USED:
 	case KEY_COUNTER_PACKETS:
 	case KEY_COUNTER_BYTES:
-		ret = PARSER_OK;
+		ret = PARSER_IGNORE;
 		break;
 	case KEY_ROUTE:
 		c.int_value = config_value_route(value);
@@ -660,6 +660,9 @@ static int config_json_string(json_t *element, int level, int source, int apply_
 	int ret;
 
 	ret = config_value(json_string_value(element));
+
+	if (ret == PARSER_IGNORE)
+		return 0;
 
 	if (ret != PARSER_OK)
 		return ret;
