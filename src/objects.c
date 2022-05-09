@@ -531,6 +531,8 @@ char * obj_print_state(int state)
 		return CONFIG_VALUE_STATE_OFF;
 	case VALUE_STATE_CONFERR:
 		return CONFIG_VALUE_STATE_CONFERR;
+	case VALUE_STATE_AVAIL:
+		return CONFIG_VALUE_STATE_AVAIL;
 	default:
 		return NULL;
 	}

@@ -124,7 +124,7 @@ static int backend_below_prio(struct backend *b)
 {
 	struct farm *f = b->parent;
 
-	tools_printlog(LOG_DEBUG, "%s():%d: backend %s state is %s and priority %d farm prio %d",
+	tools_printlog(LOG_DEBUG, "%s():%d: backend %s state is %s and priority %d <= farm prio %d",
 				   __FUNCTION__, __LINE__, b->name, obj_print_state(b->state), b->priority, f->priority);
 
 	return (b->priority <= f->priority);
@@ -357,6 +357,7 @@ static int backend_set_priority(struct backend *b, int new_value)
 		return -1;
 
 	b->priority = new_value;
+	backend_s_gen_priority(b->parent, ACTION_RELOAD);
 
 	return 0;
 }
@@ -534,28 +535,12 @@ static int backend_set_ipaddr(struct backend *b, char *new_value)
 	return 0;
 }
 
-static int backend_is_in_maintenance(struct backend *b)
-{
-	tools_printlog(LOG_DEBUG, "%s():%d: backend %s state is %s",
-				   __FUNCTION__, __LINE__, b->name, obj_print_state(b->state));
-
-	return (b->state == VALUE_STATE_OFF);
-}
-
-static int backend_is_up(struct backend *b)
-{
-	tools_printlog(LOG_DEBUG, "%s():%d: backend %s state is %s",
-				   __FUNCTION__, __LINE__, b->name, obj_print_state(b->state));
-
-	return (b->state == VALUE_STATE_UP);
-}
-
 int backend_is_usable(struct backend *b)
 {
 	tools_printlog(LOG_DEBUG, "%s():%d: backend %s state is %s and priority %d",
 				   __FUNCTION__, __LINE__, b->name, obj_print_state(b->state), b->priority);
 
-	return (backend_validate(b) && (backend_is_up(b) || backend_is_in_maintenance(b)) && backend_below_prio(b));
+	return ((b->state == VALUE_STATE_UP || b->state == VALUE_STATE_OFF) && backend_below_prio(b));
 }
 
 int backend_no_port(struct backend *b)
@@ -647,7 +632,7 @@ int backend_is_available(struct backend *b)
 	tools_printlog(LOG_DEBUG, "%s():%d: backend %s state is %s and priority %d",
 				   __FUNCTION__, __LINE__, b->name, obj_print_state(b->state), b->priority);
 
-	return (backend_validate(b) && backend_is_up(b) && backend_below_prio(b));
+	return (backend_validate(b) && (b->state == VALUE_STATE_UP) && backend_below_prio(b));
 }
 
 int backend_set_action(struct backend *b, int action)
@@ -663,8 +648,7 @@ int backend_set_action(struct backend *b, int action)
 	}
 
 	if (action == ACTION_STOP) {
-		if (backend_is_available(b))
-		{
+		if (backend_is_available(b)) {
 			b->action = action;
 			is_actionated = 1;
 		}
@@ -674,8 +658,7 @@ int backend_set_action(struct backend *b, int action)
 	}
 
 	if (action == ACTION_START) {
-		if (!backend_is_available(b))
-		{
+		if (!backend_is_available(b)) {
 			b->action = action;
 			is_actionated = 1;
 		}
@@ -832,37 +815,55 @@ int backend_set_state(struct backend *b, int new_value)
 {
 	int old_value = b->state;
 	struct farm *f = b->parent;
-	int action = ACTION_NONE;
 
 	tools_printlog(LOG_DEBUG, "%s():%d: backend %s current value is %s, but new value will be %s",
 				   __FUNCTION__, __LINE__, b->name, obj_print_state(old_value), obj_print_state(new_value));
 
+	if (new_value == VALUE_STATE_UP) {
+		if (!backend_validate(b)) {
+			new_value = VALUE_STATE_CONFERR;
+		}
+
+		if (!backend_below_prio(b))
+			new_value = VALUE_STATE_AVAIL;
+	}
+
 	if (old_value == new_value)
 		return 0;
 
+	b->state = new_value;
+
 	switch (new_value) {
+	case VALUE_STATE_CONFERR:
+	case VALUE_STATE_OFF:
+		if (old_value == VALUE_STATE_UP)
+			b->action = ACTION_STOP;
+		break;
+	case VALUE_STATE_AVAIL:
+		if (old_value == VALUE_STATE_UP)
+			b->action = ACTION_STOP;
+		return 0;
 	case VALUE_STATE_UP:
-		b->state = new_value;
-		if (!backend_validate(b)) {
-			b->state = VALUE_STATE_CONFERR;
-			return 0;
-		}
-		if (backend_is_usable(b)) {
-			backend_switch(b, old_value);
-			action = ACTION_STOP;
-		}
+		if (f->persistence != VALUE_META_NONE)
+			session_backend_action(f, b, ACTION_START);
+		if (old_value == VALUE_STATE_OFF)
+			b->action = ACTION_RELOAD;
+		else
+			b->action = ACTION_START;
+		break;
+	case VALUE_STATE_DOWN:
+		if (old_value == VALUE_STATE_UP || old_value == VALUE_STATE_OFF)
+			b->action = ACTION_STOP;
 		break;
 	default:
-		if (backend_is_usable(b)) {
-			b->state = new_value;
-			backend_switch(b, old_value);
-			action = ACTION_START;
-		} else
-			b->state = new_value;
 		break;
 	}
 
-	backend_s_gen_priority(f, action);
+	if (b->action != ACTION_NONE) {
+		farm_set_action(f, ACTION_RELOAD);
+		backend_s_gen_priority(f, ACTION_NONE);
+	}
+
 	return 0;
 }
 
@@ -1011,6 +1012,7 @@ int bck_pos_actionable(struct config_pair *c, int action)
 
 static int backend_has_source_address(struct backend *b)
 {
+	tools_printlog(LOG_DEBUG, "%s():%d: backend %s has source addr %d", __FUNCTION__, __LINE__, b->name, (b->srcaddr != DEFAULT_SRCADDR && !obj_equ_attribute_string(b->srcaddr, "")));
 	return (b->srcaddr != DEFAULT_SRCADDR && !obj_equ_attribute_string(b->srcaddr, ""));
 }
 
@@ -1021,24 +1023,23 @@ int backend_s_gen_priority(struct farm *f, int action)
 	int old_prio = f->priority;
 	int new_prio = DEFAULT_PRIORITY;
 
-	tools_printlog(LOG_DEBUG, "%s():%d: farm %s", __FUNCTION__, __LINE__, f->name);
-
 	do {
 		are_down = 0;
 		list_for_each_entry_safe(b, next, &f->backends, list)
-			if (b->priority == new_prio && b->state != VALUE_STATE_UP)
+			if (b->priority == new_prio && b->state != VALUE_STATE_UP && b->state != VALUE_STATE_AVAIL)
 				are_down++;
 		new_prio += are_down;
 	} while (are_down);
 
+	f->priority = new_prio;
+
 	list_for_each_entry_safe(b, next, &f->backends, list) {
-		if (b->priority > f->priority && b->priority == new_prio && b->state == VALUE_STATE_UP)
-			backend_set_action(b, ACTION_START);
-		if (b->priority == f->priority && f->priority > new_prio && b->state == VALUE_STATE_UP && !farm_get_masquerade(f) && !backend_has_source_address(b) && (action == ACTION_STOP || action == ACTION_DELETE))
-			b->action = ACTION_STOP;
+
+		if (b->state == VALUE_STATE_UP || b->state == VALUE_STATE_AVAIL)
+			backend_set_state(b, VALUE_STATE_UP);
 	}
 
-	f->priority = new_prio;
+noaction:
 	backend_s_update_counters(f);
 	return f->priority != old_prio;
 }

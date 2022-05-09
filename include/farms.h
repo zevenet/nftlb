@@ -58,10 +58,11 @@ enum helpers {
 };
 
 enum states {
-	VALUE_STATE_UP,
-	VALUE_STATE_DOWN,
-	VALUE_STATE_OFF,
-	VALUE_STATE_CONFERR,
+	VALUE_STATE_UP,			// available and enabled
+	VALUE_STATE_AVAIL,		// available but not enabled due to priority
+	VALUE_STATE_DOWN,		// temporary not available due to a problem
+	VALUE_STATE_OFF,		// disabled manually due to maintenance
+	VALUE_STATE_CONFERR,	// disabled due to a configuration error
 };
 
 enum switches {

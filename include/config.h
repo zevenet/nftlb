@@ -122,6 +122,7 @@
 #define CONFIG_VALUE_LOG_FORWARD		"forward"
 #define CONFIG_VALUE_LOG_OUTPUT			"output"
 #define CONFIG_VALUE_STATE_UP		"up"
+#define CONFIG_VALUE_STATE_AVAIL	"available"
 #define CONFIG_VALUE_STATE_DOWN		"down"
 #define CONFIG_VALUE_STATE_OFF		"off"
 #define CONFIG_VALUE_STATE_CONFERR	"config_error"

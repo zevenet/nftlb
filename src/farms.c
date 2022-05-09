@@ -1299,7 +1299,7 @@ int farm_set_action(struct farm *f, int action)
 	}
 
 	if (f->action > action || force) {
-		backend_s_gen_priority(f, ACTION_NONE);
+		backend_s_gen_priority(f, ACTION_RELOAD);
 		farm_manage_eventd();
 		f->action = action;
 		farm_set_netinfo(f);
