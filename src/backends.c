@@ -788,29 +788,6 @@ int backend_set_attribute(struct config_pair *c)
 	return PARSER_OK;
 }
 
-static int backend_switch(struct backend *b, int oldstate)
-{
-	struct farm *f = b->parent;
-
-	tools_printlog(LOG_DEBUG, "%s():%d: backend %s with state %s switched",
-				   __FUNCTION__, __LINE__, b->name, obj_print_state(b->state));
-
-	if (b->state == VALUE_STATE_UP) {
-		if (f->persistence != VALUE_META_NONE)
-			session_backend_action(f, b, ACTION_START);
-		if (oldstate == VALUE_STATE_OFF)
-			b->action = ACTION_RELOAD;
-		else
-			b->action = ACTION_START;
-	} else
-		b->action = ACTION_STOP;
-
-	farm_set_action(f, ACTION_RELOAD);
-	backend_s_update_counters(f);
-
-	return 0;
-}
-
 int backend_set_state(struct backend *b, int new_value)
 {
 	int old_value = b->state;
@@ -1010,12 +987,6 @@ int bck_pos_actionable(struct config_pair *c, int action)
 	return 0;
 }
 
-static int backend_has_source_address(struct backend *b)
-{
-	tools_printlog(LOG_DEBUG, "%s():%d: backend %s has source addr %d", __FUNCTION__, __LINE__, b->name, (b->srcaddr != DEFAULT_SRCADDR && !obj_equ_attribute_string(b->srcaddr, "")));
-	return (b->srcaddr != DEFAULT_SRCADDR && !obj_equ_attribute_string(b->srcaddr, ""));
-}
-
 int backend_s_gen_priority(struct farm *f, int action)
 {
 	struct backend *b, *next;
@@ -1039,7 +1010,6 @@ int backend_s_gen_priority(struct farm *f, int action)
 			backend_set_state(b, VALUE_STATE_UP);
 	}
 
-noaction:
 	backend_s_update_counters(f);
 	return f->priority != old_prio;
 }
