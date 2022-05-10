@@ -329,6 +329,10 @@ static int farm_set_state(struct farm *f, int new_value)
 
 	tools_printlog(LOG_DEBUG, "%s():%d: farm %s old state %d new state %d", __FUNCTION__, __LINE__, f->name, old_value, new_value);
 
+	// farm doesn't allow 'available' state
+	if (new_value == VALUE_STATE_AVAIL)
+		new_value = VALUE_STATE_UP;
+
 	if (new_value == VALUE_STATE_CONFERR) {
 		f->state = new_value;
 		farm_set_action(f, ACTION_NONE);

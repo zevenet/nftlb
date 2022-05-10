@@ -113,7 +113,7 @@ Where every farm object has the following attributes:
 	"flow-offload": "<on | off>",				*Option to enable flow offload (disabled by default)*
 	"intra-connect": "<on | off>",				*Option to enable connectivity from the local machine (disabled by default)*
 	"queue": "<number>",				*Number of the queue to send the packets to userspace (disabled by default)*
-	"state": "<up | down | off>",			*Set the status of the virtual service (up by default)*
+	"state": "<up | down | off | config_error>",			*Set the status of the virtual service (up by default)*
 	"addresses" : [					*List of addresses*
 		{<object address 1>},
 		{<object address 2>},
@@ -163,7 +163,7 @@ Where every backend object has the following attributes:
 	"mark": "<hexadecimal mark>",			*Set mark mask for the backend (none by default)*
 	"est-connlimit": "<number>",			*Number of established connections allowed per backend (disabled by default)*
 	"est-connlimit-log-prefix": "<string|KNAME|TYPE|FNAME|BNAME>",	*Backend established connections log prefix (default "KNAME-FNAME-BNAME")*
-	"state": "<up | down | off>",			*Set the status of the backend (up by default)*
+	"state": "<up | down | off | available | config_error>",			*Set the status of the backend (up by default)*
 }
 ```
 Where every session object has the following attributes:
