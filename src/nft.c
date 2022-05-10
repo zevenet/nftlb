@@ -905,6 +905,9 @@ static void get_address_service(char *name, struct address *a, int type, int fam
 
 static int nft_table_handler(struct sbuffer *buf, char *str_family, int action)
 {
+	int old_serial = serialize;
+	serialize = 1;
+
 	switch (action) {
 	case ACTION_RELOAD:
 		concat_exec_cmd(buf, " ; flush table %s %s", str_family, NFTLB_TABLE_NAME);
@@ -920,6 +923,7 @@ static int nft_table_handler(struct sbuffer *buf, char *str_family, int action)
 		break;
 	}
 
+	serialize = old_serial;
 	return 0;
 }
 
