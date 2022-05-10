@@ -30,7 +30,7 @@ table ip nftlb {
 
 	chain filter {
 		type filter hook prerouting priority mangle; policy accept;
-		meta mark set ct mark
+		meta mark 0x00000000 meta mark set ct mark
 		ip protocol . ip daddr . th dport vmap @filter-proto-services
 	}
 
@@ -43,6 +43,7 @@ table ip nftlb {
 
 	chain prerouting {
 		type nat hook prerouting priority dstnat; policy accept;
+		ct state new meta mark 0x00000000 meta mark set ct mark
 		ip protocol . ip daddr . th dport vmap @nat-proto-services
 	}
 
@@ -54,6 +55,6 @@ table ip nftlb {
 	}
 
 	chain nat-newfarm {
-		dnat ip to ct mark map { 0x00000200 : 192.168.104.254 . 80, 0x00000201 : 192.168.105.254 . 80 }
+		dnat to ct mark map { 0x00000200 : 192.168.104.254, 0x00000201 : 192.168.105.254 }
 	}
 }

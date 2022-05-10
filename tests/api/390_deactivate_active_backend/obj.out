@@ -1,0 +1,65 @@
+{
+        "farms": [
+                {
+                        "name": "newl4farm",
+                        "family": "ipv4",
+                        "virtual-addr": "192.168.56.101",
+                        "virtual-ports": "90",
+                        "source-addr": "192.168.56.101",
+                        "mode": "snat",
+                        "protocol": "tcp",
+                        "scheduler": "weight",
+                        "sched-param": "none",
+                        "persistence": "none",
+                        "persist-ttl": "60",
+                        "helper": "none",
+                        "log": "none",
+                        "log-rtlimit": "0/second",
+                        "mark": "0x0",
+                        "priority": "2",
+                        "state": "up",
+                        "limits-ttl": "120",
+                        "new-rtlimit": "0/second",
+                        "new-rtlimit-burst": "0",
+                        "rst-rtlimit": "0/second",
+                        "rst-rtlimit-burst": "0",
+                        "est-connlimit": "0",
+                        "tcp-strict": "off",
+                        "queue": "-1",
+                        "verdict": "log drop accept",
+                        "addresses": [
+                                {
+                                        "name": "newl4farm-addr",
+                                        "family": "ipv4",
+                                        "ip-addr": "192.168.56.101",
+                                        "ports": "90",
+                                        "protocol": "tcp",
+                                        "used": "1"
+                                }
+                        ],
+                        "backends": [
+                                {
+                                        "name": "bck0",
+                                        "ip-addr": "192.168.116.254",
+                                        "port": "80",
+                                        "weight": "1",
+                                        "priority": "1",
+                                        "mark": "0x200",
+                                        "est-connlimit": "0",
+                                        "state": "off"
+                                },
+                                {
+                                        "name": "bck1",
+                                        "ip-addr": "192.168.116.253",
+                                        "port": "80",
+                                        "weight": "1",
+                                        "priority": "2",
+                                        "mark": "0x201",
+                                        "est-connlimit": "0",
+                                        "state": "up"
+                                }
+                        ],
+                        "policies": []
+                }
+        ]
+}

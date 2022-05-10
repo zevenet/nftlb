@@ -1,0 +1,1 @@
+{"farms" : [ { "name" : "newl4farm", "virtual-addr" : "192.168.56.101", "source-addr" : "192.168.56.101", "virtual-ports" : "90", "protocol" : "tcp", "mode" : "snat", "scheduler" : "weight", "state" : "up" } ] }

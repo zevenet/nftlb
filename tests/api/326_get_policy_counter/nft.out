@@ -19,7 +19,7 @@ table netdev nftlb {
 		flags dynamic,timeout
 		counter
 		timeout 2m
-		elements = { 127.0.0.1 counter packets 2 bytes 120 timeout 2m expires 1m57s960ms }
+		elements = { 127.0.0.1 counter packets 2 bytes 120 timeout 2m expires 1m57s844ms }
 	}
 
 	chain ingress-lo {
@@ -48,6 +48,7 @@ table ip nftlb {
 
 	chain prerouting {
 		type nat hook prerouting priority dstnat; policy accept;
+		ct state new meta mark 0x00000000 meta mark set ct mark
 		ip protocol . ip daddr . th dport vmap @nat-proto-services
 	}
 
@@ -60,7 +61,7 @@ table ip nftlb {
 
 	chain filter {
 		type filter hook prerouting priority mangle; policy accept;
-		meta mark set ct mark
+		meta mark 0x00000000 meta mark set ct mark
 		ip protocol . ip daddr . th dport vmap @filter-proto-services
 	}
 

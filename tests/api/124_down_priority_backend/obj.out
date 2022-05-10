@@ -66,7 +66,7 @@
                                         "priority": "4",
                                         "mark": "0x202",
                                         "est-connlimit": "0",
-                                        "state": "up"
+                                        "state": "available"
                                 },
                                 {
                                         "name": "bck3",
@@ -76,7 +76,7 @@
                                         "priority": "4",
                                         "mark": "0x203",
                                         "est-connlimit": "0",
-                                        "state": "up"
+                                        "state": "available"
                                 }
                         ],
                         "policies": []

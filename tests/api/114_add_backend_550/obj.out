@@ -46,7 +46,7 @@
                                         "priority": "5",
                                         "mark": "0x1",
                                         "est-connlimit": "500",
-                                        "state": "up"
+                                        "state": "available"
                                 }
                         ],
                         "policies": []

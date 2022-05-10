@@ -46,7 +46,7 @@
                                         "priority": "3",
                                         "mark": "0x201",
                                         "est-connlimit": "0",
-                                        "state": "up"
+                                        "state": "available"
                                 },
                                 {
                                         "name": "bck1",

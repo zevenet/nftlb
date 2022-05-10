@@ -25,7 +25,7 @@ table ip nftlb {
 
 	chain filter {
 		type filter hook prerouting priority mangle; policy accept;
-		meta mark set ct mark
+		meta mark 0x00000000 meta mark set ct mark
 		ip protocol . th dport vmap @filter-port-services
 	}
 
@@ -38,6 +38,7 @@ table ip nftlb {
 
 	chain prerouting {
 		type nat hook prerouting priority dstnat; policy accept;
+		ct state new meta mark 0x00000000 meta mark set ct mark
 		ip protocol . th dport vmap @nat-port-services
 	}
 

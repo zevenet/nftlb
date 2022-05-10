@@ -1,0 +1,43 @@
+table ip nftlb {
+	map filter-proto-services {
+		type inet_proto . ipv4_addr . inet_service : verdict
+		elements = { tcp . 192.168.56.101 . 90 : goto filter-newl4farm }
+	}
+
+	map nat-proto-services {
+		type inet_proto . ipv4_addr . inet_service : verdict
+		elements = { tcp . 192.168.56.101 . 90 : goto nat-newl4farm }
+	}
+
+	map services-back-m {
+		type mark : ipv4_addr
+		elements = { 0x00000200 : 192.168.56.101 }
+	}
+
+	chain filter {
+		type filter hook prerouting priority mangle; policy accept;
+		meta mark 0x00000000 meta mark set ct mark
+		ip protocol . ip daddr . th dport vmap @filter-proto-services
+	}
+
+	chain filter-newl4farm {
+		ct state new ct mark 0x00000000 ct mark set numgen random mod 1 map { 0 : 0x00000200 }
+	}
+
+	chain prerouting {
+		type nat hook prerouting priority dstnat; policy accept;
+		ct state new meta mark 0x00000000 meta mark set ct mark
+		ip protocol . ip daddr . th dport vmap @nat-proto-services
+	}
+
+	chain postrouting {
+		type nat hook postrouting priority srcnat; policy accept;
+		ct mark 0x00000000 ct mark set meta mark
+		ct mark 0x80000000/1 masquerade
+		snat to ct mark map @services-back-m
+	}
+
+	chain nat-newl4farm {
+		ip protocol tcp dnat ip to ct mark map { 0x00000200 : 192.168.116.254 . 80 }
+	}
+}
