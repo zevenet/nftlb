@@ -75,6 +75,7 @@ int address_delete(struct address *paddress);
 int address_search_array_port(struct address *a, int port);
 int address_validate_iface(struct address *a);
 int address_validate_iether(struct address *a);
+int address_s_clean_nft_chains(void);
 
 
 #endif /* _ADDRESSES_H_ */

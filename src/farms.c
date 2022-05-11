@@ -1327,6 +1327,29 @@ int farm_s_set_action(int action)
 	return 0;
 }
 
+int farm_s_set_reload_start(int action)
+{
+	struct list_head *farms = obj_get_farms();
+	struct farm *f, *next;
+
+	list_for_each_entry_safe(f, next, farms, list)
+		if (f->state == VALUE_STATE_UP)
+			farm_set_action(f, ACTION_START);
+
+	return 0;
+}
+
+int farm_s_clean_nft_chains(void)
+{
+	struct list_head *farms = obj_get_farms();
+	struct farm *f, *next;
+
+	list_for_each_entry_safe(f, next, farms, list)
+		f->nft_chains = 0;
+
+	return 0;
+}
+
 int farm_get_masquerade(struct farm *f)
 {
 	int masq = ((f->mode == VALUE_MODE_SNAT || f->mode == VALUE_MODE_LOCAL) && (f->srcaddr == DEFAULT_SRCADDR || strcmp(f->srcaddr, "") == 0));

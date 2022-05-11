@@ -590,3 +590,14 @@ int address_validate_iether(struct address *a)
 		return 1;
 	return 0;
 }
+
+int address_s_clean_nft_chains(void)
+{
+	struct list_head *addresses = obj_get_addresses();
+	struct address *a, *next;
+
+	list_for_each_entry_safe(a, next, addresses, list)
+		a->nft_chains = 0;
+
+	return 0;
+}

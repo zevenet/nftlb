@@ -155,6 +155,7 @@
 extern unsigned int serialize;
 extern int masquerade_mark;
 struct nft_ctx *ctx = NULL;
+static unsigned int cmdtry = 0;
 
 int nftlb_flowtable_prio = NFTLB_FLOWTABLE_BASE_PRIO;
 
@@ -408,6 +409,7 @@ static void clean_rules_counters(void)
 	nft_base_rules.out_filter_rules_v6 = 0;
 	nft_base_rules.out_nat_rules_v4 = 0;
 	nft_base_rules.out_nat_rules_v6 = 0;
+	nft_base_rules.tables = 0;
 }
 
 static struct if_base_rule * get_ndv_base(struct if_base_rule_list *ndv_if_rules, char *ifname)
@@ -472,7 +474,7 @@ static int del_ndv_base(struct if_base_rule_list *ndv_if_rules, char *ifname)
 
 static int exec_cmd_open(char *cmd, const char **out, int error_output)
 {
-	int error;
+	int error, reload_err;
 
 	if (strlen(cmd) == 0 || strcmp(cmd, "") == 0)
 		return 0;
@@ -487,8 +489,23 @@ static int exec_cmd_open(char *cmd, const char **out, int error_output)
 
 	error = nft_run_cmd_from_buffer(ctx, cmd);
 
-	if (error && error_output)
+	if (error && error_output) {
 		tools_printlog(LOG_ERR, "nft command error : %s", nft_ctx_get_error_buffer(ctx));
+		if (!cmdtry) {
+			// reset rules and then reload objects
+			cmdtry++;
+			tools_printlog(LOG_ERR, "recovery in progress...");
+			nft_reset();
+			policy_s_set_action(ACTION_START);
+			farm_s_set_reload_start(ACTION_START);
+			reload_err = obj_rulerize(OBJ_START);
+			if (!reload_err) {
+				tools_printlog(LOG_ERR, "nft recovered...");
+				cmdtry = 0;
+			} else
+				tools_printlog(LOG_ERR, "recovery not successful...");
+		}
+	}
 
 	if (out != NULL)
 		*out = nft_ctx_get_output_buffer(ctx);
@@ -2942,6 +2959,9 @@ int nft_reset(void)
 	exec_cmd(get_buf_data(&buf));
 	clean_buf(&buf);
 	clean_rules_counters();
+
+	farm_s_clean_nft_chains();
+	address_s_clean_nft_chains();
 
 	return ret;
 }
