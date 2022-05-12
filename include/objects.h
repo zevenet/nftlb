@@ -260,5 +260,6 @@ void obj_print_verdict(int verdict, char* buf);
 int obj_get_total_addresses(void);
 struct list_head * obj_get_addresses(void);
 void obj_set_total_addresses(int new_value);
+int obj_recovery(void);
 
 #endif /* _OBJECTS_H_ */

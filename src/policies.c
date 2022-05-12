@@ -135,6 +135,9 @@ void policies_s_print(void)
 	struct list_head *policies = obj_get_policies();
 	struct policy *p;
 
+	if (!policies)
+		return;
+
 	list_for_each_entry(p, policies, list) {
 		policy_print(p);
 	}

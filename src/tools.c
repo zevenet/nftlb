@@ -40,6 +40,11 @@ void tools_log_set_level(int loglevel)
 	setlogmask(LOG_UPTO(loglevel));
 }
 
+int tools_log_get_level(void)
+{
+	return log_level;
+}
+
 void tools_log_set_output(int output)
 {
 	switch (output) {

@@ -32,6 +32,7 @@
 #include "farmaddress.h"
 #include "addresspolicy.h"
 #include "tools.h"
+#include "nft.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -49,6 +50,7 @@ struct list_head	policies;
 int			total_policies = 0;
 struct list_head	addresses;
 int			total_addresses = 0;
+static unsigned int cmdtry = 0;
 
 void objects_init(void)
 {
@@ -758,4 +760,26 @@ void obj_print_verdict(int verdict, char* buf)
 		strcat(buf, CONFIG_VALUE_VERDICT_ACCEPT);
 
 	return;
+}
+
+int obj_recovery(void)
+{
+	int reload_err;
+
+	if (cmdtry)
+		return 0;
+
+	cmdtry++;
+	tools_printlog(LOG_ERR, "recovery in progress...");
+	nft_reset();
+	policy_s_set_action(ACTION_START);
+	farm_s_set_reload_start(ACTION_START);
+	reload_err = obj_rulerize(OBJ_START);
+	if (!reload_err) {
+		tools_printlog(LOG_ERR, "nft recovered...");
+		cmdtry = 0;
+	} else
+		tools_printlog(LOG_ERR, "recovery not successful...");
+
+	return 0;
 }

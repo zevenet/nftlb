@@ -865,6 +865,9 @@ void farm_s_print(void)
 	struct list_head *farms = obj_get_farms();
 	struct farm *f;
 
+	if (!farms)
+		return;
+
 	list_for_each_entry(f, farms, list)
 		farm_print(f);
 }
@@ -1343,6 +1346,9 @@ int farm_s_clean_nft_chains(void)
 {
 	struct list_head *farms = obj_get_farms();
 	struct farm *f, *next;
+
+	if (!farms)
+		return 0;
 
 	list_for_each_entry_safe(f, next, farms, list)
 		f->nft_chains = 0;

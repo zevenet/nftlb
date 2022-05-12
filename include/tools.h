@@ -43,5 +43,6 @@ void tools_snprintf(char *strdst, int size, char *strsrc);
 void tools_log_set_level(int loglevel);
 void tools_log_set_output(int output);
 int tools_printlog(int loglevel, char *fmt, ...);
+int tools_log_get_level(void);
 
 #endif /* _TOOLS_H_ */

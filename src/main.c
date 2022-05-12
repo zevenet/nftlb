@@ -91,10 +91,10 @@ static void nftlb_sighandler(int signo)
 static void nftlb_trace() {
 	void *buffer[255];
 	char **str;
-	int i;
+	int i, level;
 	const int calls = backtrace(buffer, sizeof(buffer) / sizeof(void *));
 
-	tools_printlog(LOG_ERR, "SIGSEGV received!");
+	tools_printlog(LOG_ERR, "SIGSEGV/SIGABRT received!");
 	backtrace_symbols_fd(buffer, calls, 1);
 
 	str = backtrace_symbols(buffer, calls);
@@ -107,7 +107,43 @@ static void nftlb_trace() {
 		tools_printlog(LOG_ERR, "%s", str[i]);
 	free(str);
 
+	level = tools_log_get_level();
+	tools_log_set_level(LOG_DEBUG);
+	obj_print();
+	tools_log_set_level(level);
+	obj_recovery();
+
 	exit(EXIT_FAILURE);
+}
+
+static int main_process(const char *config, int mode)
+{
+	objects_init();
+
+	if (nft_check_tables())
+		nft_reset();
+
+	loop_init();
+
+	if (config && config_file(config) != 0)
+		return EXIT_FAILURE;
+
+	if (tools_log_get_level() > NFTLB_LOG_LEVEL_DEFAULT)
+		obj_print();
+
+	obj_rulerize(OBJ_START);
+
+	if (mode == NFTLB_EXIT_MODE)
+		return EXIT_SUCCESS;
+
+	if (server_init() != 0) {
+		tools_printlog(LOG_ERR, "Cannot start server-ev: %s\n", strerror(errno));
+		return EXIT_FAILURE;
+	}
+
+	loop_run();
+
+	return EXIT_SUCCESS;
 }
 
 int main(int argc, char *argv[])
@@ -118,6 +154,7 @@ int main(int argc, char *argv[])
 	int		loglevel = NFTLB_LOG_LEVEL_DEFAULT;
 	int		logoutput = NFTLB_LOG_OUTPUT_DEFAULT;
 	const char	*config = NULL;
+	pid_t	pid;
 
 	while ((c = getopt_long(argc, argv, "hl:L:c:k:ed6H:P:Sm:", options, NULL)) != -1) {
 		switch (c) {
@@ -176,42 +213,19 @@ int main(int argc, char *argv[])
 	tools_log_set_level(loglevel);
 	tools_log_set_output(logoutput);
 
-	if (nft_check_tables())
-		nft_reset();
-
-	objects_init();
-
-	loop_init();
-
-	if (config && config_file(config) != 0)
-		return EXIT_FAILURE;
-
-	if (loglevel > NFTLB_LOG_LEVEL_DEFAULT)
-		obj_print();
-
-	obj_rulerize(OBJ_START);
-
-	if (mode == NFTLB_EXIT_MODE)
-		return EXIT_SUCCESS;
-
-	if (server_init() != 0) {
-		tools_printlog(LOG_ERR, "Cannot start server-ev: %s\n", strerror(errno));
-		return EXIT_FAILURE;
-	}
-
-	if ( run_mode ){
-		switch (fork()) {
-			case 0:
-				break;
-			case -1:
-				tools_printlog(LOG_ERR, "Daemon mode aborted: %s", strerror(errno));
-				return EXIT_FAILURE;
-			default:
-				return EXIT_SUCCESS;
+	if (run_mode) {
+		pid = fork();
+		if (pid == -1) {
+			tools_printlog(LOG_ERR, "Daemon mode aborted: %s", strerror(errno));
+			return EXIT_FAILURE;
+		} else if (pid == 0) {
+			main_process(config, mode);
+		} else {
+			return EXIT_SUCCESS;
 		}
+	} else {
+		main_process(config, mode);
 	}
-
-	loop_run();
 
 	return EXIT_SUCCESS;
 }
