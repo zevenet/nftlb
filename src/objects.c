@@ -778,6 +778,7 @@ int obj_recovery(void)
 	if (!reload_err) {
 		tools_printlog(LOG_ERR, "nft recovered...");
 		cmdtry = 0;
+		return 1;
 	} else
 		tools_printlog(LOG_ERR, "recovery not successful...");
 

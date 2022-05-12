@@ -111,9 +111,8 @@ static void nftlb_trace() {
 	tools_log_set_level(LOG_DEBUG);
 	obj_print();
 	tools_log_set_level(level);
-	obj_recovery();
-
-	exit(EXIT_FAILURE);
+	if (!obj_recovery())
+		exit(EXIT_FAILURE);
 }
 
 static int main_process(const char *config, int mode)
