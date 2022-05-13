@@ -111,7 +111,7 @@ table ip nftlb {
 		ct mark set ip saddr map @static-sessions-lb04 accept
 		ct state new ct mark set ip saddr map @persist-lb04
 		ct state new ct mark 0x00000000 ct mark set jhash ip saddr mod 10 map { 0-4 : 0x80000004, 5-9 : 0x80000005 }
-		ct mark != 0x00000000 update @persist-lb04 { ip saddr : ct mark }
+		ct mark != { 0x00000000, 0x80000000 } update @persist-lb04 { ip saddr : ct mark }
 	}
 
 	chain prerouting {
