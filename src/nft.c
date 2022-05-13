@@ -2024,7 +2024,10 @@ static int run_farm_rules_update_sessions(struct sbuffer *buf, struct nftst *n, 
 		concat_exec_cmd(buf, " }");
 		break;
 	default:
-		concat_buf(buf, " ; add rule %s %s %s ct mark != 0x00000000 update @%s { ", print_nft_table_family(family, NFTLB_F_CHAIN_PRE_FILTER), NFTLB_TABLE_NAME, chain, map_str);
+		if (farm_get_masquerade(f))
+			concat_buf(buf, " ; add rule %s %s %s ct mark != { 0x00000000, %u } update @%s { ", print_nft_table_family(family, NFTLB_F_CHAIN_PRE_FILTER), NFTLB_TABLE_NAME, chain, masquerade_mark, map_str);
+		else
+			concat_buf(buf, " ; add rule %s %s %s ct mark != 0x00000000 update @%s { ", print_nft_table_family(family, NFTLB_F_CHAIN_PRE_FILTER), NFTLB_TABLE_NAME, chain, map_str);
 		run_farm_rules_gen_meta_param(buf, a->protocol, family, f->persistence, NFTLB_MAP_KEY_RULE);
 		concat_exec_cmd(buf, " : ct mark }");
 		break;
