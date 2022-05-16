@@ -1,0 +1,20 @@
+{
+        "farms": [
+                {
+                        "name": "l4farm",
+                        "backends": [
+                                {
+                                        "name": "bck2",
+                                        "ip-addr": "192.168.102.254",
+                                        "port": "80",
+                                        "source-addr": "192.168.102.242",
+                                        "weight": "1",
+                                        "priority": "1",
+                                        "mark": "0x209",
+                                        "est-connlimit": "0",
+                                        "state": "up"
+                                }
+                        ]
+                }
+	]
+}
