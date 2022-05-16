@@ -2441,6 +2441,7 @@ static int run_farm_rules_forward(struct sbuffer *buf, struct nftst *n, int fami
 
 	switch (action) {
 	case ACTION_START:
+		run_base_table(buf, NFTLB_F_CHAIN_FWD_FILTER, family, action);
 		run_base_chain(buf, n, NFTLB_F_CHAIN_FWD_FILTER, family, get_rules_needed(a), action);
 		run_nftst_rules_gen_vsrv(buf, n, NFTLB_F_CHAIN_FWD_FILTER, family, naction, action);
 		run_farm_gen_log_rules(buf, f, family, chain, VALUE_LOG_FORWARD, NFTLB_F_CHAIN_FWD_FILTER, action);
@@ -2450,7 +2451,10 @@ static int run_farm_rules_forward(struct sbuffer *buf, struct nftst *n, int fami
 	case ACTION_RELOAD:
 		run_base_table(buf, NFTLB_F_CHAIN_FWD_FILTER, family, action);
 		run_base_chain(buf, n, NFTLB_F_CHAIN_FWD_FILTER, family, get_rules_needed(a), action);
-		run_nftst_rules_gen_vsrv(buf, n, NFTLB_F_CHAIN_FWD_FILTER, family, naction, action);
+
+		run_nftst_rules_gen_chain(buf, n, family, NFTLB_F_CHAIN_FWD_FILTER, ACTION_RELOAD);
+		run_nftst_rules_gen_srv_map_by_protocol(buf, n, NFTLB_F_CHAIN_FWD_FILTER, family, ACTION_RELOAD);
+
 		run_farm_gen_log_rules(buf, f, family, chain, VALUE_LOG_FORWARD, NFTLB_F_CHAIN_FWD_FILTER, action);
 		run_farm_gen_flowtable_rules(buf, n, family, chain, flowtable, action);
 		break;
