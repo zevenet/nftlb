@@ -95,10 +95,10 @@ static int nft_parse_sessions(struct farm *f, const char *buf)
 {
 	char *ini_ptr = NULL;
 	char *fin_ptr = NULL;
-	char element1[100] = {0};
-	char element2[100] = {0};
-	char element3[100] = {0};
-	int next = 0;
+	char elem_client[100] = {0};
+	char elem_exp[100] = {0};
+	char elem_bck[100] = {0};
+	int next = 0, to_found;
 
 	ini_ptr = strstr(buf, "elements = { ");
 	if (ini_ptr == NULL)
@@ -107,32 +107,40 @@ static int nft_parse_sessions(struct farm *f, const char *buf)
 	ini_ptr += 13;
 new_session:
 	next = 0;
+	to_found = 0;
+
+	if ((fin_ptr = strstr(ini_ptr, " timeout ")) != NULL) {
+		tools_snprintf(elem_client, fin_ptr - ini_ptr, ini_ptr);
+		to_found = 1;
+	}
+
 	if ((fin_ptr = strstr(ini_ptr, " expires ")) != NULL) {
-		tools_snprintf(element1, fin_ptr - ini_ptr, ini_ptr);
+		if (!to_found)
+			tools_snprintf(elem_client, fin_ptr - ini_ptr, ini_ptr);
 		fin_ptr += 9;
 		ini_ptr = fin_ptr;
 	} else
 		return 0;
 
 	if ((fin_ptr = strstr(ini_ptr, " : ")) != NULL) {
-		tools_snprintf(element2, fin_ptr - ini_ptr, ini_ptr);
+		tools_snprintf(elem_exp, fin_ptr - ini_ptr, ini_ptr);
 		fin_ptr += 3;
 		ini_ptr = fin_ptr;
 	} else
 		return 0;
 
-	if ((fin_ptr = strstr(ini_ptr + strlen(element2), ",")) != NULL) {
+	if ((fin_ptr = strstr(ini_ptr, ",")) != NULL) {
 		next = 1;
 	} else {
 		if ((fin_ptr = strstr(ini_ptr, " ")) == NULL)
 			return 0;
 	}
 
-	tools_snprintf(element3, fin_ptr - ini_ptr, ini_ptr);
+	tools_snprintf(elem_bck, fin_ptr - ini_ptr, ini_ptr);
 	fin_ptr += 1;
 	ini_ptr = fin_ptr;
 
-	session_create(f, SESSION_TYPE_TIMED, element1, element3, element2);
+	session_create(f, SESSION_TYPE_TIMED, elem_client, elem_bck, elem_exp);
 
 	while (*fin_ptr == '\n' || *fin_ptr == '\t' || *fin_ptr == ' ') {
 		fin_ptr++;
