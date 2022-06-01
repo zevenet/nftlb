@@ -260,7 +260,7 @@ This software creates the required tables named **nftlb** which are exclusive to
 
 The integration of nftlb with custom firewall rules are possible creating separated tables and playing with chain priorities. More information:
 
-[https://www.zevenet.com/knowledge-base/nftlb/](https://www.zevenet.com/knowledge-base/nftlb/)
+[https://www.zevenet.com/knowledge-base_category/nftlb/](https://www.zevenet.com/knowledge-base_category/nftlb/)
 
 ## Support
 Please refer to the [netfilter users mailing list](http://netfilter.org/mailinglists.html#ml-user)
