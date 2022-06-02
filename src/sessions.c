@@ -199,6 +199,10 @@ int session_set_action(struct session *s, int type, int action)
 		return 1;
 	}
 
+	if (action == ACTION_RELOAD && s->state == VALUE_STATE_UP && s->bck != NULL) {
+		s->action = action;
+	}
+
 	return 0;
 }
 
@@ -245,17 +249,19 @@ int session_s_delete(struct farm *f, int type)
 	return 0;
 }
 
-int session_s_set_action(struct farm *f, int action)
+int session_s_set_action(struct farm *f, struct backend *b, int action)
 {
 	struct session *s, *next;
 	int ret = 0;
 
 	if (f->total_static_sessions != 0)
 		list_for_each_entry_safe(s, next, &f->static_sessions, list)
-			ret += session_set_action(s, SESSION_TYPE_STATIC, action);
+			if (!b || (b && s->bck == b))
+				ret += session_set_action(s, SESSION_TYPE_STATIC, action);
 	if (f->total_timed_sessions != 0)
 		list_for_each_entry_safe(s, next, &f->timed_sessions, list)
-			ret += session_set_action(s, SESSION_TYPE_TIMED, action);
+			if (!b || (b && s->bck == b))
+				ret += session_set_action(s, SESSION_TYPE_TIMED, action);
 
 	return ret;
 }
@@ -331,7 +337,7 @@ int session_backend_action(struct farm *f, struct backend *b, int action)
 		list_for_each_entry_safe(s, next, &f->static_sessions, list) {
 			if (s->bck &&
 				(((f->mode == VALUE_MODE_DNAT || f->mode == VALUE_MODE_SNAT || f->mode == VALUE_MODE_LOCAL) && backend_get_mark(b) == backend_get_mark(s->bck)) ||
-				((f->mode == VALUE_MODE_DSR || f->mode == VALUE_MODE_STLSDNAT) && strcmp(b->ethaddr, s->bck->ethaddr) == 0)))
+				((f->mode == VALUE_MODE_DSR || f->mode == VALUE_MODE_STLSDNAT) && b == s->bck)))
 				session_set_action(s, SESSION_TYPE_STATIC, action);
 		}
 	}
@@ -342,7 +348,7 @@ int session_backend_action(struct farm *f, struct backend *b, int action)
 	if (f->total_timed_sessions != 0) {
 		list_for_each_entry_safe(s, next, &f->timed_sessions, list) {
 			if (s->bck &&
-				((farm_is_ingress_mode(f) && strcmp(b->ethaddr, s->bck->ethaddr) == 0) ||
+				((farm_is_ingress_mode(f) && b == s->bck) ||
 				 obj_equ_attribute_int(backend_get_mark(b), backend_get_mark(s->bck)))) {
 				session_set_action(s, SESSION_TYPE_TIMED, action);
 			}

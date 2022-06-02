@@ -857,11 +857,19 @@ int backend_s_set_ether_by_ipaddr(struct farm *f, const char *ip_bck, char *ethe
 		tools_printlog(LOG_DEBUG, "%s():%d: backend with ip address %s found", __FUNCTION__, __LINE__, ip_bck);
 
 		if (!b->ethaddr || (b->ethaddr && strcmp(b->ethaddr, ether_bck) != 0)) {
+			if (f->persistence != VALUE_META_NONE)
+				session_get_timed(f);
 			if (b->ethaddr)
 				free(b->ethaddr);
 			obj_set_attribute_string(ether_bck, &b->ethaddr);
-			backend_set_state(b, VALUE_STATE_UP);
 			changed = 1;
+			if (f->persistence != VALUE_META_NONE) {
+				session_backend_action(f, b, ACTION_RELOAD);
+				farm_set_action(f, ACTION_RELOAD);
+				obj_rulerize(OBJ_START);
+				session_s_delete(f, SESSION_TYPE_TIMED);
+			}
+
 			tools_printlog(LOG_INFO, "%s():%d: ether address changed for backend %s with %s", __FUNCTION__, __LINE__, b->name, ether_bck);
 		}
 	}

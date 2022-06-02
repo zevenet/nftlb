@@ -42,7 +42,7 @@ struct session {
 
 int session_set_action(struct session *s, int type, int action);
 struct session * session_lookup_by_key(struct farm *f, int type, int key, const char *name);
-int session_s_set_action(struct farm *f, int action);
+int session_s_set_action(struct farm *f, struct backend *b, int action);
 void session_s_print(struct farm *f);
 int session_get_timed(struct farm *f);
 int session_get_client(struct session *s, char **parsed);

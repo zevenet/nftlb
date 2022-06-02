@@ -1972,22 +1972,34 @@ static int run_farm_manage_sessions(struct sbuffer *buf, struct farm *f, int sty
 		}
 
 		if (session_get_client(s, &client)) {
+			if ((action == ACTION_RELOAD && (s->action == ACTION_STOP || s->action == ACTION_DELETE)) || s->action == ACTION_RELOAD)
+				concat_exec_cmd(buf, " ; delete element %s %s %s { %s }", print_nft_table_family(family, get_stage_by_farm_mode(f)), NFTLB_TABLE_NAME, map_str, client);
 
 			if (f->mode == VALUE_MODE_DSR) {
-				if ((action == ACTION_START || s->action == ACTION_START) && s->bck && s->bck->ethaddr != DEFAULT_ETHADDR)
-					concat_exec_cmd(buf, " ; add element %s %s %s { %s : %s }", print_nft_table_family(family, get_stage_by_farm_mode(f)), NFTLB_TABLE_NAME, map_str, client, s->bck->ethaddr);
-			} else if(f->mode == VALUE_MODE_STLSDNAT) {
-				if ((action == ACTION_START || s->action == ACTION_START) && s->bck && s->bck->ipaddr != DEFAULT_IPADDR)
-					concat_exec_cmd(buf, " ; add element %s %s %s { %s : %s }", print_nft_table_family(family, get_stage_by_farm_mode(f)), NFTLB_TABLE_NAME, map_str, client, s->bck->ipaddr);
+				if ((action == ACTION_START || s->action == ACTION_START || s->action == ACTION_RELOAD) && s->bck && s->bck->ethaddr != DEFAULT_ETHADDR && backend_is_available(s->bck)) {
+					if (stype == SESSION_TYPE_TIMED && s->expiration)
+						concat_exec_cmd(buf, " ; add element %s %s %s { %s expires %s : %s }", print_nft_table_family(family, get_stage_by_farm_mode(f)), NFTLB_TABLE_NAME, map_str, client, s->expiration, s->bck->ethaddr);
+					else
+						concat_exec_cmd(buf, " ; add element %s %s %s { %s : %s }", print_nft_table_family(family, get_stage_by_farm_mode(f)), NFTLB_TABLE_NAME, map_str, client, s->bck->ethaddr);
+				}
+			} else if (f->mode == VALUE_MODE_STLSDNAT) {
+				if ((action == ACTION_START || s->action == ACTION_START || s->action == ACTION_RELOAD) && s->bck && s->bck->ipaddr != DEFAULT_IPADDR && backend_is_available(s->bck)) {
+					if (stype == SESSION_TYPE_TIMED && s->expiration)
+						concat_exec_cmd(buf, " ; add element %s %s %s { %s expires %s : %s }", print_nft_table_family(family, get_stage_by_farm_mode(f)), NFTLB_TABLE_NAME, map_str, client, s->expiration, s->bck->ipaddr);
+					else
+						concat_exec_cmd(buf, " ; add element %s %s %s { %s : %s }", print_nft_table_family(family, get_stage_by_farm_mode(f)), NFTLB_TABLE_NAME, map_str, client, s->bck->ipaddr);
+				}
 			} else {
-				if ((action == ACTION_START || s->action == ACTION_START) && s->bck && s->bck->mark != DEFAULT_MARK && backend_is_available(s->bck))
-					concat_exec_cmd(buf, " ; add element %s %s %s { %s : 0x%x }", print_nft_table_family(family, get_stage_by_farm_mode(f)), NFTLB_TABLE_NAME, map_str, client, backend_get_mark(s->bck));
+				if ((action == ACTION_START || s->action == ACTION_START || s->action == ACTION_RELOAD) && s->bck && s->bck->mark != DEFAULT_MARK && backend_is_available(s->bck)) {
+					if (stype == SESSION_TYPE_TIMED && s->expiration)
+						concat_exec_cmd(buf, " ; add element %s %s %s { %s expires %s : 0x%x }", print_nft_table_family(family, get_stage_by_farm_mode(f)), NFTLB_TABLE_NAME, map_str, client, s->expiration, backend_get_mark(s->bck));
+					else
+						concat_exec_cmd(buf, " ; add element %s %s %s { %s : 0x%x }", print_nft_table_family(family, get_stage_by_farm_mode(f)), NFTLB_TABLE_NAME, map_str, client, backend_get_mark(s->bck));
+				}
 			}
 
-			if (action == ACTION_RELOAD && (s->action == ACTION_STOP || s->action == ACTION_DELETE))
-				concat_exec_cmd(buf, " ; delete element %s %s %s { %s }", print_nft_table_family(family, get_stage_by_farm_mode(f)), NFTLB_TABLE_NAME, map_str, client);
-			free(client);
 		}
+		free(client);
 		s->action = ACTION_NONE;
 	}
 

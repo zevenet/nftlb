@@ -1285,7 +1285,7 @@ int config_set_session_action(const char *fname, const char *sname, const char *
 	}
 
 	if (!sname || strcmp(sname, "") == 0) {
-		ret = session_s_set_action(f, action);
+		ret = session_s_set_action(f, NULL, action);
 		goto apply;
 	}
 
@@ -1329,7 +1329,7 @@ apply:
 		return PARSER_OK;
 
 	if (!s)
-		return (session_s_set_action(f, ACTION_DELETE) >= 0) ? PARSER_OK : PARSER_FAILED;
+		return (session_s_set_action(f, NULL, ACTION_DELETE) >= 0) ? PARSER_OK : PARSER_FAILED;
 
 	return (session_set_action(s, SESSION_TYPE_STATIC, ACTION_DELETE) >= 0) ? PARSER_OK : PARSER_FAILED;
 }
