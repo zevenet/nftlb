@@ -36,6 +36,7 @@ static struct element * element_create(struct policy *p, char *data, char *time,
 		tools_printlog(LOG_ERR, "element memory allocation error");
 		return NULL;
 	}
+	tools_printlog(LOG_DEBUG,"%s:%d - %s %s %s %s", __FUNCTION__, __LINE__, data, time, counter_pkts, counter_bytes);
 
 	e->policy = p;
 	obj_set_attribute_string(data, &e->data);
@@ -88,13 +89,11 @@ static int element_delete(struct element *e)
 static int nft_parse_elements(struct policy *p, const char *buf)
 {
 	char *ini_ptr = NULL;
-	char *fin_ptr = NULL;
-	char element1[100] = {0};
-	char element2[100] = {0};
-	char element3[100] = {0};
-	char element4[100] = {0};
-	char element5[100] = {0};
-	int next = 0;
+	char *fin_ptr = NULL, *fin1_ptr = NULL;
+	char elem_addr[100] = {0};
+	char elem_time[100] = {0};
+	char elem_pkts[100] = {0};
+	char elem_bytes[100] = {0};
 
 	ini_ptr = strstr(buf, "elements = { ");
 	if (ini_ptr == NULL)
@@ -102,48 +101,40 @@ static int nft_parse_elements(struct policy *p, const char *buf)
 
 	ini_ptr += 13;
 new_element:
-	next = 0;
 
-	if (p->timeout) {
-		if ((fin_ptr = strstr(ini_ptr, " expires ")) != NULL) {
-			tools_snprintf(element1, fin_ptr - ini_ptr, ini_ptr);
-			fin_ptr += 9;
-			ini_ptr = fin_ptr;
-		} else
-			return 0;
+	fin_ptr = strstr(ini_ptr, ",");
+	if ((fin1_ptr = strstr(ini_ptr, " ")) != NULL) {
+		if (!fin_ptr || (fin1_ptr < fin_ptr))
+			fin_ptr = fin1_ptr;
 	}
 
-	if ((fin_ptr = strstr(ini_ptr + strlen(element2), " ")) != NULL)
-		next = 1;
-
-	tools_snprintf(element3, fin_ptr - ini_ptr, ini_ptr);
+	tools_snprintf(elem_addr, fin_ptr - ini_ptr, ini_ptr);
 	fin_ptr += 1;
 	ini_ptr = fin_ptr;
 
 	if ((fin_ptr = strstr(ini_ptr, " bytes ")) != NULL) {
 		ini_ptr += 16;
-		tools_snprintf(element4, fin_ptr - ini_ptr, ini_ptr);
+		tools_snprintf(elem_pkts, fin_ptr - ini_ptr, ini_ptr);
 		ini_ptr += 8;
 		if ((fin_ptr = strstr(ini_ptr, ",")) != NULL || (fin_ptr = strstr(ini_ptr, " ")) != NULL) {
-			tools_snprintf(element5, fin_ptr - ini_ptr, ini_ptr);
+			tools_snprintf(elem_bytes, fin_ptr - ini_ptr, ini_ptr);
 			ini_ptr = ++fin_ptr;
 		}
 	} else {
-		tools_snprintf(element4, 3, DEFAULT_COUNTER);
-		tools_snprintf(element5, 3, DEFAULT_COUNTER);
+		tools_snprintf(elem_pkts, 3, DEFAULT_COUNTER);
+		tools_snprintf(elem_bytes, 3, DEFAULT_COUNTER);
 		fin_ptr = ini_ptr;
 	}
 
 	if (p->timeout)
-		element_create(p, element3, element2, element4, element5);
+		element_create(p, elem_addr, elem_time, elem_pkts, elem_bytes);
 	else
-		element_create(p, element3, NULL, element4, element5);
+		element_create(p, elem_addr, NULL, elem_pkts, elem_bytes);
 
-	while (*fin_ptr == '\n' || *fin_ptr == '\t' || *fin_ptr == ' ' || *fin_ptr == ',') {
+	while (*fin_ptr == '\n' || *fin_ptr == '\t' || *fin_ptr == ' ')
 		fin_ptr++;
-	}
 
-	if (next && *fin_ptr != '}' && *fin_ptr != '\0') {
+	if (*fin_ptr != '}' && *fin_ptr != '\0') {
 		ini_ptr = fin_ptr;
 		goto new_element;
 	}
