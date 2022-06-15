@@ -36,7 +36,6 @@ static struct element * element_create(struct policy *p, char *data, char *time,
 		tools_printlog(LOG_ERR, "element memory allocation error");
 		return NULL;
 	}
-	tools_printlog(LOG_DEBUG,"%s:%d - %s %s %s %s", __FUNCTION__, __LINE__, data, time, counter_pkts, counter_bytes);
 
 	e->policy = p;
 	obj_set_attribute_string(data, &e->data);
