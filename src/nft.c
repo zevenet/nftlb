@@ -3018,6 +3018,9 @@ static int run_set_elements(struct sbuffer *buf, struct policy *p)
 		if (index)
 			concat_exec_cmd(buf, " }");
 		break;
+	case ACTION_FLUSH:
+		concat_exec_cmd(buf, " ; flush set %s %s %s", NFTLB_NETDEV_FAMILY_STR, NFTLB_TABLE_NAME, p->name);
+		/* fallthrough */
 	case ACTION_RELOAD:
 		list_for_each_entry(e, &p->elements, list) {
 			if (e->action != ACTION_START)
@@ -3047,9 +3050,6 @@ static int run_set_elements(struct sbuffer *buf, struct policy *p)
 		}
 		if (index)
 			concat_exec_cmd(buf, " }");
-		break;
-	case ACTION_FLUSH:
-		concat_exec_cmd(buf, " ; flush set %s %s %s", NFTLB_NETDEV_FAMILY_STR, NFTLB_TABLE_NAME, p->name);
 		break;
 	case ACTION_DELETE:
 	case ACTION_STOP:

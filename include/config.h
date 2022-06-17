@@ -194,5 +194,6 @@ void config_print_response(char **buf, char *fmt, ...);
 int config_set_address_action(const char *name, const char *value);
 int config_set_farmaddress_action(const char *fname, const char *faname, const char *value);
 int config_print_addresses(char **buf, char *name);
+int config_check_policy(const char *name);
 
 #endif /* _CONFIG_H_ */

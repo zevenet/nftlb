@@ -48,6 +48,7 @@
 #define STR_POST_ACTION			"POST"
 #define STR_PUT_ACTION			"PUT"
 #define STR_DELETE_ACTION		"DELETE"
+#define STR_PATCH_ACTION		"PATCH"
 
 #define HTTP_PROTO			"HTTP/1.1 "
 #define HTTP_LINE_END			"\r\n"
@@ -61,6 +62,7 @@ enum ws_methods {
 	WS_POST_ACTION,
 	WS_PUT_ACTION,
 	WS_DELETE_ACTION,
+	WS_PATCH_ACTION,
 };
 
 enum ws_responses {
@@ -152,22 +154,22 @@ static int get_request(int fd, struct sbuffer *buf, struct nftlb_http_state *sta
 
 	tools_printlog(LOG_NOTICE, "%s():%d: request: %s %s", __FUNCTION__, __LINE__, method, state->uri);
 
-	if (strncmp(method, STR_GET_ACTION, 3) == 0) {
+	if (strncmp(method, STR_GET_ACTION, 4) == 0) {
 		state->method = WS_GET_ACTION;
-	} else if (strncmp(method, STR_POST_ACTION, 4) == 0) {
+	} else if (strncmp(method, STR_POST_ACTION, 5) == 0) {
 		state->method = WS_POST_ACTION;
-	} else if (strncmp(method, STR_PUT_ACTION, 5) == 0) {
+	} else if (strncmp(method, STR_PUT_ACTION, 4) == 0) {
 		state->method = WS_PUT_ACTION;
-	} else if (strncmp(method, STR_DELETE_ACTION, 6) == 0) {
+	} else if (strncmp(method, STR_DELETE_ACTION, 7) == 0) {
 		state->method = WS_DELETE_ACTION;
+	} else if (strncmp(method, STR_PATCH_ACTION, 6) == 0) {
+		state->method = WS_PATCH_ACTION;
 	} else {
 		state->status_code = parse_to_http_status(PARSER_STRUCT_FAILED);
 		return -1;
 	}
 
-	if (state->method != WS_POST_ACTION &&
-	    state->method != WS_PUT_ACTION &&
-	    state->method != WS_DELETE_ACTION)
+	if (state->method == WS_GET_ACTION)
 		return 0;
 
 	state->body = strstr(get_buf_data(buf), "\r\n\r\n");
@@ -360,10 +362,18 @@ static int send_delete_response(struct nftlb_http_state *state)
 				config_delete_elements(secondlevel);
 				goto delete_end;
 			}
-			if (strcmp(fourthlevel, "") != 0)
+			if (strcmp(fourthlevel, "") != 0) {
 				config_set_policy_action(secondlevel, CONFIG_VALUE_ACTION_RELOAD);
-			else
+				ret = config_set_element_action(secondlevel, fourthlevel, CONFIG_VALUE_ACTION_STOP);
+				if (ret) {
+					snprintf(message, SRV_MAX_IDENT, "%s", "error deleting policy element");
+					config_delete_elements(secondlevel);
+					goto delete_end;
+				}
+			} else {
 				config_set_policy_action(secondlevel, CONFIG_VALUE_ACTION_FLUSH);
+				config_set_element_action(secondlevel, fourthlevel, CONFIG_VALUE_ACTION_NONE);
+			}
 			obj_rulerize(OBJ_START);
 			config_delete_elements(secondlevel);
 
@@ -486,6 +496,61 @@ post_end:
 	return 0;
 }
 
+static int send_patch_response(struct nftlb_http_state *state)
+{
+	char firstlevel[SRV_MAX_IDENT] = {0};
+	char secondlevel[SRV_MAX_IDENT] = {0};
+	char thirdlevel[SRV_MAX_IDENT] = {0};
+	char message[SRV_MAX_IDENT] = {0};
+	int ret = 0;
+
+	sscanf(state->uri, "/%199[^/]/%199[^/]/%199[^\n]",
+	       firstlevel, secondlevel, thirdlevel);
+
+	if ((strcmp(firstlevel, CONFIG_KEY_POLICIES) != 0) &&
+		(strcmp(thirdlevel, CONFIG_KEY_ELEMENTS) != 0)) {
+		snprintf(message, SRV_MAX_IDENT, "%s", "invalid request");
+		ret = PARSER_OBJ_UNKNOWN;
+		goto patch_end;
+	}
+
+	if (config_check_policy(secondlevel) != PARSER_OK) {
+		snprintf(message, SRV_MAX_IDENT, "%s", "the object to modify is unknown");
+		ret = PARSER_OBJ_UNKNOWN;
+		goto patch_end;
+	}
+
+	snprintf(message, SRV_MAX_IDENT, "%s", "success");
+	ret = config_buffer(state->body, ACTION_START);
+	switch (ret) {
+	case PARSER_OK:
+		break;
+	case PARSER_STRUCT_FAILED:
+		snprintf(message, SRV_MAX_IDENT, "%s", "the structure is invalid");
+		goto patch_end;
+	case PARSER_OBJ_UNKNOWN:
+		snprintf(message, SRV_MAX_IDENT, "%s", "the object to modify is unknown");
+		goto patch_end;
+	default:
+		snprintf(message, SRV_MAX_IDENT, "%s", "error parsing buffer");
+		goto patch_end;
+	}
+
+	config_set_policy_action(secondlevel, CONFIG_VALUE_ACTION_FLUSH);
+
+	if (obj_rulerize(OBJ_START)) {
+		snprintf(message, SRV_MAX_IDENT, "%s", "error generating rules");
+		ret = PARSER_FAILED;
+	}
+
+patch_end:
+	config_print_response(&state->body_response, "%s%s", message, config_get_output());
+	config_delete_output();
+	state->status_code = parse_to_http_status(ret);
+
+	return 0;
+}
+
 static int send_response(struct nftlb_http_state *state)
 {
 	switch (state->method) {
@@ -496,6 +561,8 @@ static int send_response(struct nftlb_http_state *state)
 		return send_post_response(state);
 	case WS_DELETE_ACTION:
 		return send_delete_response(state);
+	case WS_PATCH_ACTION:
+		return send_patch_response(state);
 	default:
 		return -1;
 	}

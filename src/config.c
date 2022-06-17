@@ -1364,6 +1364,22 @@ int config_set_fpolicy_action(const char *fname, const char *fpname, const char 
 	return PARSER_OK;
 }
 
+int config_check_policy(const char *name)
+{
+	struct policy *p;
+
+	if (!name || strcmp(name, "") == 0)
+		return PARSER_OBJ_UNKNOWN;
+
+	p = policy_lookup_by_name(name);
+	if (!p) {
+		config_set_output(". Unknown policy '%s'", name);
+		return PARSER_OBJ_UNKNOWN;
+	}
+
+	return PARSER_OK;
+}
+
 int config_set_policy_action(const char *name, const char *value)
 {
 	struct policy *p;
