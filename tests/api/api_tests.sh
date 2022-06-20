@@ -40,7 +40,7 @@ for DIRTEST in `ls -d */`; do
 		./$FEXEC
 	fi
 
-	if [ "$VERB" = "POST" ] || [ "$VERB" = "PUT" ] || [ "$VERB" = "DELETE" ] ; then
+	if [ "$VERB" = "POST" ] || [ "$VERB" = "PUT" ] || [ "$VERB" = "DELETE" ] || [ "$VERB" = "PATCH" ]; then
 		if [ -e "${FILE}" ]; then
 			CURL_ARGS="-d @${FILE}"
 		fi

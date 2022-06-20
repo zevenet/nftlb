@@ -37,6 +37,6 @@ table ip nftlb {
 	}
 
 	chain nat-l4-port0 {
-		ip protocol tcp dnat ip to ct mark map { 0x80000205 : 192.168.101.253 . 80, 0x80000206 : 192.168.101.254 . 80 }
+		ip protocol tcp dnat to ct mark map { 0x80000205 : 192.168.101.253, 0x80000206 : 192.168.101.254 }
 	}
 }
