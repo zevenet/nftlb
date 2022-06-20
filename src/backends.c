@@ -369,14 +369,14 @@ static int backend_s_set_ports(struct farm *f)
 	tools_printlog(LOG_DEBUG, "%s():%d: finding backends with port for %s", __FUNCTION__, __LINE__, f->name);
 
 	list_for_each_entry(b, &f->backends, list) {
-		if (strcmp(b->port, DEFAULT_PORT) != 0) {
-			f->bcks_have_port = 1;
-			return 1;
+		if (strcmp(b->port, DEFAULT_PORT) == 0) {
+			f->bcks_have_port = 0;
+			return 0;
 		}
 	}
 
-	f->bcks_have_port = 0;
-	return 0;
+	f->bcks_have_port = 1;
+	return 1;
 }
 
 static int backend_s_set_srcaddr(struct farm *f)
@@ -422,8 +422,8 @@ static int backend_set_port(struct backend *b, char *new_value)
 		free(b->port);
 	obj_set_attribute_string(new_value, &b->port);
 
-	if (strcmp(b->port, DEFAULT_PORT) != 0)
-		b->parent->bcks_have_port = 1;
+	if (strcmp(b->port, DEFAULT_PORT) == 0)
+		b->parent->bcks_have_port = 0;
 	else
 		backend_s_set_ports(b->parent);
 
