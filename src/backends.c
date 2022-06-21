@@ -89,6 +89,8 @@ static struct backend * backend_create(struct farm *f, char *name)
 	b->state = DEFAULT_BACKEND_STATE;
 	b->action = DEFAULT_ACTION;
 
+	b->parent->bcks_have_port = 0;
+
 	list_add_tail(&b->list, &f->backends);
 	f->total_bcks++;
 
@@ -130,6 +132,23 @@ static int backend_below_prio(struct backend *b)
 	return (b->priority <= f->priority);
 }
 
+static int backend_s_set_ports(struct farm *f)
+{
+	struct backend *b;
+
+	tools_printlog(LOG_DEBUG, "%s():%d: finding backends with port for %s", __FUNCTION__, __LINE__, f->name);
+
+	list_for_each_entry(b, &f->backends, list) {
+		if (strcmp(b->port, DEFAULT_PORT) == 0) {
+			f->bcks_have_port = 0;
+			return 0;
+		}
+	}
+
+	f->bcks_have_port = 1;
+	return 1;
+}
+
 static int backend_delete(struct backend *b)
 {
 	if (!b)
@@ -146,6 +165,7 @@ static int backend_delete(struct backend *b)
 
 	session_backend_action(f, b, ACTION_DELETE);
 	backend_delete_node(b);
+	backend_s_set_ports(f);
 
 	if (backend_s_gen_priority(f, ACTION_DELETE)) {
 		farm_set_action(f, ACTION_RELOAD);
@@ -362,23 +382,6 @@ static int backend_set_priority(struct backend *b, int new_value)
 	return 0;
 }
 
-static int backend_s_set_ports(struct farm *f)
-{
-	struct backend *b;
-
-	tools_printlog(LOG_DEBUG, "%s():%d: finding backends with port for %s", __FUNCTION__, __LINE__, f->name);
-
-	list_for_each_entry(b, &f->backends, list) {
-		if (strcmp(b->port, DEFAULT_PORT) == 0) {
-			f->bcks_have_port = 0;
-			return 0;
-		}
-	}
-
-	f->bcks_have_port = 1;
-	return 1;
-}
-
 static int backend_s_set_srcaddr(struct farm *f)
 {
 	struct backend *b;
@@ -422,9 +425,10 @@ static int backend_set_port(struct backend *b, char *new_value)
 		free(b->port);
 	obj_set_attribute_string(new_value, &b->port);
 
-	if (strcmp(b->port, DEFAULT_PORT) == 0)
-		b->parent->bcks_have_port = 0;
-	else
+	if (b->parent->bcks_have_port) {
+		if (strcmp(b->port, DEFAULT_PORT) == 0)
+			b->parent->bcks_have_port = 0;
+	} else
 		backend_s_set_ports(b->parent);
 
 	return 0;
