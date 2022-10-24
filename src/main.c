@@ -40,6 +40,7 @@
 #define NFTLB_BG_MODE			1
 #define NFTLB_EXIT_MODE			1
 #define NFTLB_NFT_SERIALIZE		0
+#define NFTLB_SERVER_KEY_VAR	"NFTLB_SERVER_KEY"
 
 unsigned int serialize = NFTLB_NFT_SERIALIZE;
 int masquerade_mark = NFTLB_MASQUERADE_MARK_DEFAULT;
@@ -154,6 +155,7 @@ int main(int argc, char *argv[])
 	int		logoutput = NFTLB_LOG_OUTPUT_DEFAULT;
 	const char	*config = NULL;
 	pid_t	pid;
+	char *_server_key;
 
 	while ((c = getopt_long(argc, argv, "hl:L:c:k:ed6H:P:Sm:", options, NULL)) != -1) {
 		switch (c) {
@@ -208,6 +210,9 @@ int main(int argc, char *argv[])
 		tools_printlog(LOG_ERR, "Error assigning signals");
 		return EXIT_FAILURE;
 	}
+
+	if ((_server_key = getenv(NFTLB_SERVER_KEY_VAR)) != NULL && strlen(_server_key) > 0)
+		server_set_key(_server_key);
 
 	tools_log_set_level(loglevel);
 	tools_log_set_output(logoutput);

@@ -57,6 +57,13 @@ Here is the list of options:
 
 Note: In order to use sNAT or dNAT modes, ensure you have activated the ip forwarding option in your system.
 
+### Controlling the server behaviour using environment variables
+You can also specify a custom server key via the `NFTLB_SERVER_KEY` environment variable. Zero length keys will be ignored.
+
+```
+root# NFTLB_SERVER_KEY="changeme" nftlb -d
+```
+
 ### JSON configuration file
 The configuration files have the following format:
 ```
