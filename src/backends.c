@@ -816,9 +816,14 @@ int backend_set_state(struct backend *b, int new_value)
 
 	switch (new_value) {
 	case VALUE_STATE_CONFERR:
+		if (old_value == VALUE_STATE_UP)
+			b->action = ACTION_STOP;
+		break;
 	case VALUE_STATE_OFF:
 		if (old_value == VALUE_STATE_UP)
 			b->action = ACTION_STOP;
+		if (old_value == VALUE_STATE_DOWN)
+			b->action = ACTION_START;
 		break;
 	case VALUE_STATE_AVAIL:
 		if (old_value == VALUE_STATE_UP)
