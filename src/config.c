@@ -1364,6 +1364,22 @@ int config_set_fpolicy_action(const char *fname, const char *fpname, const char 
 	return PARSER_OK;
 }
 
+int config_check_farm(const char *name)
+{
+	struct farm *f;
+
+	if (!name || strcmp(name, "") == 0)
+		return PARSER_OBJ_UNKNOWN;
+
+	f = farm_lookup_by_name(name);
+	if (!f) {
+		config_set_output(". Unknown farm '%s'", name);
+		return PARSER_OBJ_UNKNOWN;
+	}
+
+	return PARSER_OK;
+}
+
 int config_check_policy(const char *name)
 {
 	struct policy *p;

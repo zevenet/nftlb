@@ -242,6 +242,26 @@ static int fin_http_state(struct nftlb_http_state *state)
 	return 0;
 }
 
+static int server_load_config(const char *body_request, char *response, int action)
+{
+	int ret = config_buffer(body_request, action);
+	switch (ret) {
+	case PARSER_OK:
+		break;
+	case PARSER_STRUCT_FAILED:
+		snprintf(response, SRV_MAX_IDENT, "%s", "the structure is invalid");
+		break;
+	case PARSER_OBJ_UNKNOWN:
+		snprintf(response, SRV_MAX_IDENT, "%s", "the object to modify is unknown");
+		break;
+	default:
+		snprintf(response, SRV_MAX_IDENT, "%s", "error parsing buffer");
+		break;
+	}
+
+	return ret;
+}
+
 static int send_get_response(struct nftlb_http_state *state)
 {
 	char firstlevel[SRV_MAX_IDENT] = {0};
@@ -422,20 +442,9 @@ static int send_delete_response(struct nftlb_http_state *state)
 
 	} else {
 
-		ret = config_buffer(state->body, ACTION_STOP);
-		switch (ret) {
-		case PARSER_OK:
-			break;
-		case PARSER_STRUCT_FAILED:
-			snprintf(message, SRV_MAX_IDENT, "%s", "the structure is invalid");
+		ret = server_load_config(state->body, message, ACTION_STOP);
+		if (ret != PARSER_OK)
 			goto delete_end;
-		case PARSER_OBJ_UNKNOWN:
-			snprintf(message, SRV_MAX_IDENT, "%s", "the object to modify is unknown");
-			goto delete_end;
-		default:
-			snprintf(message, SRV_MAX_IDENT, "%s", "error parsing buffer");
-			goto delete_end;
-		}
 
 		if (obj_rulerize(OBJ_START)) {
 			snprintf(message, SRV_MAX_IDENT, "%s", "error generating rules");
@@ -467,22 +476,11 @@ static int send_post_response(struct nftlb_http_state *state)
 		goto post_end;
 	}
 
-	snprintf(message, SRV_MAX_IDENT, "%s", "success");
-	ret = config_buffer(state->body, ACTION_START);
-	switch (ret) {
-	case PARSER_OK:
-		break;
-	case PARSER_STRUCT_FAILED:
-		snprintf(message, SRV_MAX_IDENT, "%s", "the structure is invalid");
+	ret = server_load_config(state->body, message, ACTION_START);
+	if (ret != PARSER_OK)
 		goto post_end;
-	case PARSER_OBJ_UNKNOWN:
-		snprintf(message, SRV_MAX_IDENT, "%s", "the object to modify is unknown");
-		goto post_end;
-	default:
-		snprintf(message, SRV_MAX_IDENT, "%s", "error parsing buffer");
-		goto post_end;
-	}
 
+	snprintf(message, SRV_MAX_IDENT, "%s", "success");
 	if (obj_rulerize(OBJ_START)) {
 		snprintf(message, SRV_MAX_IDENT, "%s", "error generating rules");
 		ret = PARSER_FAILED;
@@ -504,44 +502,72 @@ static int send_patch_response(struct nftlb_http_state *state)
 	char message[SRV_MAX_IDENT] = {0};
 	int ret = 0;
 
-	sscanf(state->uri, "/%199[^/]/%199[^/]/%199[^\n]",
-	       firstlevel, secondlevel, thirdlevel);
+	sscanf(state->uri, "/%199[^/]/%199[^/]/%199[^\n]", firstlevel, secondlevel, thirdlevel);
 
-	if ((strcmp(firstlevel, CONFIG_KEY_POLICIES) != 0) &&
-		(strcmp(thirdlevel, CONFIG_KEY_ELEMENTS) != 0)) {
-		snprintf(message, SRV_MAX_IDENT, "%s", "invalid request");
-		ret = PARSER_OBJ_UNKNOWN;
+	// PATCH /farms/<my_farm>/policies/
+	if (strcmp(firstlevel, CONFIG_KEY_FARMS) == 0) {
+		if (strcmp(thirdlevel, CONFIG_KEY_POLICIES) != 0)
+			goto patch_invalid_request;
+
+		if (config_check_farm(secondlevel) != PARSER_OK)
+			goto patch_object_unknown;
+
+		config_set_farm_action(secondlevel, CONFIG_VALUE_ACTION_RELOAD);
+		config_set_fpolicy_action(secondlevel, NULL, CONFIG_VALUE_ACTION_STOP);
+
+		if (obj_rulerize(OBJ_START)) {
+			snprintf(message, SRV_MAX_IDENT, "%s", "error generating rules");
+			ret = PARSER_FAILED;
+			goto patch_end;
+		}
+
+		config_set_fpolicy_action(secondlevel, NULL, CONFIG_VALUE_ACTION_DELETE);
+		config_set_fpolicy_action(secondlevel, NULL, CONFIG_VALUE_ACTION_NONE);
+
+		ret = server_load_config(state->body, message, ACTION_START);
+		if (ret != PARSER_OK)
+			goto patch_end;
+
+		if (obj_rulerize(OBJ_START)) {
+			snprintf(message, SRV_MAX_IDENT, "%s", "error generating rules");
+			ret = PARSER_FAILED;
+			goto patch_end;
+		}
+
+		snprintf(message, SRV_MAX_IDENT, "%s", "success");
 		goto patch_end;
 	}
 
-	if (config_check_policy(secondlevel) != PARSER_OK) {
-		snprintf(message, SRV_MAX_IDENT, "%s", "the object to modify is unknown");
-		ret = PARSER_OBJ_UNKNOWN;
+	// PATCH /policies/
+	if (strcmp(firstlevel, CONFIG_KEY_POLICIES) == 0) {
+		if (config_check_policy(secondlevel) != PARSER_OK)
+			goto patch_object_unknown;
+
+		ret = server_load_config(state->body, message, ACTION_START);
+		if (ret != PARSER_OK)
+			goto patch_end;
+
+		config_set_policy_action(secondlevel, CONFIG_VALUE_ACTION_FLUSH);
+
+		if (obj_rulerize(OBJ_START)) {
+			snprintf(message, SRV_MAX_IDENT, "%s", "error generating rules");
+			ret = PARSER_FAILED;
+			goto patch_end;
+		}
+
+		snprintf(message, SRV_MAX_IDENT, "%s", "success");
 		goto patch_end;
 	}
 
-	snprintf(message, SRV_MAX_IDENT, "%s", "success");
-	ret = config_buffer(state->body, ACTION_START);
-	switch (ret) {
-	case PARSER_OK:
-		break;
-	case PARSER_STRUCT_FAILED:
-		snprintf(message, SRV_MAX_IDENT, "%s", "the structure is invalid");
-		goto patch_end;
-	case PARSER_OBJ_UNKNOWN:
-		snprintf(message, SRV_MAX_IDENT, "%s", "the object to modify is unknown");
-		goto patch_end;
-	default:
-		snprintf(message, SRV_MAX_IDENT, "%s", "error parsing buffer");
-		goto patch_end;
-	}
+patch_invalid_request:
+	snprintf(message, SRV_MAX_IDENT, "%s", "invalid request");
+	ret = PARSER_OBJ_UNKNOWN;
+	goto patch_end;
 
-	config_set_policy_action(secondlevel, CONFIG_VALUE_ACTION_FLUSH);
-
-	if (obj_rulerize(OBJ_START)) {
-		snprintf(message, SRV_MAX_IDENT, "%s", "error generating rules");
-		ret = PARSER_FAILED;
-	}
+patch_object_unknown:
+	snprintf(message, SRV_MAX_IDENT, "%s", "the object to modify is unknown");
+	ret = PARSER_OBJ_UNKNOWN;
+	goto patch_end;
 
 patch_end:
 	config_print_response(&state->body_response, "%s%s", message, config_get_output());
