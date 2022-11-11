@@ -1,0 +1,12 @@
+{
+	"policies" : [
+		{
+			"name" : "mylist",
+			"type" : "blacklist",
+			"elements" : [ {
+				"data" : "35.195.60.76"
+				}
+			]
+		}
+	]
+}

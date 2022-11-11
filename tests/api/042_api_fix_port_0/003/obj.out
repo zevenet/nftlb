@@ -1,17 +1,17 @@
 {
         "farms": [
                 {
-                        "name": "lb01",
+                        "name": "l4-port0",
                         "family": "ipv4",
-                        "virtual-addr": "192.168.0.100",
+                        "virtual-addr": "127.0.0.1",
                         "virtual-ports": "80",
                         "source-addr": "",
-                        "mode": "dsr",
+                        "mode": "snat",
                         "protocol": "tcp",
                         "scheduler": "weight",
                         "sched-param": "none",
-                        "persistence": "srcip srcport ",
-                        "persist-ttl": "50",
+                        "persistence": "none",
+                        "persist-ttl": "60",
                         "helper": "none",
                         "log": "none",
                         "log-rtlimit": "0/second",
@@ -29,9 +29,9 @@
                         "verdict": "log drop accept",
                         "addresses": [
                                 {
-                                        "name": "lb01-addr",
+                                        "name": "l4-port0-addr",
                                         "family": "ipv4",
-                                        "ip-addr": "192.168.0.100",
+                                        "ip-addr": "127.0.0.1",
                                         "ports": "80",
                                         "protocol": "tcp",
                                         "used": "1"
@@ -40,30 +40,26 @@
                         "backends": [
                                 {
                                         "name": "bck0",
-                                        "ip-addr": "192.168.0.10",
-                                        "port": "10",
-                                        "weight": "5",
+                                        "ip-addr": "192.168.101.254",
+                                        "port": "",
+                                        "weight": "1",
                                         "priority": "1",
-                                        "mark": "0x1",
+                                        "mark": "0x206",
                                         "est-connlimit": "0",
                                         "state": "up"
                                 },
                                 {
                                         "name": "bck1",
-                                        "ip-addr": "192.168.0.11",
-                                        "port": "20",
-                                        "weight": "5",
+                                        "ip-addr": "192.168.101.253",
+                                        "port": "80",
+                                        "weight": "1",
                                         "priority": "1",
-                                        "mark": "0x2",
+                                        "mark": "0x205",
                                         "est-connlimit": "0",
                                         "state": "up"
                                 }
                         ],
-                        "policies": [
-                                {
-                                        "name": "mylist"
-                                }
-                        ]
+                        "policies": []
                 }
         ]
 }

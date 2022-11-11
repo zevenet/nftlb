@@ -1,0 +1,147 @@
+table ip nftlb {
+	map filter-proto-services {
+		type inet_proto . ipv4_addr . inet_service : verdict
+		elements = { tcp . 10.0.7.15 . 5672 : goto filter-TVMRMQAPP,
+			     tcp . 10.0.4.20 . 5672 : goto filter-VSIRMQAPP,
+			     tcp . 10.0.7.15 . 15672 : goto filter-TVMRMQWEB,
+			     tcp . 10.0.4.20 . 15672 : goto filter-VSIRMQWEB,
+			     tcp . 10.0.7.11 . 8080 : goto filter-TVMNimbleJboss1,
+			     tcp . 10.0.7.13 . 8080 : goto filter-TVMNimbleJboss3,
+			     tcp . 10.0.4.235 . 8080 : goto filter-NimbleJournalJboss1,
+			     tcp . 10.0.4.238 . 8080 : goto filter-NimbleJournalJboss2,
+			     tcp . 10.0.7.12 . 8123 : goto filter-TVMNimbleJboss2,
+			     tcp . 10.0.4.241 . 8123 : goto filter-NimbleBooksJboss1,
+			     tcp . 10.0.4.242 . 8123 : goto filter-NimbleBooksJboss2 }
+	}
+
+	map nat-proto-services {
+		type inet_proto . ipv4_addr . inet_service : verdict
+		elements = { tcp . 10.0.7.15 . 5672 : goto nat-TVMRMQAPP,
+			     tcp . 10.0.4.20 . 5672 : goto nat-VSIRMQAPP,
+			     tcp . 10.0.7.15 . 15672 : goto nat-TVMRMQWEB,
+			     tcp . 10.0.4.20 . 15672 : goto nat-VSIRMQWEB,
+			     tcp . 10.0.7.11 . 8080 : goto nat-TVMNimbleJboss1,
+			     tcp . 10.0.7.13 . 8080 : goto nat-TVMNimbleJboss3,
+			     tcp . 10.0.4.235 . 8080 : goto nat-NimbleJournalJboss1,
+			     tcp . 10.0.4.238 . 8080 : goto nat-NimbleJournalJboss2,
+			     tcp . 10.0.7.12 . 8123 : goto nat-TVMNimbleJboss2,
+			     tcp . 10.0.4.241 . 8123 : goto nat-NimbleBooksJboss1,
+			     tcp . 10.0.4.242 . 8123 : goto nat-NimbleBooksJboss2 }
+	}
+
+	map services-back-m {
+		type mark : ipv4_addr
+		elements = { 0x00000200 : 10.0.4.210, 0x00000201 : 10.0.4.210, 0x00000205 : 10.0.4.210, 0x00000206 : 10.0.4.210, 0x0000020c : 10.0.4.210,
+			     0x0000020d : 10.0.4.210, 0x0000020e : 10.0.4.210, 0x0000020f : 10.0.4.210, 0x00000212 : 10.0.4.210, 0x00000213 : 10.0.4.210,
+			     0x00000214 : 10.0.4.210, 0x00000215 : 10.0.4.210, 0x0000021b : 10.0.4.210, 0x0000021c : 10.0.4.210, 0x0000021e : 10.0.4.210,
+			     0x0000021f : 10.0.4.210, 0x00000220 : 10.0.4.210, 0x00000221 : 10.0.4.210, 0x00000223 : 10.0.4.210, 0x00000225 : 10.0.4.210,
+			     0x00000226 : 10.0.4.210 }
+	}
+
+	chain filter {
+		type filter hook prerouting priority mangle; policy accept;
+		meta mark 0x00000000 meta mark set ct mark
+		ip protocol . ip daddr . th dport vmap @filter-proto-services
+	}
+
+	chain filter-NimbleBooksJboss1 {
+		ct state new ct mark 0x00000000 ct mark set numgen inc mod 2 map { 0 : 0x0000020c, 1 : 0x0000020d }
+	}
+
+	chain prerouting {
+		type nat hook prerouting priority dstnat; policy accept;
+		ct state new meta mark 0x00000000 meta mark set ct mark
+		ip protocol . ip daddr . th dport vmap @nat-proto-services
+	}
+
+	chain postrouting {
+		type nat hook postrouting priority srcnat; policy accept;
+		ct mark 0x00000000 ct mark set meta mark
+		ct mark 0x80000000/1 masquerade
+		snat to ct mark map @services-back-m
+	}
+
+	chain nat-NimbleBooksJboss1 {
+		ip protocol tcp dnat ip to ct mark map { 0x0000020c : 10.0.4.51 . 8123, 0x0000020d : 10.0.0.203 . 8123 }
+	}
+
+	chain filter-NimbleBooksJboss2 {
+		ct state new ct mark 0x00000000 ct mark set numgen inc mod 2 map { 0 : 0x0000020e, 1 : 0x0000020f }
+	}
+
+	chain nat-NimbleBooksJboss2 {
+		ip protocol tcp dnat ip to ct mark map { 0x0000020e : 10.0.0.57 . 8123, 0x0000020f : 10.0.4.200 . 8123 }
+	}
+
+	chain filter-NimbleJournalJboss1 {
+		ct state new ct mark 0x00000000 ct mark set numgen inc mod 2 map { 0 : 0x00000200, 1 : 0x00000201 }
+	}
+
+	chain nat-NimbleJournalJboss1 {
+		ip protocol tcp dnat ip to ct mark map { 0x00000200 : 10.0.0.166 . 8080, 0x00000201 : 10.0.4.178 . 8080 }
+	}
+
+	chain filter-NimbleJournalJboss2 {
+		ct state new ct mark 0x00000000 ct mark set numgen inc mod 2 map { 0 : 0x00000205, 1 : 0x00000206 }
+	}
+
+	chain nat-NimbleJournalJboss2 {
+		ip protocol tcp dnat ip to ct mark map { 0x00000205 : 10.0.0.35 . 8080, 0x00000206 : 10.0.0.37 . 8080 }
+	}
+
+	chain filter-TVMNimbleJboss1 {
+		ct state new ct mark 0x00000000 ct mark set numgen inc mod 2 map { 0 : 0x00000212, 1 : 0x00000213 }
+	}
+
+	chain nat-TVMNimbleJboss1 {
+		ip protocol tcp dnat ip to ct mark map { 0x00000212 : 10.0.7.114 . 8080, 0x00000213 : 10.0.7.117 . 8080 }
+	}
+
+	chain filter-TVMNimbleJboss2 {
+		ct state new ct mark 0x00000000 ct mark set numgen inc mod 2 map { 0 : 0x00000214, 1 : 0x0000021b }
+	}
+
+	chain nat-TVMNimbleJboss2 {
+		ip protocol tcp dnat ip to ct mark map { 0x00000214 : 10.0.7.106 . 8123, 0x0000021b : 10.0.7.119 . 8123 }
+	}
+
+	chain filter-TVMNimbleJboss3 {
+		ct state new ct mark 0x00000000 ct mark set numgen inc mod 2 map { 0 : 0x00000215, 1 : 0x0000021c }
+	}
+
+	chain nat-TVMNimbleJboss3 {
+		ip protocol tcp dnat ip to ct mark map { 0x00000215 : 10.0.7.111 . 8080, 0x0000021c : 10.0.7.120 . 8080 }
+	}
+
+	chain filter-TVMRMQAPP {
+		ct state new ct mark 0x00000000 ct mark set numgen random mod 2 map { 0 : 0x0000021e, 1 : 0x0000021f }
+	}
+
+	chain nat-TVMRMQAPP {
+		ip protocol tcp dnat ip to ct mark map { 0x0000021e : 10.0.7.144 . 5672, 0x0000021f : 10.0.7.145 . 5672 }
+	}
+
+	chain filter-TVMRMQWEB {
+		ct state new ct mark 0x00000000 ct mark set numgen inc mod 2 map { 0 : 0x00000220, 1 : 0x00000221 }
+	}
+
+	chain nat-TVMRMQWEB {
+		ip protocol tcp dnat ip to ct mark map { 0x00000220 : 10.0.7.144 . 15672, 0x00000221 : 10.0.7.145 . 15672 }
+	}
+
+	chain filter-VSIRMQAPP {
+		ct state new ct mark 0x00000000 ct mark set numgen random mod 1 map { 0 : 0x00000223 }
+	}
+
+	chain nat-VSIRMQAPP {
+		ip protocol tcp dnat ip to ct mark map { 0x00000223 : 10.0.4.215 . 5672 }
+	}
+
+	chain filter-VSIRMQWEB {
+		ct state new ct mark 0x00000000 ct mark set numgen inc mod 2 map { 0 : 0x00000225, 1 : 0x00000226 }
+	}
+
+	chain nat-VSIRMQWEB {
+		ip protocol tcp dnat ip to ct mark map { 0x00000225 : 10.0.4.215 . 15672, 0x00000226 : 10.0.4.216 . 15672 }
+	}
+}

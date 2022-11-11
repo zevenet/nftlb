@@ -1,0 +1,25 @@
+{
+        "policies": [
+                {
+                        "name": "testBL",
+                        "family": "ipv4",
+                        "type": "whitelist",
+                        "route": "in",
+                        "timeout": "0",
+                        "log-prefix": "[WL,testBL,FNAME]",
+                        "used": "1",
+                        "elements": [
+                                {
+                                        "data": "192.168.15.0/24",
+                                        "counter-packets": "0",
+                                        "counter-bytes": "0"
+                                },
+                                {
+                                        "data": "192.168.17.1",
+                                        "counter-packets": "0",
+                                        "counter-bytes": "0"
+                                }
+                        ]
+                }
+        ]
+}

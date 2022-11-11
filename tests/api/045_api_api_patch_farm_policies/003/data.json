@@ -1,0 +1,15 @@
+{
+        "farms": [
+                {
+                        "name": "newfarm",
+                        "policies": [
+                                {
+                                        "name": "aa_white1"
+                                },
+                                {
+                                        "name": "aa_white2"
+                                }
+                        ]
+                }
+        ]
+}

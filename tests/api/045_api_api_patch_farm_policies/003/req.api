@@ -1,0 +1,3 @@
+FILE="data.json"
+VERB="PATCH"
+URI="farms/newfarm/policies"

@@ -3,7 +3,7 @@
 ARG="$1"
 ARG2="$2"
 NFTBIN="nft"
-NFTLBIN="../src/nftlb"
+NFTLBIN="../../src/nftlb"
 NFTLB_ARGS=""
 APISERVER=0
 APISRV_PORT=5555

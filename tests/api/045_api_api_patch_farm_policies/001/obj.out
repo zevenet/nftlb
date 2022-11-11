@@ -1,0 +1,44 @@
+{
+        "policies": [
+                {
+                        "name": "aa_black1",
+                        "family": "ipv4",
+                        "type": "blacklist",
+                        "route": "in",
+                        "timeout": "0",
+                        "log-prefix": "[BL,aa_black1,FNAME]",
+                        "used": "0",
+                        "elements": []
+                },
+                {
+                        "name": "aa_black2",
+                        "family": "ipv4",
+                        "type": "blacklist",
+                        "route": "in",
+                        "timeout": "0",
+                        "log-prefix": "[BL,aa_black2,FNAME]",
+                        "used": "0",
+                        "elements": []
+                },
+                {
+                        "name": "aa_white1",
+                        "family": "ipv4",
+                        "type": "blacklist",
+                        "route": "in",
+                        "timeout": "0",
+                        "log-prefix": "[BL,aa_white1,FNAME]",
+                        "used": "0",
+                        "elements": []
+                },
+                {
+                        "name": "aa_white2",
+                        "family": "ipv4",
+                        "type": "blacklist",
+                        "route": "in",
+                        "timeout": "0",
+                        "log-prefix": "[BL,aa_white2,FNAME]",
+                        "used": "0",
+                        "elements": []
+                }
+        ]
+}

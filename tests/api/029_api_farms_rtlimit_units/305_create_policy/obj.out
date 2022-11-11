@@ -1,0 +1,19 @@
+{
+        "policies": [
+                {
+                        "name": "mylist",
+                        "family": "ipv4",
+                        "type": "blacklist",
+                        "route": "in",
+                        "timeout": "0",
+                        "used": "0",
+                        "elements": [
+                                {
+                                        "data": "35.195.60.76",
+                                        "counter-packets": "0",
+                                        "counter-bytes": "0"
+                                }
+                        ]
+                }
+        ]
+}
