@@ -1,0 +1,6 @@
+../zcutils/src/zcu_string.o: ../zcutils/src/zcu_string.c \
+ /usr/include/stdc-predef.h ../zcutils/include/zcu_string.h
+
+/usr/include/stdc-predef.h:
+
+../zcutils/include/zcu_string.h:

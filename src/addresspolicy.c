@@ -26,18 +26,17 @@
 #include "addresspolicy.h"
 #include "objects.h"
 #include "network.h"
-#include "tools.h"
-
+#include "zcu_log.h"
 
 static struct addresspolicy * addresspolicy_create(struct address *a, struct policy *p)
 {
 	struct addresspolicy *ap = (struct addresspolicy *)malloc(sizeof(struct addresspolicy));
 	if (!ap) {
-		tools_printlog(LOG_ERR, "address policy memory allocation error");
+		zcu_log_print(LOG_ERR, "address policy memory allocation error");
 		return NULL;
 	}
 
-	tools_printlog(LOG_DEBUG, "%s():%d: address %s", __FUNCTION__, __LINE__, a->name);
+	zcu_log_print(LOG_DEBUG, "%s():%d: address %s", __FUNCTION__, __LINE__, a->name);
 
 	ap->address = a;
 	ap->policy = p;
@@ -80,9 +79,9 @@ void addresspolicy_s_print(struct address *a)
 	struct addresspolicy *ap;
 
 	list_for_each_entry(ap, &a->policies, list) {
-		tools_printlog(LOG_DEBUG,"    [policy] ");
-		tools_printlog(LOG_DEBUG,"       [%s] %s", CONFIG_KEY_NAME, ap->policy->name);
-		tools_printlog(LOG_DEBUG,"       *[%s] %d", CONFIG_KEY_ACTION, ap->action);
+		zcu_log_print(LOG_DEBUG,"    [policy] ");
+		zcu_log_print(LOG_DEBUG,"       [%s] %s", CONFIG_KEY_NAME, ap->policy->name);
+		zcu_log_print(LOG_DEBUG,"       *[%s] %d", CONFIG_KEY_ACTION, ap->action);
 	}
 }
 
@@ -139,7 +138,7 @@ int addresspolicy_s_lookup_policy_action(struct address *a, char *name, int acti
 	struct addresspolicy *ap;
 	int ret = 0;
 
-	tools_printlog(LOG_DEBUG, "%s():%d: address %s action is %d - new action %d", __FUNCTION__, __LINE__, a->name, a->action, action);
+	zcu_log_print(LOG_DEBUG, "%s():%d: address %s action is %d - new action %d", __FUNCTION__, __LINE__, a->name, a->action, action);
 
 	ap = addresspolicy_lookup_by_name(a, name);
 	if (ap)
@@ -185,7 +184,7 @@ int addresspolicy_pre_actionable(struct config_pair *c)
 	if (!a)
 		return -1;
 
-	tools_printlog(LOG_DEBUG, "%s():%d: pre actionable address policy for address %s", __FUNCTION__, __LINE__, a->name);
+	zcu_log_print(LOG_DEBUG, "%s():%d: pre actionable address policy for address %s", __FUNCTION__, __LINE__, a->name);
 
 	address_set_action(a, ACTION_RELOAD);
 	address_rulerize(a);
@@ -201,7 +200,7 @@ int addresspolicy_pos_actionable(struct config_pair *c)
 	if (!ap || !a)
 		return -1;
 
-	tools_printlog(LOG_DEBUG, "%s():%d: pos actionable address policy %s for address %s with param %d", __FUNCTION__, __LINE__, ap->policy->name, a->name, c->key);
+	zcu_log_print(LOG_DEBUG, "%s():%d: pos actionable address policy %s for address %s with param %d", __FUNCTION__, __LINE__, ap->policy->name, a->name, c->key);
 
 	address_set_action(a, ACTION_RELOAD);
 

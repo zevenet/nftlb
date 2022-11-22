@@ -1,5 +1,5 @@
 /*
- *   This file is part of nftlb, nftables load balancer.
+ *   This file is part of zcutils, ZEVENET Core Utils.
  *
  *   Copyright (C) ZEVENET SL.
  *   Author: Laura Garcia <laura.garcia@zevenet.com>
@@ -19,29 +19,12 @@
  *
  */
 
-#ifndef _SBUFFER_H_
-#define _SBUFFER_H_
+#include "zcu_string.h"
 
-#include <stdarg.h>
-
-#define DEFAULT_BUFFER_SIZE		4096
-#define EXTRA_SIZE				1024
-
-struct sbuffer {
-	int		size;
-	int		next;
-	char	*data;
-};
-
-int get_buf_size(struct sbuffer *buf);
-char * get_buf_next(struct sbuffer *buf);
-char * get_buf_data(struct sbuffer *buf);
-int resize_buf(struct sbuffer *buf, int times);
-int create_buf(struct sbuffer *buf);
-int clean_buf(struct sbuffer *buf);
-int reset_buf(struct sbuffer *buf);
-int isempty_buf(struct sbuffer *buf);
-int concat_buf_va(struct sbuffer *buf, int len, char *fmt, va_list args);
-int concat_buf(struct sbuffer *buf, char *fmt, ...);
-
-#endif /* _SBUFFER_H_ */
+void zcu_str_snprintf(char *strdst, int size, char *strsrc)
+{
+	for (int i = 0; i < size; i++) {
+		strdst[i] = *(strsrc + i);
+	}
+	strdst[size] = '\0';
+}

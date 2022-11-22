@@ -1,5 +1,5 @@
- /*
- *   This file is part of nftlb, nftables load balancer.
+/*
+ *   This file is part of zcutils, ZEVENET Core Utils.
  *
  *   Copyright (C) ZEVENET SL.
  *   Author: Laura Garcia <laura.garcia@zevenet.com>
@@ -19,30 +19,17 @@
  *
  */
 
-#ifndef _TOOLS_H_
-#define _TOOLS_H_
+#ifndef _ZCU_STRING_H_
+#define _ZCU_STRING_H_
 
-#include <syslog.h>
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-#define NFTLB_LOG_LEVEL_DEFAULT			LOG_NOTICE
-#define NFTLB_LOG_OUTPUT_DEFAULT		VALUE_LOG_OUTPUT_SYSLOG
+void zcu_str_snprintf(char *strdst, int size, char *strsrc);
 
-#define NFTLB_LOG_OUTPUT_SYSLOG			(1 << 0)
-#define NFTLB_LOG_OUTPUT_STDOUT			(1 << 1)
-#define NFTLB_LOG_OUTPUT_STDERR			(1 << 2)
+#ifdef __cplusplus
+}
+#endif
 
-enum log_output {
-	VALUE_LOG_OUTPUT_SYSLOG,
-	VALUE_LOG_OUTPUT_STDOUT,
-	VALUE_LOG_OUTPUT_STDERR,
-	VALUE_LOG_OUTPUT_SYSOUT,
-	VALUE_LOG_OUTPUT_SYSERR,
-};
-
-void tools_snprintf(char *strdst, int size, char *strsrc);
-void tools_log_set_level(int loglevel);
-void tools_log_set_output(int output);
-int tools_printlog(int loglevel, char *fmt, ...);
-int tools_log_get_level(void);
-
-#endif /* _TOOLS_H_ */
+#endif /* _ZCU_STRING_H_ */

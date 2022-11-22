@@ -22,10 +22,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <getopt.h>
-#include <string.h>
 #include <errno.h>
 #include <unistd.h>
-#include <execinfo.h>
 
 #include "config.h"
 #include "objects.h"
@@ -33,7 +31,8 @@
 #include "events.h"
 #include "network.h"
 #include "nft.h"
-#include "tools.h"
+#include "zcu_backtrace.h"
+#include "zcu_log.h"
 
 #define NFTLB_SERVER_MODE		0
 #define NFTLB_FG_MODE			0
@@ -84,34 +83,20 @@ static const struct option options[] = {
 
 static void nftlb_sighandler(int signo)
 {
-	tools_printlog(LOG_INFO, "shutting down %s, bye", PACKAGE);
+	zcu_log_print(LOG_INFO, "shutting down %s, bye", PACKAGE);
 	server_fini();
 	exit(EXIT_SUCCESS);
 }
 
 static void nftlb_trace() {
-	void *buffer[255];
-	char **str;
-	int i, level;
-	const int calls = backtrace(buffer, sizeof(buffer) / sizeof(void *));
+	int level;
 
-	tools_printlog(LOG_ERR, "SIGSEGV/SIGABRT received!");
-	backtrace_symbols_fd(buffer, calls, 1);
+	zcu_bt_print_symbols();
 
-	str = backtrace_symbols(buffer, calls);
-	if (!str) {
-		tools_printlog(LOG_ERR, "No backtrace strings found!");
-		exit(EXIT_FAILURE);
-	}
-
-	for (i = 0; i < calls; i++)
-		tools_printlog(LOG_ERR, "%s", str[i]);
-	free(str);
-
-	level = tools_log_get_level();
-	tools_log_set_level(LOG_DEBUG);
+	level = zcu_log_get_level();
+	zcu_log_set_level(LOG_DEBUG);
 	obj_print();
-	tools_log_set_level(level);
+	zcu_log_set_level(level);
 	if (!obj_recovery())
 		exit(EXIT_FAILURE);
 }
@@ -128,7 +113,7 @@ static int main_process(const char *config, int mode)
 	if (config && config_file(config) != 0)
 		return EXIT_FAILURE;
 
-	if (tools_log_get_level() > NFTLB_LOG_LEVEL_DEFAULT)
+	if (zcu_log_get_level() > ZCUTILS_LOG_LEVEL_DEFAULT)
 		obj_print();
 
 	obj_rulerize(OBJ_START);
@@ -137,7 +122,7 @@ static int main_process(const char *config, int mode)
 		return EXIT_SUCCESS;
 
 	if (server_init() != 0) {
-		tools_printlog(LOG_ERR, "Cannot start server-ev: %s\n", strerror(errno));
+		zcu_log_print(LOG_ERR, "Cannot start server-ev: %s\n", strerror(errno));
 		return EXIT_FAILURE;
 	}
 
@@ -151,8 +136,8 @@ int main(int argc, char *argv[])
 	int		c;
 	int		mode = NFTLB_SERVER_MODE;
 	int		run_mode = NFTLB_FG_MODE;
-	int		loglevel = NFTLB_LOG_LEVEL_DEFAULT;
-	int		logoutput = NFTLB_LOG_OUTPUT_DEFAULT;
+	int		loglevel = ZCUTILS_LOG_LEVEL_DEFAULT;
+	int		logoutput = ZCUTILS_LOG_OUTPUT_DEFAULT;
 	const char	*config = NULL;
 	pid_t	pid;
 	char *_server_key;
@@ -197,7 +182,7 @@ int main(int argc, char *argv[])
 			masquerade_mark = (int)strtol(optarg, NULL, 16);
 			break;
 		default:
-			tools_printlog(LOG_ERR, "Unknown option -%c", optopt);
+			zcu_log_print(LOG_ERR, "Unknown option -%c", optopt);
 			return EXIT_FAILURE;
 		}
 	}
@@ -207,20 +192,20 @@ int main(int argc, char *argv[])
 	    signal(SIGPIPE, SIG_IGN) == SIG_ERR ||
 	    signal(SIGABRT, nftlb_trace) == SIG_ERR ||
 	    signal(SIGSEGV, nftlb_trace) == SIG_ERR) {
-		tools_printlog(LOG_ERR, "Error assigning signals");
+		zcu_log_print(LOG_ERR, "Error assigning signals");
 		return EXIT_FAILURE;
 	}
 
 	if ((_server_key = getenv(NFTLB_SERVER_KEY_VAR)) != NULL && strlen(_server_key) > 0)
 		server_set_key(_server_key);
 
-	tools_log_set_level(loglevel);
-	tools_log_set_output(logoutput);
+	zcu_log_set_level(loglevel);
+	zcu_log_set_output(logoutput);
 
 	if (run_mode) {
 		pid = fork();
 		if (pid == -1) {
-			tools_printlog(LOG_ERR, "Daemon mode aborted: %s", strerror(errno));
+			zcu_log_print(LOG_ERR, "Daemon mode aborted: %s", strerror(errno));
 			return EXIT_FAILURE;
 		} else if (pid == 0) {
 			main_process(config, mode);

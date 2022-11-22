@@ -28,14 +28,14 @@
 #include "farmaddress.h"
 #include "objects.h"
 #include "network.h"
-#include "tools.h"
+#include "zcu_log.h"
 
 
 static struct farmpolicy * farmpolicy_create(struct farm *f, struct policy *p)
 {
 	struct farmpolicy *fp = (struct farmpolicy *)malloc(sizeof(struct farmpolicy));
 	if (!fp) {
-		tools_printlog(LOG_ERR, "Farm Policy memory allocation error");
+		zcu_log_print(LOG_ERR, "Farm Policy memory allocation error");
 		return NULL;
 	}
 
@@ -78,9 +78,9 @@ void farmpolicy_s_print(struct farm *f)
 	struct farmpolicy *fp;
 
 	list_for_each_entry(fp, &f->policies, list) {
-		tools_printlog(LOG_DEBUG,"    [policy] ");
-		tools_printlog(LOG_DEBUG,"       [%s] %s", CONFIG_KEY_NAME, fp->policy->name);
-		tools_printlog(LOG_DEBUG,"       *[%s] %d", CONFIG_KEY_ACTION, fp->action);
+		zcu_log_print(LOG_DEBUG,"    [policy] ");
+		zcu_log_print(LOG_DEBUG,"       [%s] %s", CONFIG_KEY_NAME, fp->policy->name);
+		zcu_log_print(LOG_DEBUG,"       *[%s] %d", CONFIG_KEY_ACTION, fp->action);
 	}
 }
 
@@ -100,7 +100,7 @@ int farmpolicy_set_action(struct farmpolicy *fp, int action)
 {
 	struct farm *f = fp->farm;
 
-	tools_printlog(LOG_DEBUG, "%s():%d: farm %s action %d", __FUNCTION__, __LINE__, fp->farm->name, action);
+	zcu_log_print(LOG_DEBUG, "%s():%d: farm %s action %d", __FUNCTION__, __LINE__, fp->farm->name, action);
 
 	if (action == ACTION_DELETE) {
 		farmpolicy_delete(fp);
@@ -127,7 +127,7 @@ int farmpolicy_s_set_action(struct farm *f, int action)
 {
 	struct farmpolicy *fp, *next;
 
-	tools_printlog(LOG_DEBUG, "%s():%d: farm %s action %d", __FUNCTION__, __LINE__, f->name, action);
+	zcu_log_print(LOG_DEBUG, "%s():%d: farm %s action %d", __FUNCTION__, __LINE__, f->name, action);
 
 	list_for_each_entry_safe(fp, next, &f->policies, list)
 		farmpolicy_set_action(fp, action);
@@ -152,7 +152,7 @@ int farmpolicy_s_lookup_policy_action(struct farm *f, char *name, int action)
 	struct farmpolicy *fp;
 	int ret = 0;
 
-	tools_printlog(LOG_DEBUG, "%s():%d: looking for policy %s in farm %s", __FUNCTION__, __LINE__, name, f->name);
+	zcu_log_print(LOG_DEBUG, "%s():%d: looking for policy %s in farm %s", __FUNCTION__, __LINE__, name, f->name);
 
 	fp = farmpolicy_lookup_by_name(f, name);
 	if (fp)
@@ -202,7 +202,7 @@ int farmpolicy_pre_actionable(struct config_pair *c)
 	if (!f)
 		return -1;
 
-	tools_printlog(LOG_DEBUG, "%s():%d: pre actionable farm policy for farm %s", __FUNCTION__, __LINE__, f->name);
+	zcu_log_print(LOG_DEBUG, "%s():%d: pre actionable farm policy for farm %s", __FUNCTION__, __LINE__, f->name);
 
 	farm_set_action(f, ACTION_RELOAD);
 	farmaddress_s_set_action(f, ACTION_RELOAD);
@@ -219,7 +219,7 @@ int farmpolicy_pos_actionable(struct config_pair *c)
 	if (!fp || !f)
 		return -1;
 
-	tools_printlog(LOG_DEBUG, "%s():%d: pos actionable farm policy %s for farm %s with param %d", __FUNCTION__, __LINE__, fp->policy->name, f->name, c->key);
+	zcu_log_print(LOG_DEBUG, "%s():%d: pos actionable farm policy %s for farm %s with param %d", __FUNCTION__, __LINE__, fp->policy->name, f->name, c->key);
 
 	farm_set_action(f, ACTION_RELOAD);
 	farmaddress_s_set_action(f, ACTION_RELOAD);

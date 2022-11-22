@@ -34,8 +34,8 @@
 #include "config.h"
 #include "nft.h"
 #include "events.h"
-#include "sbuffer.h"
-#include "tools.h"
+#include "zcu_sbuffer.h"
+#include "zcu_log.h"
 
 #define SRV_MAX_BUF				1024
 #define SRV_MAX_HEADER			300
@@ -125,7 +125,7 @@ static int auth_key(const char *recvkey)
 	return (strcmp(nftserver.key, recvkey) == 0);
 }
 
-static int get_request(int fd, struct sbuffer *buf, struct nftlb_http_state *state)
+static int get_request(int fd, struct zcu_buffer *buf, struct nftlb_http_state *state)
 {
 	char method[SRV_MAX_IDENT] = {0};
 	char strkey[SRV_MAX_IDENT] = {0};
@@ -138,7 +138,7 @@ static int get_request(int fd, struct sbuffer *buf, struct nftlb_http_state *sta
 	int bytes_left;
 	int cont_100 = 0;
 
-	if ((ptr = strstr(get_buf_data(buf), "Key: ")) == NULL) {
+	if ((ptr = strstr(zcu_buf_get_data(buf), "Key: ")) == NULL) {
 		state->status_code = WS_HTTP_401;
 		return -1;
 	}
@@ -150,9 +150,9 @@ static int get_request(int fd, struct sbuffer *buf, struct nftlb_http_state *sta
 		return -1;
 	}
 
-	sscanf(get_buf_data(buf), "%199[^ ] %199[^ ] ", method, state->uri);
+	sscanf(zcu_buf_get_data(buf), "%199[^ ] %199[^ ] ", method, state->uri);
 
-	tools_printlog(LOG_NOTICE, "%s():%d: request: %s %s", __FUNCTION__, __LINE__, method, state->uri);
+	zcu_log_print(LOG_NOTICE, "%s():%d: request: %s %s", __FUNCTION__, __LINE__, method, state->uri);
 
 	if (strncmp(method, STR_GET_ACTION, 4) == 0) {
 		state->method = WS_GET_ACTION;
@@ -172,38 +172,38 @@ static int get_request(int fd, struct sbuffer *buf, struct nftlb_http_state *sta
 	if (state->method == WS_GET_ACTION)
 		return 0;
 
-	state->body = strstr(get_buf_data(buf), "\r\n\r\n");
+	state->body = strstr(zcu_buf_get_data(buf), "\r\n\r\n");
 	if (!state->body) {
-		tools_printlog(LOG_ERR, "Not found body section in the request");
+		zcu_log_print(LOG_ERR, "Not found body section in the request");
 		state->status_code = parse_to_http_status(PARSER_STRUCT_FAILED);
 		return -1;
 	}
 	state->body += 4;
-	head = state->body - get_buf_data(buf);
+	head = state->body - zcu_buf_get_data(buf);
 
-	if ((ptr = strstr(get_buf_data(buf), "Expect: 100-continue")) != NULL) {
+	if ((ptr = strstr(zcu_buf_get_data(buf), "Expect: 100-continue")) != NULL) {
 		cont_100 = 1;
 		send(fd, "HTTP/1.1 100 Continue\r\n\r\n", 25, 0);
 	}
 
-	if ((ptr = strstr(get_buf_data(buf), "Content-Length: ")) != NULL) {
+	if ((ptr = strstr(zcu_buf_get_data(buf), "Content-Length: ")) != NULL) {
 		sscanf(ptr, "Content-Length: %i[^\r\n]", &contlength);
 
-		if (head + contlength >= get_buf_size(buf))
-			times = ((head + contlength - get_buf_size(buf)) / EXTRA_SIZE) + 1;
+		if (head + contlength >= zcu_buf_get_size(buf))
+			times = ((head + contlength - zcu_buf_get_size(buf)) / EXTRA_SIZE) + 1;
 		if (times == 0)
 			goto receive;
 
-		if (resize_buf(buf, times)) {
-			tools_printlog(LOG_ERR, "Error resizing the buffer %d times from a size of %d!", times, get_buf_size(buf));
+		if (zcu_buf_resize(buf, times)) {
+			zcu_log_print(LOG_ERR, "Error resizing the buffer %d times from a size of %d!", times, zcu_buf_get_size(buf));
 			state->status_code = WS_HTTP_500;
 			return -1;
 		}
 	}
 
 receive:
-	state->body = get_buf_data(buf) + head;
-	total_read_size = get_buf_next(buf) - state->body;
+	state->body = zcu_buf_get_data(buf) + head;
+	total_read_size = zcu_buf_get_next(buf) - state->body;
 	while ((total_read_size < contlength) || cont_100) {
 		cont_100 = 0;
 		bytes_left = EXTRA_SIZE;
@@ -211,7 +211,7 @@ receive:
 			bytes_left = contlength - total_read_size;
 		if (bytes_left <= 0)
 			goto final;
-		size = recv(fd, get_buf_next(buf), bytes_left, 0);
+		size = recv(fd, zcu_buf_get_next(buf), bytes_left, 0);
 		if (size <= 0)
 			goto final;
 		buf->next += size;
@@ -219,7 +219,7 @@ receive:
 	}
 
 final:
-	concat_buf(buf, "\0");
+	zcu_buf_concat(buf, "\0");
 
 	return 0;
 }
@@ -651,27 +651,27 @@ static void nftlb_http_send_response(struct ev_io *io,
 
 static void nftlb_read_cb(struct ev_loop *loop, struct ev_io *io, int revents)
 {
-	struct sbuffer buf;
+	struct zcu_buffer buf;
 	struct nftlb_http_state state;
 	struct nftlb_client *cli;
 	ssize_t size;
 	char cli_address[INET6_ADDRSTRLEN + 6]; //max address length + port length
 
 	if (EV_ERROR & revents) {
-		tools_printlog(LOG_ERR, "Server got invalid event from client read");
+		zcu_log_print(LOG_ERR, "Server got invalid event from client read");
 		return;
 	}
 	cli = container_of(io, struct nftlb_client, io);
 
-	create_buf(&buf);
-	size = recv(io->fd, get_buf_data(&buf), DEFAULT_BUFFER_SIZE - 1, 0);
+	zcu_buf_create(&buf);
+	size = recv(io->fd, zcu_buf_get_data(&buf), ZCU_DEF_BUFFER_SIZE - 1, 0);
 	if (size < 0)
 		return;
 
 	buf.next = size;
 
 	if (size == 0) {
-		tools_printlog(LOG_DEBUG, "connection closed by client %s\n",
+		zcu_log_print(LOG_DEBUG, "connection closed by client %s\n",
 					   nftlb_client_address(&cli->addr, cli_address));
 		goto end_no_state;
 	}
@@ -692,12 +692,12 @@ static void nftlb_read_cb(struct ev_loop *loop, struct ev_io *io, int revents)
 	nftlb_http_send_response(io, &state, strlen(state.body_response));
 	send(io->fd, state.body_response, strlen(state.body_response), 0);
 
-	tools_printlog(LOG_DEBUG, "connection closed by server %s\n",
+	zcu_log_print(LOG_DEBUG, "connection closed by server %s\n",
 				   nftlb_client_address(&cli->addr, cli_address));
 end:
 	fin_http_state(&state);
 end_no_state:
-	clean_buf(&buf);
+	zcu_buf_clean(&buf);
 
 	ev_timer_stop(loop, &cli->timer);
 	nftlb_client_release(loop, cli);
@@ -712,7 +712,7 @@ static void nftlb_timer_cb(struct ev_loop *loop, ev_timer *timer, int events)
 
 	cli = container_of(timer, struct nftlb_client, timer);
 
-	tools_printlog(LOG_ERR, "timeout for client %s\n",
+	zcu_log_print(LOG_ERR, "timeout for client %s\n",
 				   nftlb_client_address(&cli->addr, cli_address));
 
 	nftlb_client_release(loop, cli);
@@ -726,19 +726,19 @@ static void accept_cb(struct ev_loop *loop, struct ev_io *io, int revents)
 	int client_sd;
 
 	if (EV_ERROR & revents) {
-		tools_printlog(LOG_ERR, "Server got an invalid event from client");
+		zcu_log_print(LOG_ERR, "Server got an invalid event from client");
 		return;
 	}
 
 	client_sd = accept(io->fd, (struct sockaddr *)&client_addr, &addrlen);
 	if (client_sd < 0) {
-		tools_printlog(LOG_ERR, "Server accept error");
+		zcu_log_print(LOG_ERR, "Server accept error");
 		return;
 	}
 
 	cli = malloc(sizeof(struct nftlb_client));
 	if (!cli) {
-		tools_printlog(LOG_ERR, "No memory available to allocate new client");
+		zcu_log_print(LOG_ERR, "No memory available to allocate new client");
 		return;
 	}
 	memcpy(&cli->addr, &client_addr, sizeof(cli->addr));
@@ -790,26 +790,26 @@ int server_init(void)
 
 	s = getaddrinfo(host, port, &hints, &result);
 	if (s != 0) {
-		tools_printlog(LOG_ERR, "getaddrinfo: %s\n", gai_strerror(s));
+		zcu_log_print(LOG_ERR, "getaddrinfo: %s\n", gai_strerror(s));
 		return -1;
 	}
 
 	server_sd = socket(result->ai_family, SOCK_STREAM, 0);
 	if (server_sd < 0) {
-		tools_printlog(LOG_ERR, "Server socket error");
+		zcu_log_print(LOG_ERR, "Server socket error");
 		return -1;
 	}
 	setsockopt(server_sd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(int));
 
 	if (bind(server_sd, result->ai_addr, result->ai_addrlen) != 0) {
-		tools_printlog(LOG_ERR, "Server bind error");
+		zcu_log_print(LOG_ERR, "Server bind error");
 		freeaddrinfo(result);
 		return -1;
 	}
 	freeaddrinfo(result);
 
 	if (listen(server_sd, 2) < 0) {
-		tools_printlog(LOG_ERR, "Server listen error");
+		zcu_log_print(LOG_ERR, "Server listen error");
 		return -1;
 	}
 	nftserver.sd = server_sd;
@@ -831,7 +831,7 @@ void server_set_host(const char *host)
 	nftserver.host = malloc(strlen(host)+1);
 
 	if (!nftserver.host) {
-		tools_printlog(LOG_ERR, "No memory available to allocate the server host");
+		zcu_log_print(LOG_ERR, "No memory available to allocate the server host");
 		return;
 	}
 
@@ -842,7 +842,7 @@ void server_set_port(const char *port)
 {
 	nftserver.port = malloc(strlen(port)+1);
 	if (!nftserver.port) {
-		tools_printlog(LOG_ERR, "No memory available to allocate the server port");
+		zcu_log_print(LOG_ERR, "No memory available to allocate the server port");
 		return;
 	}
 
@@ -856,7 +856,7 @@ void server_set_key(char *key)
 	if (!nftserver.key) {
 		nftserver.key = (char *)malloc(SRV_MAX_IDENT);
 		if (!nftserver.key) {
-			tools_printlog(LOG_ERR, "No memory available to allocate the server key");
+			zcu_log_print(LOG_ERR, "No memory available to allocate the server key");
 			return;
 		}
 	}

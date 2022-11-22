@@ -4,7 +4,6 @@ sbin_PROGRAMS = nftlb
 
 nftlb_SOURCES = config.c	\
 		main.c		\
-		sbuffer.c	\
 		objects.c	\
 		farms.c		\
 		backends.c	\
@@ -17,9 +16,13 @@ nftlb_SOURCES = config.c	\
 		farmpolicy.c \
 		sessions.c	\
 		checksum.c	\
-		tools.c		\
 		addresses.c \
 		farmaddress.c \
 		addresspolicy.c \
-		nftst.c
+		nftst.c \
+		../zcutils/src/zcu_backtrace.c \
+		../zcutils/src/zcu_log.c \
+		../zcutils/src/zcu_network.c \
+		../zcutils/src/zcu_sbuffer.c \
+		../zcutils/src/zcu_string.c
 nftlb_LDADD = ${LIBNFTABLES_LIBS} ${LIBJSON_LIBS} ${LIBMNL_LIBS} -lev

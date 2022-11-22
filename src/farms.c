@@ -33,9 +33,8 @@
 #include "config.h"
 #include "nft.h"
 #include "network.h"
-#include "tools.h"
 #include "nftst.h"
-
+#include "zcu_log.h"
 
 static struct farm * farm_create(char *name)
 {
@@ -43,7 +42,7 @@ static struct farm * farm_create(char *name)
 
 	struct farm *pfarm = (struct farm *)malloc(sizeof(struct farm));
 	if (!pfarm) {
-		tools_printlog(LOG_ERR, "Farm memory allocation error");
+		zcu_log_print(LOG_ERR, "Farm memory allocation error");
 		return NULL;
 	}
 
@@ -122,7 +121,7 @@ static int farm_delete(struct farm *pfarm)
 	if (!pfarm)
 		return 0;
 
-	tools_printlog(LOG_DEBUG, "%s():%d: deleting farm %s", __FUNCTION__, __LINE__, pfarm->name);
+	zcu_log_print(LOG_DEBUG, "%s():%d: deleting farm %s", __FUNCTION__, __LINE__, pfarm->name);
 
 	backend_s_delete(pfarm);
 	farmpolicy_s_delete(pfarm);
@@ -156,7 +155,7 @@ static int farm_delete(struct farm *pfarm)
 
 static int farm_validate_oface(struct farm *f)
 {
-	tools_printlog(LOG_DEBUG, "%s():%d: validating output farm interface of %s", __FUNCTION__, __LINE__, f->name);
+	zcu_log_print(LOG_DEBUG, "%s():%d: validating output farm interface of %s", __FUNCTION__, __LINE__, f->name);
 
 	if (!f->oface || obj_equ_attribute_string(f->oface, "") ||
 		!f->oethaddr || obj_equ_attribute_string(f->oethaddr, ""))
@@ -194,23 +193,23 @@ static int farm_validate_helper_protocol(struct farm *f)
 
 static int farm_validate(struct farm *f)
 {
-	tools_printlog(LOG_DEBUG, "%s():%d: validating farm %s", __FUNCTION__, __LINE__, f->name);
+	zcu_log_print(LOG_DEBUG, "%s():%d: validating farm %s", __FUNCTION__, __LINE__, f->name);
 
 	if (!farm_validate_helper_protocol(f)) {
-		tools_printlog(LOG_WARNING, "Farm %s doesn't validate helper protocol", f->name);
+		zcu_log_print(LOG_WARNING, "Farm %s doesn't validate helper protocol", f->name);
 		config_set_output(". Farm '%s' doesn't validate helper protocol", f->name);
 		return 0;
 	}
 
 	if (farm_needs_policies(f) && !farmaddress_s_validate_iface(f)) {
-		tools_printlog(LOG_WARNING, "Farm %s doesn't validate policy and input interface", f->name);
+		zcu_log_print(LOG_WARNING, "Farm %s doesn't validate policy and input interface", f->name);
 		return 0;
 	}
 
 	if ((farm_is_ingress_mode(f) || farm_needs_flowtable(f)) &&
 		(!farmaddress_s_validate_iface(f) ||
 		!farm_validate_oface(f))) {
-		tools_printlog(LOG_WARNING, "Farm %s doesn't validate ingress mode or flowtable and interfaces", f->name);
+		zcu_log_print(LOG_WARNING, "Farm %s doesn't validate ingress mode or flowtable and interfaces", f->name);
 		return 0;
 	}
 
@@ -219,7 +218,7 @@ static int farm_validate(struct farm *f)
 
 int farm_is_available(struct farm *f)
 {
-	tools_printlog(LOG_DEBUG, "%s():%d: farm %s state is %s",
+	zcu_log_print(LOG_DEBUG, "%s():%d: farm %s state is %s",
 				   __FUNCTION__, __LINE__, f->name, obj_print_state(f->state));
 
 	return (f->state == VALUE_STATE_UP) && farm_validate(f);
@@ -232,7 +231,7 @@ static int farm_s_update_dsr_counter(void)
 	int dsrcount = 0;
 	int curcount = obj_get_dsr_counter();
 
-	tools_printlog(LOG_DEBUG, "%s():%d: updating dsr counter", __FUNCTION__, __LINE__);
+	zcu_log_print(LOG_DEBUG, "%s():%d: updating dsr counter", __FUNCTION__, __LINE__);
 
 	list_for_each_entry(f, farms, list) {
 		if (farm_is_ingress_mode(f) && (f->state == VALUE_STATE_UP || f->state == VALUE_STATE_CONFERR))
@@ -240,7 +239,7 @@ static int farm_s_update_dsr_counter(void)
 	}
 
 	if (dsrcount != curcount)
-		tools_printlog(LOG_DEBUG, "%s():%d: farm dsr counter becomes %d", __FUNCTION__, __LINE__, dsrcount);
+		zcu_log_print(LOG_DEBUG, "%s():%d: farm dsr counter becomes %d", __FUNCTION__, __LINE__, dsrcount);
 
 	obj_set_dsr_counter(dsrcount);
 
@@ -278,10 +277,10 @@ int farm_needs_intraconnect(struct farm *f)
 
 static int farm_set_netinfo(struct farm *f)
 {
-	tools_printlog(LOG_DEBUG, "%s():%d: farm %s", __FUNCTION__, __LINE__, f->name);
+	zcu_log_print(LOG_DEBUG, "%s():%d: farm %s", __FUNCTION__, __LINE__, f->name);
 
 	if (f->state != VALUE_STATE_UP) {
-		tools_printlog(LOG_INFO, "%s():%d: farm %s doesn't require low level network info", __FUNCTION__, __LINE__, f->name);
+		zcu_log_print(LOG_INFO, "%s():%d: farm %s doesn't require low level network info", __FUNCTION__, __LINE__, f->name);
 		return -1;
 	}
 
@@ -306,15 +305,15 @@ static int farm_set_mark(struct farm *f, int new_value)
 {
 	int old_value = f->mark;
 
-	tools_printlog(LOG_DEBUG, "%s():%d: farm %s old mark %d new mark %d", __FUNCTION__, __LINE__, f->name, old_value, new_value);
+	zcu_log_print(LOG_DEBUG, "%s():%d: farm %s old mark %d new mark %d", __FUNCTION__, __LINE__, f->name, old_value, new_value);
 
 	if (f->mode != VALUE_MODE_DNAT && f->mode != VALUE_MODE_SNAT && f->mode != VALUE_MODE_LOCAL) {
-		tools_printlog(LOG_INFO, "%s():%d: mark for farm %s not available for the current mode %d", __FUNCTION__, __LINE__, f->name, f->mode);
+		zcu_log_print(LOG_INFO, "%s():%d: mark for farm %s not available for the current mode %d", __FUNCTION__, __LINE__, f->name, f->mode);
 		return 0;
 	}
 
 	if (new_value & masquerade_mark) {
-		tools_printlog(LOG_ERR, "%s():%d: mark 0x%x for farm %s conflicts with the POSTROUTING mark 0x%x", __FUNCTION__, __LINE__, f->mark, f->name, masquerade_mark);
+		zcu_log_print(LOG_ERR, "%s():%d: mark 0x%x for farm %s conflicts with the POSTROUTING mark 0x%x", __FUNCTION__, __LINE__, f->mark, f->name, masquerade_mark);
 		return 0;
 	}
 
@@ -327,7 +326,7 @@ static int farm_set_state(struct farm *f, int new_value)
 {
 	int old_value = f->state;
 
-	tools_printlog(LOG_DEBUG, "%s():%d: farm %s old state %d new state %d", __FUNCTION__, __LINE__, f->name, old_value, new_value);
+	zcu_log_print(LOG_DEBUG, "%s():%d: farm %s old state %d new state %d", __FUNCTION__, __LINE__, f->name, old_value, new_value);
 
 	// farm doesn't allow 'available' state
 	if (new_value == VALUE_STATE_AVAIL)
@@ -362,7 +361,7 @@ static int farm_set_mode(struct farm *f, int new_value)
 {
 	int old_value = f->mode;
 
-	tools_printlog(LOG_DEBUG, "%s():%d: farm %s old mode %d new mode %d", __FUNCTION__, __LINE__, f->name, old_value, new_value);
+	zcu_log_print(LOG_DEBUG, "%s():%d: farm %s old mode %d new mode %d", __FUNCTION__, __LINE__, f->name, old_value, new_value);
 
 	if (old_value != new_value) {
 		f->mode = new_value;
@@ -377,7 +376,7 @@ static int farm_set_sched(struct farm *f, int new_value)
 {
 	int old_value = f->scheduler;
 
-	tools_printlog(LOG_DEBUG, "%s():%d: farm %s old scheduler %d new scheduler %d", __FUNCTION__, __LINE__, f->name, old_value, new_value);
+	zcu_log_print(LOG_DEBUG, "%s():%d: farm %s old scheduler %d new scheduler %d", __FUNCTION__, __LINE__, f->name, old_value, new_value);
 
 	f->scheduler = new_value;
 
@@ -396,7 +395,7 @@ static int farm_set_persistence(struct farm *f, int new_value)
 {
 	int old_value = f->persistence;
 
-	tools_printlog(LOG_DEBUG, "%s():%d: farm %s old persistence %d new persistence %d", __FUNCTION__, __LINE__, f->name, old_value, new_value);
+	zcu_log_print(LOG_DEBUG, "%s():%d: farm %s old persistence %d new persistence %d", __FUNCTION__, __LINE__, f->name, old_value, new_value);
 
 	session_s_delete(f, SESSION_TYPE_STATIC);
 
@@ -409,7 +408,7 @@ static int farm_set_verdict(struct farm *f, int new_value)
 {
 	int old_value = f->verdict;
 
-	tools_printlog(LOG_DEBUG, "%s():%d: farm %s old verdict %d new verdict %d", __FUNCTION__, __LINE__, f->name, old_value, new_value);
+	zcu_log_print(LOG_DEBUG, "%s():%d: farm %s old verdict %d new verdict %d", __FUNCTION__, __LINE__, f->name, old_value, new_value);
 
 	if (new_value == VALUE_VERDICT_NONE)
 		return 1;
@@ -430,114 +429,114 @@ static void farm_print(struct farm *f)
 	if (fa)
 		a = fa->address;
 
-	tools_printlog(LOG_DEBUG," [farm] ");
-	tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_NAME, f->name);
+	zcu_log_print(LOG_DEBUG," [farm] ");
+	zcu_log_print(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_NAME, f->name);
 
 	if (f->fqdn)
-		tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_FQDN, f->fqdn);
+		zcu_log_print(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_FQDN, f->fqdn);
 
 	if (f->oface)
-		tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_OFACE, f->oface);
+		zcu_log_print(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_OFACE, f->oface);
 
 	if (f->oethaddr)
-		tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_OETHADDR, f->oethaddr);
+		zcu_log_print(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_OETHADDR, f->oethaddr);
 
-	tools_printlog(LOG_DEBUG,"   *[ofidx] %d", f->ofidx);
+	zcu_log_print(LOG_DEBUG,"   *[ofidx] %d", f->ofidx);
 
 	if (a) {
 		if (a->iface)
-			tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_IFACE, a->iface);
+			zcu_log_print(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_IFACE, a->iface);
 
 		if (a->iethaddr)
-			tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_IETHADDR, a->iethaddr);
+			zcu_log_print(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_IETHADDR, a->iethaddr);
 
-		tools_printlog(LOG_DEBUG,"   *[ifidx] %d", a->ifidx);
+		zcu_log_print(LOG_DEBUG,"   *[ifidx] %d", a->ifidx);
 
 		if (a->ipaddr)
-			tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_VIRTADDR, a->ipaddr);
+			zcu_log_print(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_VIRTADDR, a->ipaddr);
 
 		if (a->ports)
-			tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_VIRTPORTS, a->ports);
+			zcu_log_print(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_VIRTPORTS, a->ports);
 
-		tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_FAMILY, obj_print_family(a->family));
-		tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_PROTO, obj_print_proto(a->protocol));
+		zcu_log_print(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_FAMILY, obj_print_family(a->family));
+		zcu_log_print(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_PROTO, obj_print_proto(a->protocol));
 	}
 
 	if (f->srcaddr)
-		tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_SRCADDR, f->srcaddr);
+		zcu_log_print(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_SRCADDR, f->srcaddr);
 
-	tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_MODE, obj_print_mode(f->mode));
+	zcu_log_print(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_MODE, obj_print_mode(f->mode));
 
 	if (f->mode == VALUE_MODE_STLSDNAT)
-		tools_printlog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_RESPONSETTL, f->responsettl);
+		zcu_log_print(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_RESPONSETTL, f->responsettl);
 
-	tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_SCHED, obj_print_sched(f->scheduler));
+	zcu_log_print(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_SCHED, obj_print_sched(f->scheduler));
 
 	obj_print_meta(f->schedparam, (char *)buf);
-	tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_SCHEDPARAM, buf);
+	zcu_log_print(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_SCHEDPARAM, buf);
 
 	obj_print_meta(f->persistence, (char *)buf);
-	tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_PERSIST, buf);
-	tools_printlog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_PERSISTTM, f->persistttl);
+	zcu_log_print(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_PERSIST, buf);
+	zcu_log_print(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_PERSISTTM, f->persistttl);
 
-	tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_HELPER, obj_print_helper(f->helper));
+	zcu_log_print(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_HELPER, obj_print_helper(f->helper));
 
 	obj_print_log(f->log, (char *)buf);
-	tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_LOG, buf);
+	zcu_log_print(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_LOG, buf);
 
 	if (f->logprefix)
-		tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_LOGPREFIX, f->logprefix);
+		zcu_log_print(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_LOGPREFIX, f->logprefix);
 	obj_print_rtlimit(buf, f->logrtlimit, f->logrtlimit_unit);
-	tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_LOG_RTLIMIT, buf);
+	zcu_log_print(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_LOG_RTLIMIT, buf);
 
-	tools_printlog(LOG_DEBUG,"    [%s] 0x%x", CONFIG_KEY_MARK, f->mark);
-	tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_STATE, obj_print_state(f->state));
-	tools_printlog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_PRIORITY, f->priority);
+	zcu_log_print(LOG_DEBUG,"    [%s] 0x%x", CONFIG_KEY_MARK, f->mark);
+	zcu_log_print(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_STATE, obj_print_state(f->state));
+	zcu_log_print(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_PRIORITY, f->priority);
 
-	tools_printlog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_LIMITSTTL, f->limitsttl);
+	zcu_log_print(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_LIMITSTTL, f->limitsttl);
 	obj_print_rtlimit(buf, f->newrtlimit, f->newrtlimit_unit);
-	tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_NEWRTLIMIT, buf);
-	tools_printlog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_NEWRTLIMITBURST, f->newrtlimitbst);
+	zcu_log_print(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_NEWRTLIMIT, buf);
+	zcu_log_print(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_NEWRTLIMITBURST, f->newrtlimitbst);
 	if (f->newrtlimit_logprefix)
-		tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_NEWRTLIMIT_LOGPREFIX, f->newrtlimit_logprefix);
+		zcu_log_print(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_NEWRTLIMIT_LOGPREFIX, f->newrtlimit_logprefix);
 
 	obj_print_rtlimit(buf, f->rstrtlimit, f->rstrtlimit_unit);
-	tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_RSTRTLIMIT, buf);
-	tools_printlog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_RSTRTLIMITBURST, f->rstrtlimitbst);
+	zcu_log_print(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_RSTRTLIMIT, buf);
+	zcu_log_print(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_RSTRTLIMITBURST, f->rstrtlimitbst);
 	if (f->rstrtlimit_logprefix)
-		tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_RSTRTLIMIT_LOGPREFIX, f->rstrtlimit_logprefix);
+		zcu_log_print(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_RSTRTLIMIT_LOGPREFIX, f->rstrtlimit_logprefix);
 
-	tools_printlog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_ESTCONNLIMIT, f->estconnlimit);
+	zcu_log_print(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_ESTCONNLIMIT, f->estconnlimit);
 	if (f->estconnlimit_logprefix)
-		tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_ESTCONNLIMIT_LOGPREFIX, f->estconnlimit_logprefix);
+		zcu_log_print(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_ESTCONNLIMIT_LOGPREFIX, f->estconnlimit_logprefix);
 
-	tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_TCPSTRICT, obj_print_switch(f->tcpstrict));
+	zcu_log_print(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_TCPSTRICT, obj_print_switch(f->tcpstrict));
 	if (f->tcpstrict_logprefix)
-		tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_TCPSTRICT_LOGPREFIX, f->tcpstrict_logprefix);
+		zcu_log_print(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_TCPSTRICT_LOGPREFIX, f->tcpstrict_logprefix);
 
-	tools_printlog(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_QUEUE, f->queue);
+	zcu_log_print(LOG_DEBUG,"    [%s] %d", CONFIG_KEY_QUEUE, f->queue);
 
 	obj_print_verdict(f->verdict, (char *)buf);
-	tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_VERDICT, buf);
+	zcu_log_print(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_VERDICT, buf);
 
-	tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_FLOWOFFLOAD, obj_print_switch(f->flow_offload));
-	tools_printlog(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_INTRACONNECT, obj_print_switch(f->intra_connect));
+	zcu_log_print(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_FLOWOFFLOAD, obj_print_switch(f->flow_offload));
+	zcu_log_print(LOG_DEBUG,"    [%s] %s", CONFIG_KEY_INTRACONNECT, obj_print_switch(f->intra_connect));
 
-	tools_printlog(LOG_DEBUG,"   *[total_weight] %d", f->total_weight);
-	tools_printlog(LOG_DEBUG,"   *[total_bcks] %d", f->total_bcks);
-	tools_printlog(LOG_DEBUG,"   *[bcks_available] %d", f->bcks_available);
-	tools_printlog(LOG_DEBUG,"   *[bcks_usable] %d", f->bcks_usable);
-	tools_printlog(LOG_DEBUG,"   *[bcks_have_port] %d", f->bcks_have_port);
-	tools_printlog(LOG_DEBUG,"   *[bcks_have_srcaddr] %d", f->bcks_have_srcaddr);
-	tools_printlog(LOG_DEBUG,"   *[bcks_have_if] %d", f->bcks_have_if);
-	tools_printlog(LOG_DEBUG,"   *[policies_action] %d", f->policies_action);
-	tools_printlog(LOG_DEBUG,"   *[policies_used] %d", f->policies_used);
-	tools_printlog(LOG_DEBUG,"   *[total_static_sessions] %d", f->total_static_sessions);
-	tools_printlog(LOG_DEBUG,"   *[total_timed_sessions] %d", f->total_timed_sessions);
-	tools_printlog(LOG_DEBUG,"   *[nft_chains] %x", f->nft_chains);
-	tools_printlog(LOG_DEBUG,"   *[addresses_used] %d", f->addresses_used);
-	tools_printlog(LOG_DEBUG,"   *[reload_action] %x", f->reload_action);
-	tools_printlog(LOG_DEBUG,"   *[%s] %d", CONFIG_KEY_ACTION, f->action);
+	zcu_log_print(LOG_DEBUG,"   *[total_weight] %d", f->total_weight);
+	zcu_log_print(LOG_DEBUG,"   *[total_bcks] %d", f->total_bcks);
+	zcu_log_print(LOG_DEBUG,"   *[bcks_available] %d", f->bcks_available);
+	zcu_log_print(LOG_DEBUG,"   *[bcks_usable] %d", f->bcks_usable);
+	zcu_log_print(LOG_DEBUG,"   *[bcks_have_port] %d", f->bcks_have_port);
+	zcu_log_print(LOG_DEBUG,"   *[bcks_have_srcaddr] %d", f->bcks_have_srcaddr);
+	zcu_log_print(LOG_DEBUG,"   *[bcks_have_if] %d", f->bcks_have_if);
+	zcu_log_print(LOG_DEBUG,"   *[policies_action] %d", f->policies_action);
+	zcu_log_print(LOG_DEBUG,"   *[policies_used] %d", f->policies_used);
+	zcu_log_print(LOG_DEBUG,"   *[total_static_sessions] %d", f->total_static_sessions);
+	zcu_log_print(LOG_DEBUG,"   *[total_timed_sessions] %d", f->total_timed_sessions);
+	zcu_log_print(LOG_DEBUG,"   *[nft_chains] %x", f->nft_chains);
+	zcu_log_print(LOG_DEBUG,"   *[addresses_used] %d", f->addresses_used);
+	zcu_log_print(LOG_DEBUG,"   *[reload_action] %x", f->reload_action);
+	zcu_log_print(LOG_DEBUG,"   *[%s] %d", CONFIG_KEY_ACTION, f->action);
 
 	if (f->addresses_used > 0)
 		farmaddress_s_print(f);
@@ -671,7 +670,7 @@ int farm_changed(struct config_pair *c)
 	if (!fa)
 		fa = farmaddress_get_first(f);
 
-	tools_printlog(LOG_DEBUG, "%s():%d: farm %s with param %d", __FUNCTION__, __LINE__, f->name, c->key);
+	zcu_log_print(LOG_DEBUG, "%s():%d: farm %s with param %d", __FUNCTION__, __LINE__, f->name, c->key);
 
 	switch (c->key) {
 	case KEY_NAME:
@@ -820,7 +819,7 @@ int farm_actionable(struct config_pair *c)
 	if (!f)
 		return -1;
 
-	tools_printlog(LOG_DEBUG, "%s():%d: farm %s with param %d", __FUNCTION__, __LINE__, f->name, c->key);
+	zcu_log_print(LOG_DEBUG, "%s():%d: farm %s with param %d", __FUNCTION__, __LINE__, f->name, c->key);
 
 	switch (c->key) {
 	case KEY_NEWRTLIMIT:
@@ -849,7 +848,7 @@ int farm_set_priority(struct farm *f, int new_value)
 {
 	int old_value = f->priority;
 
-	tools_printlog(LOG_DEBUG, "%s():%d: current value is %d, but new value will be %d",
+	zcu_log_print(LOG_DEBUG, "%s():%d: current value is %d, but new value will be %d",
 				   __FUNCTION__, __LINE__, old_value, new_value);
 
 	if (new_value <= 0)
@@ -911,16 +910,16 @@ int farm_set_oface_info(struct farm *f)
 	int if_index;
 	int ret = 0;
 
-	tools_printlog(LOG_DEBUG, "%s():%d: farm %s set interface info for interface", __FUNCTION__, __LINE__, f->name);
+	zcu_log_print(LOG_DEBUG, "%s():%d: farm %s set interface info for interface", __FUNCTION__, __LINE__, f->name);
 
 	if (!(farm_is_ingress_mode(f) ||
 		farm_needs_flowtable(f))) {
-		tools_printlog(LOG_DEBUG, "%s():%d: farm %s doesn't require netinfo", __FUNCTION__, __LINE__, f->name);
+		zcu_log_print(LOG_DEBUG, "%s():%d: farm %s doesn't require netinfo", __FUNCTION__, __LINE__, f->name);
 		return 0;
 	}
 
 	if (f->oface && strcmp(f->oface, IFACE_LOOPBACK) == 0) {
-		tools_printlog(LOG_DEBUG, "%s():%d: farm %s doesn't require output netinfo, loopback interface", __FUNCTION__, __LINE__, f->name);
+		zcu_log_print(LOG_DEBUG, "%s():%d: farm %s doesn't require output netinfo, loopback interface", __FUNCTION__, __LINE__, f->name);
 		f->ofidx = 0;
 		return 0;
 	}
@@ -929,20 +928,20 @@ int farm_set_oface_info(struct farm *f)
 
 	b = backend_get_first(f);
 	if (!b || b->ipaddr == DEFAULT_IPADDR) {
-		tools_printlog(LOG_DEBUG, "%s():%d: there is no backend yet in the farm %s", __FUNCTION__, __LINE__, f->name);
+		zcu_log_print(LOG_DEBUG, "%s():%d: there is no backend yet in the farm %s", __FUNCTION__, __LINE__, f->name);
 		return 0;
 	}
 
 	ret = net_get_local_ifidx_per_remote_host(b->ipaddr, &if_index);
 	if (ret == -1) {
-		tools_printlog(LOG_ERR, "%s():%d: unable to get the outbound interface to %s for the farm %s", __FUNCTION__, __LINE__, b->ipaddr, f->name);
+		zcu_log_print(LOG_ERR, "%s():%d: unable to get the outbound interface to %s for the farm %s", __FUNCTION__, __LINE__, b->ipaddr, f->name);
 		return -1;
 	}
 
 	f->ofidx = if_index;
 
 	if (if_indextoname(if_index, if_str) == NULL) {
-		tools_printlog(LOG_ERR, "%s():%d: unable to get the outbound interface name with index %d required by the farm %s", __FUNCTION__, __LINE__, if_index, f->name);
+		zcu_log_print(LOG_ERR, "%s():%d: unable to get the outbound interface name with index %d required by the farm %s", __FUNCTION__, __LINE__, if_index, f->name);
 		return -1;
 	}
 
@@ -969,7 +968,7 @@ int farm_pre_actionable(struct config_pair *c)
 	if (!f)
 		return -1;
 
-	tools_printlog(LOG_DEBUG, "%s():%d: pre actionable farm %s with param %d", __FUNCTION__, __LINE__, f->name, c->key);
+	zcu_log_print(LOG_DEBUG, "%s():%d: pre actionable farm %s with param %d", __FUNCTION__, __LINE__, f->name, c->key);
 
 	switch (c->key) {
 	case KEY_NAME:
@@ -1006,7 +1005,7 @@ int farm_pos_actionable(struct config_pair *c)
 	if (!f)
 		return -1;
 
-	tools_printlog(LOG_DEBUG, "%s():%d: pos actionable farm %s with param %d", __FUNCTION__, __LINE__, f->name, c->key);
+	zcu_log_print(LOG_DEBUG, "%s():%d: pos actionable farm %s with param %d", __FUNCTION__, __LINE__, f->name, c->key);
 
 	switch (c->key) {
 	case KEY_NAME:
@@ -1280,7 +1279,7 @@ int farm_set_attribute(struct config_pair *c)
 
 int farm_set_action(struct farm *f, int action)
 {
-	tools_printlog(LOG_DEBUG, "%s():%d: farm %s action is %d - new action %d state %d", __FUNCTION__, __LINE__, f->name, f->action, action, f->state);
+	zcu_log_print(LOG_DEBUG, "%s():%d: farm %s action is %d - new action %d state %d", __FUNCTION__, __LINE__, f->name, f->action, action, f->state);
 	int force = 0;
 
 	if (action == ACTION_STOP && f->state == VALUE_STATE_CONFERR) {
@@ -1360,7 +1359,7 @@ int farm_get_masquerade(struct farm *f)
 {
 	int masq = ((f->mode == VALUE_MODE_SNAT || f->mode == VALUE_MODE_LOCAL) && (f->srcaddr == DEFAULT_SRCADDR || strcmp(f->srcaddr, "") == 0));
 
-	tools_printlog(LOG_DEBUG, "%s():%d: farm %s masquerade %d", __FUNCTION__, __LINE__, f->name, masq);
+	zcu_log_print(LOG_DEBUG, "%s():%d: farm %s masquerade %d", __FUNCTION__, __LINE__, f->name, masq);
 
 	return masq;
 }
@@ -1370,14 +1369,14 @@ void farm_s_set_backend_ether_by_oifidx(int interface_idx, const char * ip_bck, 
 	struct list_head *farms = obj_get_farms();
 	struct farm *f;
 
-	tools_printlog(LOG_DEBUG, "%s():%d: updating farms with backends ip address %s and ether address %s", __FUNCTION__, __LINE__, ip_bck, ether_bck);
+	zcu_log_print(LOG_DEBUG, "%s():%d: updating farms with backends ip address %s and ether address %s", __FUNCTION__, __LINE__, ip_bck, ether_bck);
 
 	list_for_each_entry(f, farms, list) {
 
-		tools_printlog(LOG_DEBUG, "%s():%d: farm with oifidx %d found", __FUNCTION__, __LINE__, interface_idx);
+		zcu_log_print(LOG_DEBUG, "%s():%d: farm with oifidx %d found", __FUNCTION__, __LINE__, interface_idx);
 
 		if (!farm_validate(f)) {
-			tools_printlog(LOG_INFO, "%s():%d: farm %s doesn't validate", __FUNCTION__, __LINE__, f->name);
+			zcu_log_print(LOG_INFO, "%s():%d: farm %s doesn't validate", __FUNCTION__, __LINE__, f->name);
 			farm_set_state(f, VALUE_STATE_CONFERR);
 			continue;
 		}
@@ -1395,7 +1394,7 @@ int farm_s_lookup_policy_action(char *name, int action)
 	struct list_head *farms = obj_get_farms();
 	struct farm *f, *next;
 
-	tools_printlog(LOG_DEBUG, "%s():%d: policy %s action %d", __FUNCTION__, __LINE__, name, action);
+	zcu_log_print(LOG_DEBUG, "%s():%d: policy %s action %d", __FUNCTION__, __LINE__, name, action);
 
 	list_for_each_entry_safe(f, next, farms, list)
 		farmpolicy_s_lookup_policy_action(f, name, action);
@@ -1409,7 +1408,7 @@ int farm_s_lookup_address_action(char *name, int action)
 	struct farm *f, *next;
 	int ret = 0;
 
-	tools_printlog(LOG_DEBUG, "%s():%d: address %s action %d", __FUNCTION__, __LINE__, name, action);
+	zcu_log_print(LOG_DEBUG, "%s():%d: address %s action %d", __FUNCTION__, __LINE__, name, action);
 
 	list_for_each_entry_safe(f, next, farms, list)
 		ret |= farmaddress_s_lookup_address_action(f, name, action);
@@ -1419,7 +1418,7 @@ int farm_s_lookup_address_action(char *name, int action)
 
 int farm_rulerize(struct farm *f)
 {
-	tools_printlog(LOG_DEBUG, "%s():%d: rulerize farm %s action %d", __FUNCTION__, __LINE__, f->name, f->action);
+	zcu_log_print(LOG_DEBUG, "%s():%d: rulerize farm %s action %d", __FUNCTION__, __LINE__, f->name, f->action);
 
 	farm_print(f);
 
@@ -1431,7 +1430,7 @@ int farm_rulerize(struct farm *f)
 
 	if (((f->action == ACTION_START || f->action == ACTION_RELOAD) && !farm_is_available(f)) ||
 		(f->state == VALUE_STATE_CONFERR)) {
-		tools_printlog(LOG_INFO, "%s():%d: farm %s won't be rulerized", __FUNCTION__, __LINE__, f->name);
+		zcu_log_print(LOG_INFO, "%s():%d: farm %s won't be rulerized", __FUNCTION__, __LINE__, f->name);
 		if (f->state == VALUE_STATE_UP)
 			farm_set_state(f, VALUE_STATE_CONFERR);
 		f->action = ACTION_NONE;
@@ -1448,7 +1447,7 @@ int farm_s_rulerize(void)
 	int ret = 0;
 	int output = 0;
 
-	tools_printlog(LOG_DEBUG, "%s():%d: rulerize everything", __FUNCTION__, __LINE__);
+	zcu_log_print(LOG_DEBUG, "%s():%d: rulerize everything", __FUNCTION__, __LINE__);
 
 	list_for_each_entry_safe(f, next, farms, list) {
 		ret = farm_rulerize(f);
