@@ -2877,12 +2877,10 @@ static int run_farm_local(struct zcu_buffer *buf, struct nftst *n, int family, i
 	switch (action) {
 	case ACTION_RELOAD:
 	case ACTION_START:
-		if (farm_has_source_address(f)) {
-			run_base_table(buf, NFTLB_F_CHAIN_PRE_DNAT, family, action);
-			run_base_chain(buf, n, NFTLB_F_CHAIN_PRE_DNAT, family, get_rules_needed(a), action);
-			run_base_chain(buf, n, NFTLB_F_CHAIN_POS_SNAT, family, get_rules_needed(a), action);
-			run_farm_snat(buf, n, family, action);
-		}
+		run_base_table(buf, NFTLB_F_CHAIN_PRE_DNAT, family, action);
+		run_base_chain(buf, n, NFTLB_F_CHAIN_PRE_DNAT, family, get_rules_needed(a), action);
+		run_base_chain(buf, n, NFTLB_F_CHAIN_POS_SNAT, family, get_rules_needed(a), action);
+		run_farm_snat(buf, n, family, action);
 		run_farm_rules_filter(buf, n, family, action);
 		run_nftst_ingress_policies(buf, n, family, f->policies_action);
 		run_farm_rules_forward(buf, n, family, action);
@@ -2893,11 +2891,9 @@ static int run_farm_local(struct zcu_buffer *buf, struct nftst *n, int family, i
 		run_farm_rules_forward(buf, n, family, action);
 		run_farm_rules_output(buf, n, family, action);
 		run_farm_rules_filter(buf, n, family, action);
-		if (farm_has_source_address(f)) {
-			run_farm_snat(buf, n, family, action);
-			run_base_chain(buf, n, NFTLB_F_CHAIN_PRE_DNAT, family, get_rules_needed(a), action);
-			run_base_chain(buf, n, NFTLB_F_CHAIN_POS_SNAT, family, get_rules_needed(a), action);
-		}
+		run_farm_snat(buf, n, family, action);
+		run_base_chain(buf, n, NFTLB_F_CHAIN_PRE_DNAT, family, get_rules_needed(a), action);
+		run_base_chain(buf, n, NFTLB_F_CHAIN_POS_SNAT, family, get_rules_needed(a), action);
 		run_base_table(buf, NFTLB_F_CHAIN_PRE_DNAT, family, action);
 		run_nftst_ingress_policies(buf, n, family, f->policies_action);
 		break;
