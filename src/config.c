@@ -295,13 +295,26 @@ static int config_value_route(const char *value)
 
 static int config_value_ratelimit(int key, int *int_value, int *int_unit, const char *value)
 {
-	char str_unit[100];
+	char str_unit[100] = { 0 };
+
+	if (!value[0] || value[0] == '0') {
+		*int_value = DEFAULT_NEWRTLIMIT;
+		*int_unit = DEFAULT_RTLIMIT_UNIT;
+		return PARSER_OK;
+	}
 
 	sscanf(value, "%d%*[/]%99[a-zA-Z]", int_value, str_unit);
 
-	if (str_unit[0] == '\001' || strcmp(str_unit, "") == 0)
-		*int_unit = DEFAULT_RTLIMIT_UNIT;
-	else if (strcmp(str_unit, CONFIG_VALUE_UNIT_SECOND) == 0)
+	if (*int_value < 0) {
+		config_set_output(". Invalid value of key '%s' must be >=0", obj_print_key(key));
+		zcu_log_print(LOG_ERR, "%s():%d: invalid value of key '%s' must be >=0", __FUNCTION__, __LINE__, obj_print_key(key));
+		return PARSER_VALID_FAILED;
+	}
+
+	if (strcmp(str_unit, "") == 0)
+		return PARSER_OK;
+
+	if (strcmp(str_unit, CONFIG_VALUE_UNIT_SECOND) == 0)
 		*int_unit = VALUE_UNIT_SECOND;
 	else if (strcmp(str_unit, CONFIG_VALUE_UNIT_MINUTE) == 0)
 		*int_unit = VALUE_UNIT_MINUTE;
