@@ -14,11 +14,32 @@ table netdev nftlb {
 	}
 }
 table ip nftlb {
+	map nat-services {
+		type inet_proto . ipv4_addr : verdict
+	}
+
+	map services-back-m {
+		type mark : ipv4_addr
+	}
+
 	map filter-services {
 		type inet_proto . ipv4_addr : verdict
 		elements = { tcp . 222.222.222.222 : goto filter-farmdslb,
 			     udp . 222.222.222.222 : goto filter-farmdslb,
 			     sctp . 222.222.222.222 : goto filter-farmdslb }
+	}
+
+	chain prerouting {
+		type nat hook prerouting priority dstnat; policy accept;
+		ct state new meta mark 0x00000000 meta mark set ct mark
+		ip protocol . ip daddr vmap @nat-services
+	}
+
+	chain postrouting {
+		type nat hook postrouting priority srcnat; policy accept;
+		ct mark 0x00000000 ct mark set meta mark
+		ct mark 0x80000000/1 masquerade
+		snat to ct mark map @services-back-m
 	}
 
 	chain filter {

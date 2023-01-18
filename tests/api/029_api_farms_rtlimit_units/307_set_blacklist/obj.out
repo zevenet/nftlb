@@ -59,7 +59,11 @@
                                         "state": "up"
                                 }
                         ],
-                        "policies": []
+                        "policies": [
+                                {
+                                        "name": "mylist"
+                                }
+                        ]
                 }
         ]
 }

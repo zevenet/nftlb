@@ -1,0 +1,44 @@
+{
+        "farms": [
+                {
+                        "name": "20230113mark",
+                        "family": "ipv4",
+                        "virtual-addr": "127.0.0.1",
+                        "virtual-ports": "28",
+                        "source-addr": "",
+                        "mode": "local",
+                        "protocol": "tcp",
+                        "scheduler": "rr",
+                        "sched-param": "none",
+                        "persistence": "none",
+                        "persist-ttl": "60",
+                        "helper": "none",
+                        "log": "none",
+                        "log-rtlimit": "0/second",
+                        "mark": "0x0",
+                        "priority": "1",
+                        "state": "up",
+                        "limits-ttl": "120",
+                        "new-rtlimit": "0/second",
+                        "new-rtlimit-burst": "0",
+                        "rst-rtlimit": "0/second",
+                        "rst-rtlimit-burst": "0",
+                        "est-connlimit": "0",
+                        "tcp-strict": "off",
+                        "queue": "-1",
+                        "verdict": "log drop accept",
+                        "addresses": [
+                                {
+                                        "name": "20230113mark-addr",
+                                        "family": "ipv4",
+                                        "ip-addr": "127.0.0.1",
+                                        "ports": "28",
+                                        "protocol": "tcp",
+                                        "used": "1"
+                                }
+                        ],
+                        "backends": [],
+                        "policies": []
+                }
+        ]
+}
