@@ -72,7 +72,7 @@ void zcu_log_set_output(int output)
     return;
 }
 
-int _zcu_log_print(int loglevel, const char *fmt, ...)
+int zcu_log_print(int loglevel, const char *fmt, ...)
 {
     va_list args;
 

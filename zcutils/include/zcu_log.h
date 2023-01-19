@@ -58,15 +58,10 @@ void zcu_log_set_prefix(const char *string);
 void zcu_log_set_level(int loglevel);
 int zcu_log_get_level(void);
 void zcu_log_set_output(int output);
-int _zcu_log_print(int loglevel, const char *fmt, ...);
+int zcu_log_print(int loglevel, const char *fmt, ...);
 
 #ifdef __cplusplus
 }
 #endif
-
-#define zcu_log_print(loglevel, fmt, ...)                                      \
-	_zcu_log_print(loglevel, "[f:%s][th:%lx] " fmt, zcu_log_prefix,        \
-	       (unsigned int) (pthread_self()),              \
-	       ##__VA_ARGS__)
 
 #endif /* _ZCU_LOG_H_ */

@@ -137,7 +137,7 @@ int main(int argc, char *argv[])
 	int		mode = NFTLB_SERVER_MODE;
 	int		run_mode = NFTLB_FG_MODE;
 	int		loglevel = ZCUTILS_LOG_LEVEL_DEFAULT;
-	int		logoutput = ZCUTILS_LOG_OUTPUT_DEFAULT;
+	int		logoutput = VALUE_LOG_OUTPUT_SYSLOG;
 	const char	*config = NULL;
 	pid_t	pid;
 	char *_server_key;
