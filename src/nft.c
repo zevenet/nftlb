@@ -2656,6 +2656,9 @@ static int run_farm_rules_gen_nat(struct zcu_buffer *buf, struct nftst *n, int f
 		}
 		concat_exec_cmd(buf, "");
 		break;
+	case VALUE_MODE_LOCAL:
+		run_farm_gen_log_rules(buf, f, family, chain, VALUE_LOG_INPUT, NFTLB_F_CHAIN_PRE_DNAT, ACTION_START);
+		break;
 	default:
 		run_farm_gen_log_rules(buf, f, family, chain, VALUE_LOG_INPUT, NFTLB_F_CHAIN_PRE_DNAT, ACTION_START);
 
@@ -2885,9 +2888,11 @@ static int run_farm_local(struct zcu_buffer *buf, struct nftst *n, int family, i
 		run_nftst_ingress_policies(buf, n, family, f->policies_action);
 		run_farm_rules_forward(buf, n, family, action);
 		run_farm_rules_output(buf, n, family, action);
+		run_nftst_rules_gen_vsrv(buf, n, NFTLB_F_CHAIN_PRE_DNAT, family, action, action);
 		break;
 	case ACTION_DELETE:
 	case ACTION_STOP:
+		run_nftst_rules_gen_vsrv(buf, n, NFTLB_F_CHAIN_PRE_DNAT, family, action, action);
 		run_farm_rules_forward(buf, n, family, action);
 		run_farm_rules_output(buf, n, family, action);
 		run_farm_rules_filter(buf, n, family, action);
