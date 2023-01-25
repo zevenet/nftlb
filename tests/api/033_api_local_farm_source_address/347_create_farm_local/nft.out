@@ -1,6 +1,7 @@
 table ip nftlb {
 	map nat-proto-services {
 		type inet_proto . ipv4_addr . inet_service : verdict
+		elements = { tcp . 127.0.0.1 . 80 : goto nat-newfarm }
 	}
 
 	map services-back-m {
@@ -33,5 +34,8 @@ table ip nftlb {
 	}
 
 	chain filter-newfarm {
+	}
+
+	chain nat-newfarm {
 	}
 }

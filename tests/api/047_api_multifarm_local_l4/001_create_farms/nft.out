@@ -1,0 +1,57 @@
+table ip nftlb {
+	map filter-proto-services {
+		type inet_proto . ipv4_addr . inet_service : verdict
+		elements = { tcp . 192.168.105.189 . 80 : goto filter-http-test,
+			     tcp . 192.168.105.189 . 443 : goto filter-l4-test }
+	}
+
+	map static-sessions-l4-test {
+		type ipv4_addr : mark
+	}
+
+	map persist-l4-test {
+		type ipv4_addr : mark
+		timeout 2m
+	}
+
+	map nat-proto-services {
+		type inet_proto . ipv4_addr . inet_service : verdict
+		elements = { tcp . 192.168.105.189 . 80 : goto nat-http-test,
+			     tcp . 192.168.105.189 . 443 : goto nat-l4-test }
+	}
+
+	map services-back-m {
+		type mark : ipv4_addr
+	}
+
+	chain filter {
+		type filter hook prerouting priority mangle; policy accept;
+		meta mark 0x00000000 meta mark set ct mark
+		ip protocol . ip daddr . th dport vmap @filter-proto-services
+	}
+
+	chain filter-l4-test {
+	}
+
+	chain prerouting {
+		type nat hook prerouting priority dstnat; policy accept;
+		ct state new meta mark 0x00000000 meta mark set ct mark
+		ip protocol . ip daddr . th dport vmap @nat-proto-services
+	}
+
+	chain postrouting {
+		type nat hook postrouting priority srcnat; policy accept;
+		ct mark 0x00000000 ct mark set meta mark
+		ct mark 0x80000000/1 masquerade
+		snat to ct mark map @services-back-m
+	}
+
+	chain nat-l4-test {
+	}
+
+	chain filter-http-test {
+	}
+
+	chain nat-http-test {
+	}
+}

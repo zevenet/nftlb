@@ -78,7 +78,7 @@ sleep 1s
 			fi
 		fi
 		CURL_OUTPUT="report-req.out"
-		rm -f report-*-req.out
+		rm -f ${CURL_OUTPUT}
 		$CURL -H "Key: $APISRV_KEY" -X $VERB $CURL_ARGS http://$APISRV_ADDR:$APISRV_PORT/$URI -o "$CURL_OUTPUT" 2> /dev/null
 
 		FEXEC="pos.sh"
@@ -99,7 +99,7 @@ sleep 1s
 				fi
 			else
 				echo -en "\e[32mOK\e[0m) "
-				rm -f report-*-req.out
+				rm -f ${CURL_OUTPUT}
 			fi
 		else
 			echo -en "\e[33mUNKNOWN\e[0m) "
@@ -108,7 +108,7 @@ sleep 1s
 		# check nft output
 		CHECK_OUTPUT="nft.out"
 		NFT_OUTPUT="report-nft.out"
-		rm -f report-*-nft.out
+		rm -f ${NFT_OUTPUT}
 		echo -n "(nft:"
 		$NFTBIN list ruleset > $NFT_OUTPUT
 		if [ -f "$CHECK_OUTPUT" ] && [ -f "$NFT_OUTPUT" ]; then
@@ -121,7 +121,7 @@ sleep 1s
 				fi
 			else
 				echo -en "\e[32mOK\e[0m) "
-				rm -f report-*-nft.out
+				rm -f ${NFT_OUTPUT}
 			fi
 		else
 			echo -en "\e[33mUNKNOWN\e[0m) "
@@ -130,7 +130,7 @@ sleep 1s
 		# check nftlb objects
 		CURL_OUTPUT="report-obj.out"
 		OBJ=`echo $URI | awk -F'/' '{ printf $1 }'`
-		rm -f report-*-obj.out
+		rm -f ${CURL_OUTPUT}
 		$CURL -H "Key: $APISRV_KEY" -X GET http://$APISRV_ADDR:$APISRV_PORT/$OBJ -o "$CURL_OUTPUT" 2> /dev/null
 
 		CHECK_OUTPUT="obj.out"
@@ -145,7 +145,7 @@ sleep 1s
 				fi
 			else
 				echo -en "\e[32mOK\e[0m) "
-				rm -f report-*-obj.out
+				rm -f ${CURL_OUTPUT}
 			fi
 		else
 			echo -en "\e[33mUNKNOWN\e[0m) "

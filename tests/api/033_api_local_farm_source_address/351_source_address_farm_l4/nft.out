@@ -1,4 +1,10 @@
 table ip nftlb {
+	map nat-proto-services {
+		type inet_proto . ipv4_addr . inet_service : verdict
+		elements = { tcp . 127.0.0.1 . 80 : goto nat-newfarm,
+			     tcp . 127.0.0.1 . 90 : goto nat-newl4farm }
+	}
+
 	map services-back-m {
 		type mark : ipv4_addr
 		elements = { 0x00000200 : 127.0.0.1 }
@@ -8,11 +14,6 @@ table ip nftlb {
 		type inet_proto . ipv4_addr . inet_service : verdict
 		elements = { tcp . 127.0.0.1 . 80 : goto filter-newfarm,
 			     tcp . 127.0.0.1 . 90 : goto filter-newl4farm }
-	}
-
-	map nat-proto-services {
-		type inet_proto . ipv4_addr . inet_service : verdict
-		elements = { tcp . 127.0.0.1 . 90 : goto nat-newl4farm }
 	}
 
 	chain prerouting {
@@ -35,6 +36,9 @@ table ip nftlb {
 	}
 
 	chain filter-newfarm {
+	}
+
+	chain nat-newfarm {
 	}
 
 	chain filter-newl4farm {

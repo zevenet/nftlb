@@ -1,4 +1,9 @@
 table ip nftlb {
+	map nat-proto-services {
+		type inet_proto . ipv4_addr . inet_service : verdict
+		elements = { tcp . 192.168.1.73 . 80 : goto nat-newfarm }
+	}
+
 	map services-back-m {
 		type mark : ipv4_addr
 		elements = { 0x00000200 : 192.168.1.73 }
@@ -12,6 +17,7 @@ table ip nftlb {
 	chain prerouting {
 		type nat hook prerouting priority dstnat; policy accept;
 		ct state new meta mark 0x00000000 meta mark set ct mark
+		ip protocol . ip daddr . th dport vmap @nat-proto-services
 	}
 
 	chain postrouting {
@@ -28,5 +34,8 @@ table ip nftlb {
 	}
 
 	chain filter-newfarm {
+	}
+
+	chain nat-newfarm {
 	}
 }

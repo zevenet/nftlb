@@ -1,0 +1,44 @@
+{
+        "farms": [
+                {
+                        "name": "http-test",
+                        "family": "ipv4",
+                        "virtual-addr": "192.168.105.189",
+                        "virtual-ports": "80",
+                        "source-addr": "",
+                        "mode": "local",
+                        "protocol": "tcp",
+                        "scheduler": "rr",
+                        "sched-param": "none",
+                        "persistence": "none",
+                        "persist-ttl": "60",
+                        "helper": "none",
+                        "log": "none",
+                        "log-rtlimit": "0/second",
+                        "mark": "0x0",
+                        "priority": "1",
+                        "state": "up",
+                        "limits-ttl": "120",
+                        "new-rtlimit": "0/second",
+                        "new-rtlimit-burst": "0",
+                        "rst-rtlimit": "0/second",
+                        "rst-rtlimit-burst": "0",
+                        "est-connlimit": "0",
+                        "tcp-strict": "off",
+                        "queue": "-1",
+                        "verdict": "log drop accept",
+                        "addresses": [
+                                {
+                                        "name": "http-test-addr",
+                                        "family": "ipv4",
+                                        "ip-addr": "192.168.105.189",
+                                        "ports": "80",
+                                        "protocol": "tcp",
+                                        "used": "1"
+                                }
+                        ],
+                        "backends": [],
+                        "policies": []
+                }
+        ]
+}

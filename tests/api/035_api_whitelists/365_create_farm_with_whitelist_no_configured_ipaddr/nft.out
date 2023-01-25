@@ -9,6 +9,9 @@ table netdev nftlb {
 table ip nftlb {
 	map nat-services {
 		type inet_proto . ipv4_addr : verdict
+		elements = { tcp . 222.222.222.222 : goto nat-farmdslb,
+			     udp . 222.222.222.222 : goto nat-farmdslb,
+			     sctp . 222.222.222.222 : goto nat-farmdslb }
 	}
 
 	map services-back-m {
@@ -42,5 +45,8 @@ table ip nftlb {
 	}
 
 	chain filter-farmdslb {
+	}
+
+	chain nat-farmdslb {
 	}
 }

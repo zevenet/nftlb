@@ -1,6 +1,7 @@
 table ip nftlb {
 	map nat-proto-services {
 		type inet_proto . ipv4_addr . inet_service : verdict
+		elements = { tcp . 192.168.100.211 . 10 : goto nat-farml7 }
 	}
 
 	map services-back-m {
@@ -41,5 +42,8 @@ table ip nftlb {
 
 	chain filter-farml7 {
 		ct state new add @new-rtlimit-farml7 { ip saddr limit rate over 10/second } log prefix "new-rtlimit-farml7 " drop
+	}
+
+	chain nat-farml7 {
 	}
 }
