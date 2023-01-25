@@ -72,6 +72,7 @@ set(sources
 	include/zcu_common.h
 	include/zcu_backtrace.h
 	include/zcu_environment.h
+	include/zcu_http.h
 	include/zcu_time.h
 	include/zcu_network.h
 	include/zcu_sbuffer.h

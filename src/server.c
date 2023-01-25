@@ -36,6 +36,7 @@
 #include "events.h"
 #include "zcu_sbuffer.h"
 #include "zcu_log.h"
+#include "zcu_http.h"
 
 #define SRV_MAX_BUF				1024
 #define SRV_MAX_HEADER			300
@@ -50,11 +51,6 @@
 #define STR_DELETE_ACTION		"DELETE"
 #define STR_PATCH_ACTION		"PATCH"
 
-#define HTTP_PROTO			"HTTP/1.1 "
-#define HTTP_LINE_END			"\r\n"
-#define HTTP_HEADER_CONTENTLEN		"Content-Length: "
-#define HTTP_HEADER_KEY			"Key: "
-
 extern struct ev_io *srv_accept;
 
 enum ws_methods {
@@ -65,28 +61,12 @@ enum ws_methods {
 	WS_PATCH_ACTION,
 };
 
-enum ws_responses {
-	WS_HTTP_500,	// internal server error
-	WS_HTTP_400,	// bad request
-	WS_HTTP_401,	// unauthorized
-	WS_HTTP_404,	// not found
-	WS_HTTP_200,	// ok
-};
-
 struct nftlb_http_state {
 	enum ws_methods		method;
 	char			uri[SRV_MAX_IDENT];
 	char			*body;
 	enum ws_responses	status_code;
 	char			*body_response;
-};
-
-static const char *ws_str_responses[] = {
-	HTTP_PROTO "500 Internal Server Error" HTTP_LINE_END,
-	HTTP_PROTO "400 Bad Request" HTTP_LINE_END,
-	HTTP_PROTO "401 Unauthorized" HTTP_LINE_END,
-	HTTP_PROTO "404 Not Found" HTTP_LINE_END,
-	HTTP_PROTO "200 OK" HTTP_LINE_END,
 };
 
 struct nftlb_server {

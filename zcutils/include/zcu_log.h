@@ -64,4 +64,9 @@ int zcu_log_print(int loglevel, const char *fmt, ...);
 }
 #endif
 
+#define zcu_log_print_th(loglevel, fmt, ...)                                      \
+	zcu_log_print(loglevel, "[f:%s][th:%lx] " fmt, zcu_log_prefix,        \
+	       (unsigned int) (pthread_self()),              \
+	       ##__VA_ARGS__)
+
 #endif /* _ZCU_LOG_H_ */

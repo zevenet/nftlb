@@ -23,8 +23,8 @@
 #define _ZCU_SBUFFER_H_
 
 #include <stdarg.h>
+#include "zcu_common.h"
 
-#define ZCU_DEF_BUFFER_SIZE 4096
 #define EXTRA_SIZE 1024
 
 struct zcu_buffer {
