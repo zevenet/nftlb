@@ -10,7 +10,7 @@ In this repository is included:
 - **src/**: main source code files.
 - **include/**: include files.
 - **tests/**: automated testbed suite with example configuration files and the script *exec_tests.sh* to run all of them.
-- **tests/api**: automated testbed suite for API interactionand the script *api_tests.sh* to run all of them.
+- **tests/api**: automated testbed suite for API interaction and the script *api_tests.sh* to run all of them.
 
 ## Requirements
 nftlb depends on:
