@@ -20,6 +20,7 @@
  */
 
 #include <stdio.h>
+#include <stdbool.h>
 #include <stdlib.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -100,9 +101,39 @@ static int parse_to_http_status(int code)
 	}
 }
 
-static int auth_key(const char *recvkey)
+/*
+	Check for strings equality in constant time.
+	Taken from <https://nachtimwald.com/2017/04/02/constant-time-string-comparison-in-c/>
+*/
+static bool str_iseq(const char *s1, const char *s2)
 {
-	return (strcmp(nftserver.key, recvkey) == 0);
+	int m = 0;
+	volatile size_t i = 0;
+	volatile size_t j = 0;
+	volatile size_t k = 0;
+
+	if (s1 == NULL || s2 == NULL)
+		return false;
+
+	while (true) {
+		m |= s1[i] ^ s2[j];
+
+		if (s1[i] == '\0')
+			break;
+		i++;
+
+		if (s2[j] != '\0')
+			j++;
+		if (s2[j] == '\0')
+			k++;
+	}
+
+	return m == 0;
+}
+
+static bool auth_key(const char *recvkey)
+{
+	return str_iseq(nftserver.key, recvkey);
 }
 
 static int get_request(int fd, struct zcu_buffer *buf, struct nftlb_http_state *state)
