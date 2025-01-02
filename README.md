@@ -1,9 +1,11 @@
-# [nftlb](https://www.zevenet.com/knowledge-base/nftlb)
+# [nftlb](https://www.relianoid.com/knowledge-base/nftlb)
+**This repository has moved to [https://github.com/relianoid/nftlb](https://github.com/relianoid/nftlb)**
+
 **nftlb** stands for **nftables load balancer**, the next generation linux firewall that will replace iptables is adapted to behave as a complete load balancer and traffic distributor.
 
 nftlb is provided with a JSON API, so you can use your preferred health checker to enable/disable backends or virtual services and automate processes with it.
 
-More info: [What is nftlb?](https://www.zevenet.com/knowledge-base/nftlb/what-is-nftlb/)
+More info: [What is nftlb?](https://www.relianoid.com/knowledge-base/nftlb/what-is-nftlb/)
 
 ## Repository Contents
 In this repository is included:
@@ -267,7 +269,6 @@ This software creates the required tables named **nftlb** which are exclusive to
 
 The integration of nftlb with custom firewall rules are possible creating separated tables and playing with chain priorities. More information:
 
-[https://www.zevenet.com/knowledge-base_category/nftlb/](https://www.zevenet.com/knowledge-base_category/nftlb/)
-
+[https://www.relianoid.com/resources/knowledge-base/nftlb/](https://www.relianoid.com/resources/knowledge-base/nftlb/)
 ## Support
 Please refer to the [netfilter users mailing list](http://netfilter.org/mailinglists.html#ml-user)
